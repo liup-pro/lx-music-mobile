@@ -55,8 +55,17 @@ export default () => {
     }
     global.app_event.on('searchTypeChanged', handleTypeChange)
 
+    const handleOnlineSourceUpdated = (source: LX.OnlineSource) => {
+      if (source == searchInfo.current.source) return
+      searchInfo.current.source = source
+      void saveSearchSetting({ source })
+      listRef.current?.loadList(searchState.searchText, source, searchInfo.current.searchType)
+    }
+    global.state_event.on('onlineSourceUpdated', handleOnlineSourceUpdated)
+
     return () => {
       global.app_event.off('searchTypeChanged', handleTypeChange)
+      global.state_event.off('onlineSourceUpdated', handleOnlineSourceUpdated)
     }
   }, [])
 

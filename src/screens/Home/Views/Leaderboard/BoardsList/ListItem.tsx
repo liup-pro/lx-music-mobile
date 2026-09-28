@@ -38,7 +38,7 @@ export default ({ item, activeId, index, longPressIndex, onBoundChange, onShowMe
   return (
     <Button
       ref={buttonRef}
-      style={{ ...styles.button, backgroundColor: index == longPressIndex ? theme['c-button-background-active'] : undefined }}
+      style={{ ...styles.button, backgroundColor: index == longPressIndex ? theme['c-button-background-active'] : active ? theme['c-primary-alpha-900'] : undefined }}
       key={item.id} onLongPress={setPosition}
       onPress={() => { onBoundChange(item) }}
     >
@@ -54,10 +54,13 @@ export default ({ item, activeId, index, longPressIndex, onBoundChange, onShowMe
 
 const styles = createStyle({
   button: {
-    paddingLeft: 5,
-    paddingRight: 10,
+    paddingLeft: 10,
+    paddingRight: 12,
     paddingTop: 10,
     paddingBottom: 10,
+    marginHorizontal: 8,
+    marginBottom: 2,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },

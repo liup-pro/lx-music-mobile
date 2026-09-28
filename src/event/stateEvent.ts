@@ -36,6 +36,10 @@ export class StateEvent extends Event {
     this.emit('apiSourceUpdated', source)
   }
 
+  onlineSourceUpdated(source: LX.OnlineSource) {
+    this.emit('onlineSourceUpdated', source)
+  }
+
   themeUpdated(theme: LX.ActiveTheme) {
     this.emit('themeUpdated', theme)
   }

@@ -48,10 +48,6 @@ export default forwardRef<ActiveListType, ActiveListProps>(({ onShowSearchBar, o
     },
   }))
 
-  const showList = () => {
-    global.app_event.changeLoveListVisible(true)
-  }
-
   useEffect(() => {
     void getListPrevSelectId().then((id) => {
       setActiveList(id)
@@ -59,8 +55,7 @@ export default forwardRef<ActiveListType, ActiveListProps>(({ onShowSearchBar, o
   }, [])
 
   return (
-    <TouchableOpacity onPress={showList} onLongPress={onScrollToTop} style={{ ...styles.currentList, opacity: visibleBar ? 1 : 0, borderBottomColor: theme['c-border-background'] }}>
-      <Icon style={styles.currentListIcon} color={theme['c-button-font']} name="chevron-right" size={12} />
+    <TouchableOpacity onLongPress={onScrollToTop} style={{ ...styles.currentList, opacity: visibleBar ? 1 : 0, borderBottomColor: theme['c-border-background'] }}>
       { fetching ? <Loading color={theme['c-button-font']} style={styles.loading} /> : null }
       <Text style={styles.currentListText} numberOfLines={1} color={theme['c-button-font']}>{currentListName}</Text>
       <TouchableOpacity style={styles.currentListBtns} onPress={onShowSearchBar}>
@@ -78,23 +73,14 @@ const styles = createStyle({
     height: 36,
     alignItems: 'center',
     borderBottomWidth: BorderWidths.normal,
-    // backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  currentListIcon: {
-    paddingLeft: 15,
-    paddingRight: 10,
-    // paddingTop: 10,
-    // paddingBottom: 0,
   },
   currentListText: {
     flex: 1,
-    // minWidth: 70,
-    // paddingLeft: 10,
-    paddingRight: 10,
-    // paddingTop: 10,
-    // paddingBottom: 10,
+    paddingLeft: 16,
+    fontWeight: '600',
   },
   loading: {
+    marginLeft: 12,
     marginRight: 5,
   },
   currentListBtns: {
@@ -102,6 +88,5 @@ const styles = createStyle({
     justifyContent: 'center',
     alignItems: 'center',
     height: '100%',
-    // backgroundColor: 'rgba(0,0,0,0.2)',
   },
 })

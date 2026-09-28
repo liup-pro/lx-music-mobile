@@ -18,9 +18,11 @@ import IsShowBackBtn from './IsShowBackBtn'
 import IsShowExitBtn from './IsShowExitBtn'
 import DrawerLayoutPosition from './DrawerLayoutPosition'
 import { useI18n } from '@/lang/i18n'
+import { useHorizontalMode } from '@/utils/hooks'
 
 export default memo(() => {
   const t = useI18n()
+  const isHorizontalMode = useHorizontalMode()
 
 
   return (
@@ -35,7 +37,9 @@ export default memo(() => {
       <IsUseSystemFileSelector />
       <IsAlwaysKeepStatusbarHeight />
       <Theme />
-      <DrawerLayoutPosition />
+      {
+        isHorizontalMode ? <DrawerLayoutPosition /> : null
+      }
       <Language />
       <FontSize />
       <ShareType />

@@ -1,36 +1,30 @@
-import { useRef, forwardRef, useImperativeHandle } from 'react'
-// import { Icon } from '@/components/common/Icon'
-import Button from '@/components/common/Button'
-// import { navigations } from '@/navigation'
+import { useRef } from 'react'
+import { TouchableOpacity } from 'react-native'
+
 import Modal, { type ModalType } from './Modal'
-import { type Source } from '@/store/songlist/state'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { useI18n } from '@/lang'
+import { useTheme } from '@/store/theme/hook'
 import { navigations } from '@/navigation'
 import commonState from '@/store/common/state'
+import { getActiveSource } from '@/core/onlineSource'
+import { type Source } from '@/store/songlist/state'
 
-// export interface OpenListProps {
-//   onTagChange: (name: string, id: string) => void
-// }
 
-export interface OpenListType {
-  setInfo: (source: Source) => void
-}
-
-export default forwardRef<OpenListType, {}>((props, ref) => {
+export default () => {
   const t = useI18n()
+  const theme = useTheme()
   const modalRef = useRef<ModalType>(null)
-  const songlistInfoRef = useRef<{ source: Source }>({ source: 'kw' })
+  const sourceRef = useRef<Source>(getActiveSource() as Source)
 
-  useImperativeHandle(ref, () => ({
-    setInfo(source) {
-      songlistInfoRef.current.source = source
-    },
-  }))
+  const getSource = () => {
+    const source = getActiveSource() as Source
+    sourceRef.current = source
+    return source
+  }
 
   const handleOpenSonglist = (id: string) => {
-    // console.log(id, songlistInfoRef.current.source)
     navigations.pushSonglistDetailScreen(commonState.componentIds.home!, {
       play_count: undefined,
       id,
@@ -38,31 +32,25 @@ export default forwardRef<OpenListType, {}>((props, ref) => {
       name: '',
       img: undefined,
       desc: undefined,
-      source: songlistInfoRef.current.source,
+      source: sourceRef.current,
     })
   }
 
-  // const handleSourceChange: ModalProps['onSourceChange'] = (source) => {
-  //   songlistInfoRef.current.source = source
-  // }
-
-
   return (
     <>
-      <Button style={styles.button} onPress={() => modalRef.current?.show(songlistInfoRef.current.source)}>
-        <Text>{t('songlist_open')}</Text>
-      </Button>
+      <TouchableOpacity style={styles.button} activeOpacity={.6} onPress={() => { modalRef.current?.show(getSource()) }}>
+        <Text size={14} color={theme['c-primary-font-active']} numberOfLines={1}>{t('songlist_open')}</Text>
+      </TouchableOpacity>
       <Modal ref={modalRef} onOpenId={handleOpenSonglist} />
     </>
   )
-})
+}
 
 const styles = createStyle({
   button: {
-    // backgroundColor: '#ccc',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingLeft: 12,
-    paddingRight: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
 })
