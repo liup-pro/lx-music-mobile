@@ -1,5 +1,5 @@
 import { memo, useRef } from 'react'
-import { View, TouchableOpacity } from 'react-native'
+import { View, TouchableOpacity, Pressable } from 'react-native'
 // import Button from '@/components/common/Button'
 import Text from '@/components/common/Text'
 import Badge, { type BadgeType } from '@/components/common/Badge'
@@ -59,11 +59,16 @@ export default memo(({ item, index, showSource, onPress, onLongPress, onShowMenu
   const singer = `${item.singer}${isShowAlbumName && item.meta.albumName ? ` · ${item.meta.albumName}` : ''}`
 
   return (
-    <View style={{ ...styles.listItem, width: rowInfo.rowWidth, height: ITEM_HEIGHT, backgroundColor: isSelected ? theme['c-primary-background-hover'] : 'rgba(0,0,0,0)' }}>
-      <TouchableOpacity style={styles.listItemLeft} onPress={() => { onPress(item, index) }} onLongPress={() => { onLongPress(item, index) }}>
-        <Text style={styles.sn} size={13} color={theme['c-300']}>{index + 1}</Text>
+    <View style={{ ...styles.listItem, width: rowInfo.rowWidth, height: ITEM_HEIGHT, backgroundColor: isSelected ? theme['c-primary-background-hover'] : 'transparent' }}>
+      <Pressable
+        style={styles.listItemLeft}
+        android_ripple={{ color: theme['c-primary-light-200-alpha-700'], borderless: false, foreground: true }}
+        onPress={() => { onPress(item, index) }}
+        onLongPress={() => { onLongPress(item, index) }}
+      >
+        <Text style={index < 3 ? styles.snActive : styles.sn} size={13} color={index < 3 ? theme['c-primary'] : theme['c-300']}>{index + 1}</Text>
         <View style={styles.itemInfo}>
-          <Text numberOfLines={1}>{item.name}</Text>
+          <Text numberOfLines={1} style={styles.name}>{item.name}</Text>
           <View style={styles.listItemSingle}>
             { tagInfo.type ? <Badge type={tagInfo.type}>{tagInfo.text}</Badge> : null }
             { showSource ? <Badge type="tertiary">{item.source}</Badge> : null }
@@ -75,8 +80,8 @@ export default memo(({ item, index, showSource, onPress, onLongPress, onShowMenu
             <Text size={12} color={theme['c-250']} numberOfLines={1}>{item.interval}</Text>
           ) : null
         }
-      </TouchableOpacity>
-     <TouchableOpacity onPress={handleShowMenu} ref={moreButtonRef} style={styles.moreButton}>
+      </Pressable>
+     <TouchableOpacity onPress={handleShowMenu} ref={moreButtonRef} activeOpacity={.6} style={styles.moreButton}>
         <Icon name="dots-vertical" style={{ color: theme['c-350'] }} size={12} />
       </TouchableOpacity>
     </View>
@@ -92,13 +97,11 @@ export default memo(({ item, index, showSource, onPress, onLongPress, onShowMenu
 
 const styles = createStyle({
   listItem: {
-    // width: '100%',
     flexDirection: 'row',
     flexWrap: 'nowrap',
-    // paddingLeft: 10,
+    paddingLeft: 4,
     paddingRight: 2,
     alignItems: 'center',
-    // borderBottomWidth: BorderWidths.normal,
   },
   listItemLeft: {
     flex: 1,
@@ -109,45 +112,40 @@ const styles = createStyle({
   },
   sn: {
     width: 38,
-    // fontSize: 12,
     textAlign: 'center',
-    // backgroundColor: 'rgba(0,0,0,0.2)',
     paddingLeft: 3,
     paddingRight: 3,
+  },
+  snActive: {
+    width: 38,
+    textAlign: 'center',
+    paddingLeft: 3,
+    paddingRight: 3,
+    fontWeight: '700',
+  },
+  name: {
+    fontWeight: '500',
   },
   itemInfo: {
     flexGrow: 1,
     flexShrink: 1,
     paddingRight: 2,
-    // paddingTop: 10,
-    // paddingBottom: 10,
   },
-  // listItemTitle: {
-  //   // backgroundColor: 'rgba(0,0,0,0.2)',
-  //   flexGrow: 0,
-  //   flexShrink: 1,
-  //   // fontSize: 15,
-  // },
   listItemSingle: {
     paddingTop: 2,
     flexDirection: 'row',
     alignItems: 'center',
-    // alignItems: 'flex-end',
-    // backgroundColor: 'rgba(0,0,0,0.2)',
   },
   listItemTimeLabel: {
     marginRight: 5,
     fontWeight: '400',
   },
   listItemSingleText: {
-    // fontSize: 13,
-    // paddingTop: 2,
     flexGrow: 0,
     flexShrink: 1,
     fontWeight: '300',
   },
   listItemBadge: {
-    // fontSize: 10,
     paddingLeft: 5,
     paddingTop: 2,
     alignSelf: 'flex-start',
@@ -162,10 +160,6 @@ const styles = createStyle({
     height: '80%',
     paddingLeft: 16,
     paddingRight: 16,
-    // paddingTop: 10,
-    // paddingBottom: 10,
-    // backgroundColor: 'rgba(0,0,0,0.2)',
     justifyContent: 'center',
   },
 })
-

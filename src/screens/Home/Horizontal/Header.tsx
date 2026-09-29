@@ -24,7 +24,7 @@ const HEADER_HEIGHT = _HEADER_HEIGHT * 0.8
 //   const id = useNavActiveId()
 //   const t = useI18n()
 
-//   return <Text style={styles.leftTitle} size={18}>{t(id)}</Text>
+//   return <Text style={styles.leftTitle} size={20} numberOfLines={1}>{t(id)}</Text>
 // }
 const LeftHeader = () => {
   const id = useNavActiveId()
@@ -38,7 +38,7 @@ const LeftHeader = () => {
       paddingTop: statusBarHeight,
     }}>
       <View style={styles.left}>
-        <Text style={styles.leftTitle} size={18}>{t(id)}</Text>
+        <Text style={styles.leftTitle} size={20} numberOfLines={1}>{t(id)}</Text>
       </View>
       {headerComponents[id] ?? null}
 
@@ -54,7 +54,7 @@ const LeftHeader = () => {
 //   const id = useNavActiveId()
 //   const t = useI18n()
 
-//   return <Text style={styles.rightTitle} size={18}>{t(id)}</Text>
+//   return <Text style={styles.rightTitle} size={20} numberOfLines={1}>{t(id)}</Text>
 // }
 const RightHeader = () => {
   const t = useI18n()
@@ -68,7 +68,7 @@ const RightHeader = () => {
       paddingTop: statusBarHeight,
     }}>
       <View style={styles.left}>
-        <Text style={styles.rightTitle} size={18}>{t(id)}</Text>
+        <Text style={styles.rightTitle} size={20} numberOfLines={1}>{t(id)}</Text>
       </View>
       {headerComponents[id] ?? null}
       {/* <TouchableOpacity style={styles.btn} onPress={openSetting}>
@@ -128,10 +128,12 @@ const styles = createStyle({
     justifyContent: 'center',
   },
   leftTitle: {
+    fontWeight: '700',
     paddingLeft: 10,
     paddingRight: 16,
   },
   rightTitle: {
+    fontWeight: '700',
     paddingLeft: 16,
     paddingRight: 16,
   },

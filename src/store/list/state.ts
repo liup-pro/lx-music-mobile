@@ -22,7 +22,7 @@ const state: InitState = {
   allMusicList: new Map(),
   defaultList: {
     id: LIST_IDS.DEFAULT,
-    name: '试听列表',
+    name: '试听历史',
   },
   loveList: {
     id: LIST_IDS.LOVE,

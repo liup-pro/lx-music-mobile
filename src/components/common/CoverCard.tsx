@@ -34,7 +34,7 @@ export default memo(({ img, title, subtitle, playCount, width, radius = 16, onPr
   const theme = useTheme()
   const count = formatPlayCount(playCount)
   return (
-    <TouchableOpacity activeOpacity={.8} onPress={onPress} style={{ width }}>
+    <TouchableOpacity activeOpacity={.8} onPress={onPress} accessibilityRole='button' accessibilityLabel={title} style={{ width }}>
       <View style={{ ...styles.cover, width, height: width, borderRadius: radius }}>
         {
           img

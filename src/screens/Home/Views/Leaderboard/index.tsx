@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { FlatList, ScrollView, TouchableOpacity, View } from 'react-native'
+import { FlatList, View } from 'react-native'
 
 import BoardCard from '@/components/common/BoardCard'
 import Text from '@/components/common/Text'
@@ -7,42 +7,14 @@ import { useTheme } from '@/store/theme/hook'
 import { useI18n } from '@/lang'
 import { createStyle, isHorizontalMode } from '@/utils/tools'
 import { useWindowSize } from '@/utils/hooks'
-import { useSettingValue } from '@/store/setting/hook'
 import { getBoardsList } from '@/core/leaderboard'
-import { ONLINE_SOURCES, getActiveSource, initOnlineSource, setActiveSource } from '@/core/onlineSource'
+import { getActiveSource, initOnlineSource } from '@/core/onlineSource'
 import { type BoardItem } from '@/store/leaderboard/state'
 import commonState from '@/store/common/state'
 import { navigations } from '@/navigation'
 
 const PADDING = 16
 const GAP = 12
-
-const SourceChips = ({ active }: { active: LX.OnlineSource }) => {
-  const theme = useTheme()
-  const t = useI18n()
-  const sourceNameType = useSettingValue('common.sourceNameType')
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-      {
-        ONLINE_SOURCES.map(s => {
-          const isActive = s == active
-          return (
-            <TouchableOpacity
-              key={s}
-              activeOpacity={.8}
-              onPress={() => { setActiveSource(s) }}
-              style={{ ...styles.chip, backgroundColor: isActive ? theme['c-primary-alpha-900'] : theme['c-button-background'] }}
-            >
-              <Text size={13} color={isActive ? theme['c-primary-font-active'] : theme['c-font']} style={{ fontWeight: isActive ? '700' : '400' }}>
-                {t(`source_${sourceNameType}_${s}`)}
-              </Text>
-            </TouchableOpacity>
-          )
-        })
-      }
-    </ScrollView>
-  )
-}
 
 export default () => {
   const theme = useTheme()
@@ -90,13 +62,9 @@ export default () => {
   )
 
   const header = useMemo(() => (
-    <>
-      <Text size={13} color={theme['c-font-label']} style={styles.desc}>{t('toplist_tip')}</Text>
-      <SourceChips active={source} />
-      <Text size={17} color={theme['c-font']} style={styles.groupTitle}>{t('toplist_boards')}</Text>
-    </>
+    <Text size={13} color={theme['c-font-label']} style={styles.desc}>{t('toplist_tip')}</Text>
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [theme, source, t])
+  ), [theme, t])
 
   return (
     <View style={styles.container} onLayout={e => { setBodyWidth(e.nativeEvent.layout.width) }}>
@@ -129,21 +97,6 @@ const styles = createStyle({
     gap: GAP,
   },
   desc: {
-    paddingBottom: 12,
-  },
-  chipRow: {
-    paddingBottom: 16,
-    gap: 8,
-  },
-  chip: {
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  groupTitle: {
-    fontWeight: '800',
     paddingBottom: 12,
   },
 })

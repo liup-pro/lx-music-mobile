@@ -38,7 +38,7 @@ const Header = () => {
         {
           isHome ? (
             <View style={styles.homeRow}>
-              <Text style={styles.title} size={22} color={theme['c-font']}>{t(id)}</Text>
+              <Text style={styles.title} size={20} color={theme['c-font']} numberOfLines={1}>{t(id)}</Text>
               <View style={styles.actions}>
                 <ApiSourceSelector />
                 <TouchableOpacity style={styles.headerIcon} activeOpacity={.6} onPress={() => { setNavActiveId('nav_search') }}>

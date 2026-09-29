@@ -1,22 +1,28 @@
-import { useRef, useImperativeHandle, forwardRef, useState } from 'react'
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
+import { ScrollView, TouchableOpacity, View } from 'react-native'
+
 import { useI18n } from '@/lang'
-import Menu, { type Menus, type MenuType, type Position } from '@/components/common/Menu'
+import { useTheme } from '@/store/theme/hook'
+import { createStyle } from '@/utils/tools'
+import Text from '@/components/common/Text'
+import Popup, { type PopupType } from '@/components/common/Popup'
 import { LIST_IDS } from '@/config/constant'
 import musicSdk from '@/utils/musicSdk'
-import { scaleSizeW } from '@/utils/pixelRatio'
 import listState from '@/store/list/state'
 
 export interface SelectInfo {
   listInfo: LX.List.MyListInfo
-  // selectedList: LX.Music.MusicInfo[]
   index: number
-  // listId: string
-  // single: boolean
 }
-const initSelectInfo = {}
 
-const menuItemWidth = scaleSizeW(110)
+// 兼容旧调用签名（底部面板不再需要锚点坐标，position 保留但忽略）
+export interface Position { x?: number, y?: number, w?: number, h?: number }
 
+interface MenuAction {
+  action: string
+  label: string
+  disabled?: boolean
+}
 
 export interface ListMenuProps {
   onNew: (position: number) => void
@@ -30,13 +36,12 @@ export interface ListMenuProps {
   onRemove: (listInfo: LX.List.UserListInfo) => void
 }
 export interface ListMenuType {
-  show: (selectInfo: SelectInfo, position: Position) => void
+  show: (selectInfo: SelectInfo, position?: Position) => void
 }
 
-export type {
-  Position,
-}
+const initSelectInfo: SelectInfo | null = null
 
+/** 长按/点击歌单后的管理动作面板（底部弹出，取代原锚定悬浮菜单） */
 export default forwardRef<ListMenuType, ListMenuProps>(({
   onNew,
   onRename,
@@ -49,44 +54,40 @@ export default forwardRef<ListMenuType, ListMenuProps>(({
   onRemove,
 }, ref) => {
   const t = useI18n()
-  const menuRef = useRef<MenuType>(null)
-  const selectInfoRef = useRef<SelectInfo>(initSelectInfo as SelectInfo)
-  const [menus, setMenus] = useState<Menus>([])
-  const [visible, setVisible] = useState(false)
+  const theme = useTheme()
+  const popupRef = useRef<PopupType>(null)
+  const selectInfoRef = useRef<SelectInfo | null>(initSelectInfo)
+  const [title, setTitle] = useState('')
+  const [menus, setMenus] = useState<MenuAction[]>([])
 
   useImperativeHandle(ref, () => ({
-    show(selectInfo, position) {
+    show(selectInfo) {
       selectInfoRef.current = selectInfo
-      handleSetMenu(selectInfo.listInfo)
-      if (visible) menuRef.current?.show(position)
-      else {
-        setVisible(true)
-        requestAnimationFrame(() => {
-          menuRef.current?.show(position)
-        })
-      }
+      setTitle(selectInfo.listInfo.name)
+      setMenus(buildMenus(selectInfo.listInfo))
+      popupRef.current?.setVisible(true)
     },
   }))
 
-  const handleSetMenu = (listInfo: LX.List.MyListInfo) => {
+  const buildMenus = (listInfo: LX.List.MyListInfo): MenuAction[] => {
     let rename = false
     let sync = false
     let remove = false
-    let local_file = !listState.fetchingListStatus[listInfo.id]
-    let userList: LX.List.UserListInfo
+    const local_file = !listState.fetchingListStatus[listInfo.id]
     switch (listInfo.id) {
       case LIST_IDS.DEFAULT:
       case LIST_IDS.LOVE:
         break
-      default:
-        userList = listInfo as LX.List.UserListInfo
+      default: {
+        const userList = listInfo as LX.List.UserListInfo
         rename = true
         remove = true
         sync = !!(userList.source && musicSdk[userList.source]?.songList)
         break
+      }
     }
 
-    setMenus([
+    return [
       { action: 'new', label: t('list_create') },
       { action: 'rename', disabled: !rename, label: t('list_rename') },
       { action: 'sort', label: t('list_sort') },
@@ -95,58 +96,88 @@ export default forwardRef<ListMenuType, ListMenuProps>(({
       { action: 'sync', disabled: !sync || !local_file, label: t('list_sync') },
       { action: 'import', label: t('list_import') },
       { action: 'export', label: t('list_export') },
-      // { action: 'changePosition', label: t('change_position') },
       { action: 'remove', disabled: !remove, label: t('list_remove') },
-    ])
+    ]
   }
 
-  const handleMenuPress = ({ action }: typeof menus[number]) => {
+  const handlePress = (menu: MenuAction) => {
+    if (menu.disabled) return
+    popupRef.current?.setVisible(false)
     const selectInfo = selectInfoRef.current
-    switch (action) {
+    if (!selectInfo) return
+    const { listInfo, index } = selectInfo
+    switch (menu.action) {
       case 'new':
-        onNew(Math.max(selectInfo.index - 1, 0))
+        onNew(Math.max(index - 1, 0))
         break
       case 'rename':
-        onRename(selectInfo.listInfo as LX.List.UserListInfo)
+        onRename(listInfo as LX.List.UserListInfo)
         break
       case 'sort':
-        onSort(selectInfo.listInfo)
+        onSort(listInfo)
         break
       case 'duplicateMusic':
-        onDuplicateMusic(selectInfo.listInfo)
+        onDuplicateMusic(listInfo)
         break
       case 'import':
-        onImport(selectInfo.listInfo, selectInfo.index)
+        onImport(listInfo, index)
         break
       case 'export':
-        onExport(selectInfo.listInfo, selectInfo.index)
+        onExport(listInfo, index)
         break
       case 'sync':
-        onSync(selectInfo.listInfo as LX.List.UserListInfo)
+        onSync(listInfo as LX.List.UserListInfo)
         break
-        // case 'changePosition':
-
-        //   break
       case 'local_file':
-        onSelectLocalFile(selectInfo.listInfo, selectInfo.index)
+        onSelectLocalFile(listInfo, index)
         break
       case 'remove':
-        onRemove(selectInfo.listInfo as LX.List.UserListInfo)
+        onRemove(listInfo as LX.List.UserListInfo)
         break
-
       default:
         break
     }
   }
 
   return (
-    visible
-      ? <Menu
-          ref={menuRef}
-          menus={menus}
-          onPress={handleMenuPress}
-          width={menuItemWidth}
-        />
-      : null
+    <Popup ref={popupRef} title={title}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        {
+          menus.map(menu => (
+            <TouchableOpacity
+              key={menu.action}
+              activeOpacity={0.7}
+              disabled={menu.disabled}
+              onPress={() => { handlePress(menu) }}
+              style={{ ...styles.row, borderBottomColor: theme['c-border-background'] }}
+            >
+              <Text size={15} color={menu.disabled ? theme['c-font-label'] : theme['c-font']} style={{ opacity: menu.disabled ? 0.5 : 1 }}>
+                {menu.label}
+              </Text>
+            </TouchableOpacity>
+          ))
+        }
+        <View style={styles.bottomSpace} />
+      </ScrollView>
+    </Popup>
   )
+})
+
+const styles = createStyle({
+  scroll: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  content: {
+    paddingHorizontal: 12,
+  },
+  row: {
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+  },
+  bottomSpace: {
+    height: 12,
+  },
 })

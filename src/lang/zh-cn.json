@@ -15,6 +15,7 @@
   "change_position_tip": "请输入新的位置",
   "close": "关闭",
   "collect": "收藏",
+  "collected": "已收藏",
   "collect_songlist": "收藏歌单",
   "collect_success": "收藏成功",
   "collect_toplist": "收藏排行榜",
@@ -86,7 +87,7 @@
   "list_multi_add_title_first_add": "添加已选的",
   "list_multi_add_title_first_move": "移动已选的",
   "list_multi_add_title_last": "首歌曲到...",
-  "list_name_default": "试听列表",
+  "list_name_default": "试听历史",
   "list_name_love": "我的收藏",
   "list_name_temp": "临时列表",
   "list_remove": "移除",
@@ -539,6 +540,8 @@
   "home_unit_song": "首",
   "toplist_desc": "各大平台实时榜单",
   "songlist_desc": "按分类挑选你喜欢的歌单",
-  "toplist_boards": "榜单",
-  "toplist_tip": "点击榜单查看全部歌曲"
+  "toplist_tip": "点击榜单查看全部歌曲",
+  "mylist_all_title": "全部歌单",
+    "mylist_search_placeholder": "搜索歌单名称…",
+  "mylist_manage_tip": "长按歌单可重命名、排序、删除等管理"
 }

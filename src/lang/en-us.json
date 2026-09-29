@@ -15,6 +15,7 @@
   "change_position_tip": "Please enter a new position",
   "close": "Close",
   "collect": "Collect",
+  "collected": "Collected",
   "collect_songlist": "Collect",
   "collect_success": "Successfully collected",
   "collect_toplist": "Collect Top playlist",
@@ -86,7 +87,7 @@
   "list_multi_add_title_first_add": "Add the selected",
   "list_multi_add_title_first_move": "Move the selected",
   "list_multi_add_title_last": "songs to ...",
-  "list_name_default": "Default",
+  "list_name_default": "Play History",
   "list_name_love": "Loved",
   "list_name_temp": "Temp List",
   "list_remove": "Remove",
@@ -539,6 +540,8 @@
   "home_unit_song": " songs",
   "toplist_desc": "Live charts from every platform",
   "songlist_desc": "Browse playlists by category",
-  "toplist_boards": "Charts",
-  "toplist_tip": "Tap a chart to see all songs"
+  "toplist_tip": "Tap a chart to see all songs",
+  "mylist_all_title": "All Playlists",
+    "mylist_search_placeholder": "Search playlist name…",
+  "mylist_manage_tip": "Long press a playlist to rename, sort or remove it"
 }

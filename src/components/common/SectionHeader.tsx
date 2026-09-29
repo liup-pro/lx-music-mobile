@@ -18,7 +18,7 @@ export default ({ title, onPressMore, onPressPlayAll, style }: SectionHeaderProp
   return (
     <View style={{ ...styles.container, ...style }}>
       <View style={styles.left}>
-        <Text size={19} color={theme['c-font']} style={styles.title}>{title}</Text>
+        <Text size={16} color={theme['c-font']} style={styles.title}>{title}</Text>
         <View style={{ ...styles.dot, backgroundColor: theme['c-primary'] }} />
       </View>
       {

@@ -34,7 +34,8 @@ export const handlePlay = async(id: string, source: Source, list?: LX.Music.Musi
 export const handleCollect = async(id: string, source: Source, name: string) => {
   const listId = getListId(id, source)
 
-  const targetList = listState.userList.find(l => l.sourceListId == listId)
+  // 收藏时 createList 存储的是裸 id（sourceListId: id），检测也需按 source + 裸 id 匹配，否则永不命中导致重复收藏
+  const targetList = listState.userList.find(l => l.source == source && l.sourceListId == id)
   if (targetList) {
     const confirm = await confirmDialog({
       message: global.i18n.t('duplicate_list_tip', { name: targetList.name }),

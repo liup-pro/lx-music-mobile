@@ -1,17 +1,12 @@
-import { useEffect, useRef } from 'react'
-import { View } from 'react-native'
+import { useEffect, useMemo, useRef } from 'react'
 
-import Header, { type HeaderProps } from './Header'
-import MusicList, { type MusicListType } from '@/screens/Home/Views/Leaderboard/MusicList'
-import { handleCollect, handlePlay } from '@/screens/Home/Views/Leaderboard/listAction'
-import boardState from '@/store/leaderboard/state'
-import PageContent from '@/components/PageContent'
-import StatusBar from '@/components/common/StatusBar'
-import PlayerBar from '@/components/player/PlayerBar'
+import ListDetail, { type ListDetailAdapter, type ListDetailPageResult, type ListDetailType } from '@/components/common/ListDetail'
 import { setComponentId } from '@/core/common'
 import { COMPONENT_IDS } from '@/config/constant'
-import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useI18n } from '@/lang'
+import { clearListDetail, getListDetail, setListDetail, setListDetailInfo } from '@/core/leaderboard'
+import boardState from '@/store/leaderboard/state'
+import { handleCollect, handlePlay } from '@/screens/Home/Views/Leaderboard/listAction'
 
 export interface LeaderboardDetailProps {
   componentId: string
@@ -19,41 +14,48 @@ export interface LeaderboardDetailProps {
 }
 
 export default ({ componentId, info }: LeaderboardDetailProps) => {
-  const theme = useTheme()
-  const musicListRef = useRef<MusicListType>(null)
+  const t = useI18n()
+  const detailRef = useRef<ListDetailType>(null)
+
+  const adapter = useMemo<ListDetailAdapter>(() => ({
+    async loadPage(id, _source, page, isRefresh): Promise<ListDetailPageResult> {
+      if (page == 1 && !isRefresh) setListDetailInfo(id)
+      try {
+        const detail = await getListDetail(id, page, isRefresh)
+        const result = setListDetail(detail, id, page)
+        return {
+          list: result.list,
+          ended: boardState.listDetailInfo.maxPage <= page,
+        }
+      } catch (e) {
+        if (boardState.listDetailInfo.list.length && page == 1) clearListDetail()
+        throw e
+      }
+    },
+    playList: (id, _source, list, index) => {
+      void handlePlay(id, list, index)
+    },
+    collect: (id, source, name) => {
+      void handleCollect(id, name, source)
+    },
+  }), [])
 
   useEffect(() => {
     setComponentId(COMPONENT_IDS.leaderboardDetail, componentId)
-    musicListRef.current?.loadList(info.source, info.id)
+    detailRef.current?.loadList(info.source, info.id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const onPlay: HeaderProps['onPlay'] = () => {
-    void handlePlay(info.id, boardState.listDetailInfo.list)
-  }
-  const onCollect: HeaderProps['onCollect'] = () => {
-    void handleCollect(info.id, info.name, info.source)
-  }
-
+  // 与歌单详情共用同一 ListDetail 组件，仅注入不同数据来源适配器
   return (
-    <PageContent>
-      <StatusBar />
-      <Header name={info.name} onPlay={onPlay} onCollect={onCollect} />
-      <View style={{ ...styles.card, backgroundColor: theme['c-button-background'] }}>
-        <MusicList ref={musicListRef} />
-      </View>
-      <PlayerBar isHome />
-    </PageContent>
+    <ListDetail
+      ref={detailRef}
+      componentId={componentId}
+      sourceListId={`board__${info.id}`}
+      info={{ id: info.id, name: info.name, source: info.source, desc: t('toplist_desc') }}
+      adapter={adapter}
+      playerBarIsHome
+      checkHomePagerIdle
+    />
   )
 }
-
-const styles = createStyle({
-  card: {
-    flex: 1,
-    marginHorizontal: 12,
-    marginTop: 12,
-    marginBottom: 8,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-})

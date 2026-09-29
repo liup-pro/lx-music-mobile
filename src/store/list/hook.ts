@@ -82,6 +82,25 @@ export const useMusicExistsList = (list: LX.List.MyListInfo, musicInfo: LX.Music
   return isExists
 }
 
+/** 派生“该来源歌单/榜单是否已收藏（存在同来源同 sourceListId 的用户列表）”，并在列表变更时实时更新 */
+export const useListCollected = (source: LX.OnlineSource, sourceListId: string) => {
+  const [collected, setCollected] = useState(() =>
+    state.userList.some(l => l.source == source && l.sourceListId == sourceListId))
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setCollected(state.userList.some(l => l.source == source && l.sourceListId == sourceListId))
+    }
+    handleUpdate()
+    global.state_event.on('mylistUpdated', handleUpdate)
+    return () => {
+      global.state_event.off('mylistUpdated', handleUpdate)
+    }
+  }, [source, sourceListId])
+
+  return collected
+}
+
 export const useListFetching = (listId: string) => {
   const [fetching, setFetching] = useState(!!state.fetchingListStatus[listId])
 

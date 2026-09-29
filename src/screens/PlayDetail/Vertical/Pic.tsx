@@ -9,10 +9,13 @@ import { useNavigationComponentDidAppear } from '@/navigation'
 import { HEADER_HEIGHT } from './components/Header'
 import Image from '@/components/common/Image'
 import { useStatusbarHeight } from '@/store/common/hook'
+import { useTheme } from '@/store/theme/hook'
 import commonState from '@/store/common/state'
 
+const COVER_RADIUS = 16
 
 export default ({ componentId }: { componentId: string }) => {
+  const theme = useTheme()
   const musicInfo = usePlayerMusicInfo()
   const { width: winWidth, height: winHeight } = useWindowSize()
   const statusBarHeight = useStatusbarHeight()
@@ -29,17 +32,29 @@ export default ({ componentId }: { componentId: string }) => {
   // console.log('render pic')
 
   const style = useMemo(() => {
-    const imgWidth = Math.min(winWidth * 0.8, (winHeight - statusBarHeight - HEADER_HEIGHT) * 0.5)
+    const imgWidth = Math.min(winWidth * 0.82, (winHeight - statusBarHeight - HEADER_HEIGHT) * 0.52)
     return {
       width: imgWidth,
       height: imgWidth,
-      borderRadius: 2,
+      borderRadius: COVER_RADIUS,
     }
   }, [statusBarHeight, winHeight, winWidth])
 
+  // 封面主色氛围底：略大于封面、低透明主色圆角块，营造主流 App 的沉浸式光晕（明暗主题均成立）
+  const glowStyle = useMemo(() => ({
+    position: 'absolute' as const,
+    left: -14,
+    right: -14,
+    top: -14,
+    bottom: -14,
+    borderRadius: COVER_RADIUS + 14,
+    backgroundColor: theme['c-primary-alpha-900'],
+  }), [theme])
+
   return (
     <View style={styles.container}>
-      <View style={{ ...styles.content, elevation: animated ? 3 : 0 }}>
+      <View style={{ ...styles.content, elevation: animated ? 8 : 0 }}>
+        <View style={glowStyle} />
         <Image url={pic} nativeID={NAV_SHEAR_NATIVE_IDS.playDetail_pic} style={style} />
       </View>
     </View>
@@ -55,8 +70,7 @@ const styles = createStyle({
     // backgroundColor: 'rgba(0,0,0,0.1)',
   },
   content: {
-    // elevation: 3,
-    backgroundColor: 'rgba(0,0,0,0)',
-    borderRadius: 4,
+    // backgroundColor: 'rgba(0,0,0,0)',
+    borderRadius: COVER_RADIUS,
   },
 })

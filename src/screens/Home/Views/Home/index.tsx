@@ -24,6 +24,16 @@ const PAGE_PADDING = 16
 const GAP = 12
 const TRY_SOURCES: LX.OnlineSource[] = ['kw', 'kg', 'tx', 'wy', 'mg']
 
+// 叠图遮罩 / 图上文字色：因覆盖在任意封面照片之上，无法走主题变量，集中在此统一管理（主题规则的合理例外）
+const SCRIM = {
+  strong: 'rgba(0,0,0,0.45)', // Hero 封面底部渐变遮罩
+  glass: 'rgba(255,255,255,0.16)', // 半透明玻璃胶囊
+  onImage: '#fff', // 图上主标题
+  onImageSoft: 'rgba(255,255,255,0.85)', // 图上次要文字
+  onImageFaint: 'rgba(255,255,255,0.9)', // 图上角标文字/图标
+  onImageSolid: 'rgba(255,255,255,0.92)', // 播放按钮底
+}
+
 type SongItem = LX.Music.MusicInfoOnline
 interface BoardData { id: string, name: string, list: SongItem[] }
 
@@ -58,7 +68,7 @@ const SingerItem = ({ name, img, onPress }: { name: string, img?: string, onPres
   const theme = useTheme()
   const size = 64
   return (
-    <TouchableOpacity activeOpacity={.7} onPress={onPress} style={styles.singerItem}>
+    <TouchableOpacity activeOpacity={.7} onPress={onPress} accessibilityRole='button' accessibilityLabel={name} style={styles.singerItem}>
       {
         img
           ? <Image url={img} style={{ width: size, height: size, borderRadius: size / 2 }} />
@@ -73,7 +83,7 @@ const SongRow = ({ index, item, onPress }: { index: number, item: SongItem, onPr
   const theme = useTheme()
   const pic = item.meta?.picUrl
   return (
-    <TouchableOpacity activeOpacity={.6} onPress={onPress} style={styles.songRow}>
+    <TouchableOpacity activeOpacity={.6} onPress={onPress} accessibilityRole='button' accessibilityLabel={item.name} style={styles.songRow}>
       <Text size={13} color={index < 3 ? theme['c-primary-font'] : theme['c-font-label']} style={styles.songIndex}>{index + 1}</Text>
       {
         pic
@@ -193,18 +203,18 @@ const Home = () => {
 
       {
         dailyItem ? (
-          <TouchableOpacity activeOpacity={.85} onPress={() => { openPlaylist(dailyItem) }} style={{ ...styles.hero, height: heroHeight, backgroundColor: theme['c-primary-alpha-900'] }}>
+          <TouchableOpacity activeOpacity={.85} onPress={() => { openPlaylist(dailyItem) }} accessibilityRole='button' accessibilityLabel={t('home_daily_recommend')} style={{ ...styles.hero, height: heroHeight, backgroundColor: theme['c-primary-alpha-900'] }}>
             <Image url={dailyItem.img} style={styles.fill} />
             <View style={styles.heroMask} />
             <View style={styles.heroContent}>
-              <Text size={20} color="#fff" numberOfLines={1} style={styles.heroTitle}>{t('home_daily_recommend')}</Text>
-              <Text size={12} color="rgba(255,255,255,0.85)" numberOfLines={1} style={styles.heroSub}>{dailyItem.name}</Text>
+              <Text size={20} color={SCRIM.onImage} numberOfLines={1} style={styles.heroTitle}>{t('home_daily_recommend')}</Text>
+              <Text size={12} color={SCRIM.onImageSoft} numberOfLines={1} style={styles.heroSub}>{dailyItem.name}</Text>
               <View style={styles.heroBottomRow}>
                 {
                   dailyItem.total ? (
                     <View style={styles.heroPill}>
-                      <Icon name="album" size={10} color="rgba(255,255,255,0.9)" />
-                      <Text size={10} color="rgba(255,255,255,0.9)" style={styles.heroPillText}>{dailyItem.total}{t('home_unit_song')}</Text>
+                      <Icon name="album" size={10} color={SCRIM.onImageFaint} />
+                      <Text size={10} color={SCRIM.onImageFaint} style={styles.heroPillText}>{dailyItem.total}{t('home_unit_song')}</Text>
                     </View>
                   ) : <View />
                 }
@@ -301,7 +311,7 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: SCRIM.strong,
   },
   heroContent: {
     flex: 1,
@@ -323,7 +333,7 @@ const styles = StyleSheet.create({
   heroPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: SCRIM.glass,
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 3,
@@ -336,7 +346,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: SCRIM.onImageSolid,
     alignItems: 'center',
     justifyContent: 'center',
   },

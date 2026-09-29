@@ -11,7 +11,7 @@ import Lyric from './Lyric'
 import { screenkeepAwake, screenUnkeepAwake } from '@/utils/nativeModules/utils'
 import commonState, { type InitState as CommonState } from '@/store/common/state'
 import { createStyle } from '@/utils/tools'
-// import { useTheme } from '@/store/theme/hook'
+import { useTheme } from '@/store/theme/hook'
 
 const LyricPage = ({ activeIndex }: { activeIndex: number }) => {
   const initedRef = useRef(false)
@@ -29,7 +29,7 @@ const LyricPage = ({ activeIndex }: { activeIndex: number }) => {
 
 // global.iskeep = false
 export default memo(({ componentId }: { componentId: string }) => {
-  // const theme = useTheme()
+  const theme = useTheme()
   const [pageIndex, setPageIndex] = useState(0)
   const showLyricRef = useRef(false)
 
@@ -71,7 +71,7 @@ export default memo(({ componentId }: { componentId: string }) => {
   }, [])
 
   return (
-    <>
+    <View style={{ ...styles.page, backgroundColor: theme['c-primary-alpha-900'] }}>
       <Header />
       <View style={styles.container}>
         <PagerView
@@ -92,11 +92,14 @@ export default memo(({ componentId }: { componentId: string }) => {
         </View> */}
         <Player />
       </View>
-    </>
+    </View>
   )
 })
 
 const styles = createStyle({
+  page: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     flexDirection: 'column',

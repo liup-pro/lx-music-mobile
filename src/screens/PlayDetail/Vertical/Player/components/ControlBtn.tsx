@@ -1,44 +1,57 @@
-import { TouchableOpacity, View } from 'react-native'
+import { Pressable, View } from 'react-native'
 import { Icon } from '@/components/common/Icon'
 import { useTheme } from '@/store/theme/hook'
 // import { useIsPlay } from '@/store/player/hook'
 import { playNext, playPrev, togglePlay } from '@/core/player/player'
 import { useIsPlay } from '@/store/player/hook'
+import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
 import { useWindowSize } from '@/utils/hooks'
 import { BTN_WIDTH } from './MoreBtn/Btn'
 import { useMemo } from 'react'
 
+// 图标按钮采用 borderless 水波纹，无需背景即可在热区内扩散，符合 Material 图标按钮观感
+const useRipple = () => {
+  const theme = useTheme()
+  return useMemo(() => ({ color: theme['c-primary-light-200-alpha-700'], borderless: true }), [theme])
+}
+
 const PrevBtn = ({ size }: { size: number }) => {
   const theme = useTheme()
+  const t = useI18n()
+  const ripple = useRipple()
   const handlePlayPrev = () => {
     void playPrev()
   }
   return (
-    <TouchableOpacity style={{ ...styles.cotrolBtn, width: size, height: size }} activeOpacity={0.5} onPress={handlePlayPrev}>
-      <Icon name='prevMusic' color={theme['c-button-font']} rawSize={size * 0.7} />
-    </TouchableOpacity>
+    <Pressable style={{ ...styles.cotrolBtn, width: size, height: size }} android_ripple={ripple} accessibilityRole='button' accessibilityLabel={t('play_prev')} onPress={handlePlayPrev}>
+      {({ pressed }) => <Icon name='prevMusic' style={{ opacity: pressed ? 0.6 : 1 }} color={theme['c-button-font']} rawSize={size * 0.7} />}
+    </Pressable>
   )
 }
 const NextBtn = ({ size }: { size: number }) => {
   const theme = useTheme()
+  const t = useI18n()
+  const ripple = useRipple()
   const handlePlayNext = () => {
     void playNext()
   }
   return (
-    <TouchableOpacity style={{ ...styles.cotrolBtn, width: size, height: size }} activeOpacity={0.5} onPress={handlePlayNext}>
-      <Icon name='nextMusic' color={theme['c-button-font']} rawSize={size * 0.7} />
-    </TouchableOpacity>
+    <Pressable style={{ ...styles.cotrolBtn, width: size, height: size }} android_ripple={ripple} accessibilityRole='button' accessibilityLabel={t('play_next')} onPress={handlePlayNext}>
+      {({ pressed }) => <Icon name='nextMusic' style={{ opacity: pressed ? 0.6 : 1 }} color={theme['c-button-font']} rawSize={size * 0.7} />}
+    </Pressable>
   )
 }
 
 const TogglePlayBtn = ({ size }: { size: number }) => {
   const theme = useTheme()
+  const t = useI18n()
+  const ripple = useRipple()
   const isPlay = useIsPlay()
   return (
-    <TouchableOpacity style={{ ...styles.cotrolBtn, width: size, height: size }} activeOpacity={0.5} onPress={togglePlay}>
-      <Icon name={isPlay ? 'pause' : 'play'} color={theme['c-button-font']} rawSize={size * 0.7} />
-    </TouchableOpacity>
+    <Pressable style={{ ...styles.cotrolBtn, width: size, height: size }} android_ripple={ripple} accessibilityRole='button' accessibilityLabel={t(isPlay ? 'pause' : 'play')} accessibilityState={{ checked: isPlay }} onPress={togglePlay}>
+      {({ pressed }) => <Icon name={isPlay ? 'pause' : 'play'} style={{ opacity: pressed ? 0.6 : 1 }} color={theme['c-button-font']} rawSize={size * 0.7} />}
+    </Pressable>
   )
 }
 
@@ -59,7 +72,7 @@ export default () => {
   return (
     <View style={containerStyle}>
       <PrevBtn size={size} />
-      <TogglePlayBtn size={size}/>
+      <TogglePlayBtn size={size} />
       <NextBtn size={size} />
     </View>
   )
