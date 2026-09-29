@@ -531,5 +531,14 @@
   "version_title_update": "🚀 軟體更新 🚀",
   "songlist_tag_all": "全部分類",
   "home_empty_tip": "暫時獲取不到在線內容，下拉或點擊重試",
-  "home_retry": "重新載入"
+  "home_retry": "重新載入",
+  "home_desc": "依據你的口味，每天更新",
+  "home_hot_singer": "熱門歌手",
+  "home_latest_playlist": "最新歌單",
+  "home_go_songlist": "發現更多歌單",
+  "home_unit_song": "首",
+  "toplist_desc": "各大平台即時榜單",
+  "songlist_desc": "按分類挑選你喜歡的歌單",
+  "toplist_boards": "榜單",
+  "toplist_tip": "點擊榜單查看全部歌曲"
 }

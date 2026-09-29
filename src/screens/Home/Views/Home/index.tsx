@@ -1,27 +1,31 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ScrollView, TouchableOpacity, View, StyleSheet, Dimensions, Platform } from 'react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ScrollView, TouchableOpacity, View, StyleSheet } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
 import { useI18n } from '@/lang'
-import { scaleSizeW, scaleSizeH } from '@/utils/pixelRatio'
 import Text from '@/components/common/Text'
 import Image from '@/components/common/Image'
+import { useWindowSize } from '@/utils/hooks'
+import { isHorizontalMode } from '@/utils/tools'
 import { Icon } from '@/components/common/Icon'
+import CoverCard from '@/components/common/CoverCard'
+import SectionHeader from '@/components/common/SectionHeader'
+import BoardTile from '@/components/common/BoardTile'
 import { navigations } from '@/navigation'
 import commonState from '@/store/common/state'
 import { getList } from '@/core/songlist'
 import { getBoardsList, getListDetail } from '@/core/leaderboard'
 import { setNavActiveId } from '@/core/common'
+import { setSearchText } from '@/core/search/search'
 import { getActiveSource } from '@/core/onlineSource'
+import { handlePlay } from '../Leaderboard/listAction'
 import { type ListInfoItem } from '@/store/songlist/state'
 
-const SCREEN_WIDTH = Dimensions.get('window').width
-const PAGE_PADDING = scaleSizeW(16)
-const CARD_GAP = scaleSizeW(12)
-const COVER_SIZE = scaleSizeW(122)
-const HERO_HEIGHT = scaleSizeH(168)
+const PAGE_PADDING = 16
+const GAP = 12
 const TRY_SOURCES: LX.OnlineSource[] = ['kw', 'kg', 'tx', 'wy', 'mg']
 
 type SongItem = LX.Music.MusicInfoOnline
+interface BoardData { id: string, name: string, list: SongItem[] }
 
 const trySources = async(fn: (source: LX.OnlineSource) => Promise<any>): Promise<any> => {
   const active = getActiveSource()
@@ -40,93 +44,47 @@ const fetchPlaylists = (sortId: string) => trySources(async s => {
   return r.list.slice(0, 8)
 })
 
-const fetchBoardSongs = (matcher: (name: string) => boolean, fallbackIndex: number) => trySources(async s => {
+// board.id 自带来源前缀（如 kw__16），不能再拼一次
+const fetchBoard = (matcher: (name: string) => boolean, fallbackIndex: number) => trySources(async s => {
   const boards = await getBoardsList(s)
   if (!boards?.length) throw new Error('empty')
   const board = boards.find(b => matcher(b.name)) ?? boards[fallbackIndex] ?? boards[0]
-  // board.id 自带来源前缀（如 kw__16），不能再拼一次
   const detail = await getListDetail(board.id, 1)
   if (!detail?.list?.length) throw new Error('empty')
-  return detail.list.slice(0, 8)
+  return { id: board.id, name: board.name, list: detail.list.slice(0, 8) } as BoardData
 })
 
-const SectionHeader = ({ title, onPressMore }: { title: string, onPressMore?: () => void }) => {
+const SingerItem = ({ name, img, onPress }: { name: string, img?: string, onPress: () => void }) => {
   const theme = useTheme()
-  const t = useI18n()
+  const size = 64
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle} size={20} color={theme['c-font']}>{title}</Text>
+    <TouchableOpacity activeOpacity={.7} onPress={onPress} style={styles.singerItem}>
       {
-        onPressMore ? (
-          <TouchableOpacity style={styles.moreBtn} activeOpacity={.6} onPress={onPressMore}>
-            <Text size={13} color={theme['c-font-label']}>{t('home_more')}</Text>
-            <Icon name="chevron-right-2" size={13} color={theme['c-font-label']} style={styles.moreIcon} />
-          </TouchableOpacity>
-        ) : null
+        img
+          ? <Image url={img} style={{ width: size, height: size, borderRadius: size / 2 }} />
+          : <BoardTile id={name} name={name[0] ?? '?'} size={size} radius={size / 2} centered labelSize={12} />
       }
-    </View>
-  )
-}
-
-const HeroCard = ({ item, onPress }: { item: ListInfoItem, onPress: () => void }) => {
-  const t = useI18n()
-  const width = SCREEN_WIDTH - PAGE_PADDING * 2
-  return (
-    <TouchableOpacity activeOpacity={.85} onPress={onPress} style={{ width, height: HERO_HEIGHT }}>
-      <View style={{ ...styles.hero, width, height: HERO_HEIGHT }}>
-        <Image url={item.img} style={{ width, height: HERO_HEIGHT }} />
-        <View style={styles.heroOverlay} />
-        <View style={styles.heroBottom}>
-          <Text size={11} color="rgba(255,255,255,0.75)" style={styles.heroLabel}>{t('home_daily_recommend')}</Text>
-          <Text size={17} color="#fff" numberOfLines={2} style={styles.heroTitle}>{item.name}</Text>
-          <Text size={12} color="rgba(255,255,255,0.7)" numberOfLines={1}>{item.author}</Text>
-        </View>
-      </View>
+      <Text size={12} color={theme['c-font']} numberOfLines={1} style={styles.singerName}>{name}</Text>
     </TouchableOpacity>
   )
 }
 
-const CoverCard = ({ item, onPress }: { item: ListInfoItem, onPress: () => void }) => {
+const SongRow = ({ index, item, onPress }: { index: number, item: SongItem, onPress: () => void }) => {
   const theme = useTheme()
+  const pic = item.meta?.picUrl
   return (
-    <TouchableOpacity activeOpacity={.7} onPress={onPress} style={{ width: COVER_SIZE }}>
-      <View style={{ ...styles.coverWrap, width: COVER_SIZE, height: COVER_SIZE, }}>
-        <Image url={item.img} style={{ width: COVER_SIZE, height: COVER_SIZE, borderRadius: 12 }} />
-        {
-          item.play_count ? (
-            <View style={styles.playCountBadge}>
-              <Icon name="play-outline" size={8} color="#fff" />
-              <Text size={8} color="#fff" style={{ marginLeft: 3 }}>{item.play_count}</Text>
-            </View>
-          ) : null
-        }
-      </View>
-      <Text size={12} numberOfLines={2} style={styles.coverName} color={theme['c-font']}>{item.name}</Text>
-    </TouchableOpacity>
-  )
-}
-
-const RankRow = ({ index, item, onPress }: { index: number, item: SongItem, onPress: () => void }) => {
-  const theme = useTheme()
-  const rankColor = index < 3 ? theme['c-primary-font-active'] : theme['c-font-label']
-  return (
-    <TouchableOpacity activeOpacity={.6} onPress={onPress} style={{ ...styles.rankRow, borderBottomColor: theme['c-border-background'] }}>
-      <Text style={{ ...styles.rankNum, color: rankColor }} size={16}>{index + 1}</Text>
-      <View style={styles.rankInfo}>
-        <Text size={14} numberOfLines={1} style={styles.rankName} color={theme['c-font']}>{item.name}</Text>
+    <TouchableOpacity activeOpacity={.6} onPress={onPress} style={styles.songRow}>
+      <Text size={13} color={index < 3 ? theme['c-primary-font'] : theme['c-font-label']} style={styles.songIndex}>{index + 1}</Text>
+      {
+        pic
+          ? <Image url={pic} style={styles.songPic} />
+          : <BoardTile id={item.id} name={item.name[0] ?? '?'} size={46} radius={10} centered labelSize={10} />
+      }
+      <View style={styles.songInfo}>
+        <Text size={15} color={theme['c-font']} numberOfLines={1} style={styles.songName}>{item.name}</Text>
         <Text size={12} color={theme['c-font-label']} numberOfLines={1}>{item.singer}</Text>
       </View>
-      {item.interval ? <Text size={11} color={theme['c-font-label']}>{item.interval}</Text> : null}
     </TouchableOpacity>
-  )
-}
-
-const RankCard = ({ songs, onPress }: { songs: SongItem[], onPress: (song: SongItem) => void }) => {
-  const theme = useTheme()
-  return (
-    <View style={{ ...styles.rankCard, backgroundColor: theme['c-button-background'] }}>
-      {songs.map((song, i) => <RankRow key={song.id || i} index={i} item={song} onPress={() => { onPress(song) }} />)}
-    </View>
   )
 }
 
@@ -134,11 +92,16 @@ const Home = () => {
   const theme = useTheme()
   const t = useI18n()
   const [hotPlaylists, setHotPlaylists] = useState<ListInfoItem[]>([])
-  const [newPlaylists, setNewPlaylists] = useState<ListInfoItem[]>([])
-  const [hotSongs, setHotSongs] = useState<SongItem[]>([])
-  const [newSongs, setNewSongs] = useState<SongItem[]>([])
+  const [hotBoard, setHotBoard] = useState<BoardData | null>(null)
+  const [newBoard, setNewBoard] = useState<BoardData | null>(null)
   const [loading, setLoading] = useState(true)
   const loadingRef = useRef(false)
+  const { width: winWidth, height: winHeight } = useWindowSize()
+  const [bodyWidth, setBodyWidth] = useState(0)
+  const pageWidth = bodyWidth || winWidth || 360
+  const columns = isHorizontalMode(winWidth, winHeight) ? 3 : 2
+  const gridWidth = (pageWidth - PAGE_PADDING * 2 - GAP * (columns - 1)) / columns
+  const heroHeight = Math.round(pageWidth * (columns == 2 ? .46 : .3))
 
   const loadData = useCallback(() => {
     if (loadingRef.current) return
@@ -146,14 +109,12 @@ const Home = () => {
     setLoading(true)
     Promise.all([
       fetchPlaylists('hot'),
-      fetchPlaylists('new'),
-      fetchBoardSongs(name => /热|爆/.test(name), 0),
-      fetchBoardSongs(name => /新/.test(name), 1),
-    ]).then(([hots, news, hotBoard, newBoard]) => {
+      fetchBoard(name => /热|爆/.test(name), 0),
+      fetchBoard(name => /新/.test(name), 1),
+    ]).then(([hots, hot, fresh]) => {
       setHotPlaylists(hots ?? [])
-      setNewPlaylists(news ?? [])
-      setHotSongs(hotBoard ?? [])
-      setNewSongs(newBoard ?? [])
+      setHotBoard(hot)
+      setNewBoard(fresh)
     }).finally(() => {
       loadingRef.current = false
       setLoading(false)
@@ -162,106 +123,135 @@ const Home = () => {
 
   useEffect(() => {
     loadData()
-    const handleApiUpdate = () => {
+    const reload = () => {
       loadingRef.current = false
       loadData()
     }
-    const handleSourceUpdate = () => {
-      loadingRef.current = false
-      loadData()
-    }
-    global.state_event.on('apiSourceUpdated', handleApiUpdate)
-    global.state_event.on('onlineSourceUpdated', handleSourceUpdate)
+    global.state_event.on('apiSourceUpdated', reload)
+    global.state_event.on('onlineSourceUpdated', reload)
     return () => {
-      global.state_event.off('apiSourceUpdated', handleApiUpdate)
-      global.state_event.off('onlineSourceUpdated', handleSourceUpdate)
+      global.state_event.off('apiSourceUpdated', reload)
+      global.state_event.off('onlineSourceUpdated', reload)
     }
   }, [loadData])
 
-  const handlePlaylistPress = useCallback((item: ListInfoItem) => {
+  const openPlaylist = useCallback((item: ListInfoItem) => {
     navigations.pushSonglistDetailScreen(commonState.componentIds.home!, item)
   }, [])
 
-  const handleGoSonglist = useCallback(() => {
-    setNavActiveId('nav_songlist')
-  }, [])
-
-  const handleGoLeaderboard = useCallback(() => {
-    setNavActiveId('nav_top')
-  }, [])
-
-  const handleSongPress = useCallback(() => {
-    setNavActiveId('nav_top')
+  const goSonglist = useCallback(() => { setNavActiveId('nav_songlist') }, [])
+  const searchSinger = useCallback((name: string) => {
+    setSearchText(name)
+    setNavActiveId('nav_search')
   }, [])
 
   const dailyItem = hotPlaylists[0] ?? null
-  const carouselItems = hotPlaylists.slice(1)
-  const nothing = !loading && !dailyItem && !carouselItems.length && !hotSongs.length && !newPlaylists.length && !newSongs.length
+  const hotCards = hotPlaylists.slice(1, 7)
+  const newSongs = newBoard?.list ?? []
+  const nothing = !loading && !dailyItem && !hotCards.length && !newSongs.length
+
+  const singers = useMemo(() => {
+    const list: { name: string, img?: string }[] = []
+    for (const song of hotBoard?.list ?? []) {
+      for (const singer of song.singer.split('/')) {
+        const name = singer.trim()
+        if (!name || list.some(s => s.name == name)) continue
+        list.push({ name, img: song.meta?.picUrl ?? undefined })
+        if (list.length >= 10) return list
+      }
+    }
+    return list
+  }, [hotBoard])
+
+  const renderCards = (items: ListInfoItem[]) => (
+    <View style={styles.grid}>
+      {
+        items.map((item, i) => (
+          <View key={item.id || i} style={{ width: gridWidth, marginRight: (i + 1) % columns ? GAP : 0, marginBottom: 16 }}>
+            <CoverCard
+              img={item.img}
+              title={item.name}
+              subtitle={item.author}
+              playCount={item.play_count}
+              width={gridWidth}
+              onPress={() => { openPlaylist(item) }}
+            />
+          </View>
+        ))
+      }
+    </View>
+  )
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ ...styles.scrollContent, paddingHorizontal: PAGE_PADDING }}
-      showsVerticalScrollIndicator={false}>
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      onLayout={e => { setBodyWidth(e.nativeEvent.layout.width) }}>
+
+      <Text size={12} color={theme['c-font-label']} style={styles.pageDesc}>{t('home_desc')}</Text>
 
       {
         dailyItem ? (
-          <View style={styles.heroSection}>
-            <SectionHeader title={t('home_daily_recommend')} onPressMore={handleGoSonglist} />
-            <HeroCard item={dailyItem} onPress={() => { handlePlaylistPress(dailyItem) }} />
-          </View>
+          <TouchableOpacity activeOpacity={.85} onPress={() => { openPlaylist(dailyItem) }} style={{ ...styles.hero, height: heroHeight, backgroundColor: theme['c-primary-alpha-900'] }}>
+            <Image url={dailyItem.img} style={styles.fill} />
+            <View style={styles.heroMask} />
+            <View style={styles.heroContent}>
+              <Text size={20} color="#fff" numberOfLines={1} style={styles.heroTitle}>{t('home_daily_recommend')}</Text>
+              <Text size={12} color="rgba(255,255,255,0.85)" numberOfLines={1} style={styles.heroSub}>{dailyItem.name}</Text>
+              <View style={styles.heroBottomRow}>
+                {
+                  dailyItem.total ? (
+                    <View style={styles.heroPill}>
+                      <Icon name="album" size={10} color="rgba(255,255,255,0.9)" />
+                      <Text size={10} color="rgba(255,255,255,0.9)" style={styles.heroPillText}>{dailyItem.total}{t('home_unit_song')}</Text>
+                    </View>
+                  ) : <View />
+                }
+                <View style={styles.heroPlay}>
+                  <Icon name="play-outline" size={16} color={theme['c-primary']} />
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ) : null
+      }
+      {
+        hotCards.length ? (
+          <>
+            <SectionHeader title={t('home_hot_music')} onPressMore={goSonglist} />
+            {renderCards(hotCards)}
+          </>
         ) : null
       }
 
       {
-        carouselItems.length ? (
-          <View style={styles.section}>
-            <SectionHeader title={t('home_featured_playlist')} onPressMore={handleGoSonglist} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
+        singers.length ? (
+          <>
+            <SectionHeader title={t('home_hot_singer')} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.singerRow}>
               {
-                carouselItems.map((item, i) => (
-                  <View key={item.id || i} style={{ marginRight: CARD_GAP }}>
-                    <CoverCard item={item} onPress={() => { handlePlaylistPress(item) }} />
-                  </View>
+                singers.map(s => (
+                  <SingerItem key={s.name} name={s.name} img={s.img} onPress={() => { searchSinger(s.name) }} />
                 ))
               }
             </ScrollView>
-          </View>
-        ) : null
-      }
-
-      {
-        hotSongs.length ? (
-          <View style={styles.section}>
-            <SectionHeader title={t('home_hot_music')} onPressMore={handleGoLeaderboard} />
-            <RankCard songs={hotSongs} onPress={handleSongPress} />
-          </View>
-        ) : null
-      }
-
-      {
-        newPlaylists.length ? (
-          <View style={styles.section}>
-            <SectionHeader title={t('home_albums')} onPressMore={handleGoSonglist} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
-              {
-                newPlaylists.map((item, i) => (
-                  <View key={item.id || i} style={{ marginRight: CARD_GAP }}>
-                    <CoverCard item={item} onPress={() => { handlePlaylistPress(item) }} />
-                  </View>
-                ))
-              }
-            </ScrollView>
-          </View>
+          </>
         ) : null
       }
 
       {
         newSongs.length ? (
-          <View style={styles.section}>
-            <SectionHeader title={t('home_new_songs')} onPressMore={handleGoLeaderboard} />
-            <RankCard songs={newSongs} onPress={handleSongPress} />
-          </View>
+          <>
+            <SectionHeader title={t('home_new_songs')} onPressPlayAll={() => { if (newBoard) void handlePlay(newBoard.id, newSongs, 0) }} />
+            <View style={{ ...styles.songCard, backgroundColor: theme['c-button-background'] }}>
+              {
+                newSongs.map((song, i) => (
+                  <SongRow key={song.id || i} index={i} item={song} onPress={() => { if (newBoard) void handlePlay(newBoard.id, newSongs, i) }} />
+                ))
+              }
+            </View>
+          </>
         ) : null
       }
 
@@ -269,14 +259,14 @@ const Home = () => {
         nothing ? (
           <View style={styles.empty}>
             <Text size={13} color={theme['c-font-label']}>{t('home_empty_tip')}</Text>
-            <TouchableOpacity style={{ ...styles.retryBtn, backgroundColor: theme['c-primary-background-active'] }} activeOpacity={.7} onPress={() => { loadData() }}>
+            <TouchableOpacity style={{ ...styles.retryBtn, backgroundColor: theme['c-primary-background-active'] }} activeOpacity={.7} onPress={loadData}>
               <Text size={13} color={theme['c-button-font']} style={styles.retryText}>{t('home_retry')}</Text>
             </TouchableOpacity>
           </View>
         ) : null
       }
 
-      <View style={{ height: scaleSizeH(24) }} />
+      <View style={{ height: 24 }} />
     </ScrollView>
   )
 }
@@ -286,135 +276,124 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: scaleSizeH(6),
+    paddingHorizontal: PAGE_PADDING,
+    paddingTop: 4,
   },
-  heroSection: {
-    marginBottom: scaleSizeH(24),
-  },
-  section: {
-    marginBottom: scaleSizeH(24),
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: scaleSizeH(12),
-  },
-  sectionTitle: {
-    fontWeight: '700',
-  },
-  moreBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  moreIcon: {
-    marginLeft: 2,
+  pageDesc: {
+    marginBottom: 12,
   },
   hero: {
-    borderRadius: 18,
+    width: '100%',
+    borderRadius: 20,
     overflow: 'hidden',
-    justifyContent: 'flex-end',
-    alignSelf: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    marginBottom: 4,
   },
-  heroOverlay: {
+  fill: {
     position: 'absolute',
     left: 0,
+    top: 0,
     right: 0,
     bottom: 0,
-    height: HERO_HEIGHT * 0.55,
-    backgroundColor: 'rgba(0,0,0,0.42)',
   },
-  heroBottom: {
-    padding: scaleSizeW(14),
+  heroMask: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  heroLabel: {
-    fontWeight: '600',
-    marginBottom: 3,
-    textTransform: 'uppercase',
+  heroContent: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'flex-end',
   },
   heroTitle: {
-    fontWeight: '700',
-    marginBottom: 3,
-    lineHeight: scaleSizeH(22),
+    fontWeight: '800',
   },
-  carousel: {
+  heroSub: {
+    marginTop: 3,
+  },
+  heroBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  heroPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  heroPillText: {
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  heroPlay: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  singerRow: {
     paddingRight: PAGE_PADDING,
   },
-  coverWrap: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: scaleSizeH(6),
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  playCountBadge: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    flexDirection: 'row',
+  singerItem: {
+    width: 68,
+    marginRight: 10,
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 9,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
   },
-  coverName: {
-    lineHeight: scaleSizeH(15),
-  },
-  rankCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    paddingTop: scaleSizeH(2),
-  },
-  rankRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: scaleSizeH(54),
-    paddingHorizontal: scaleSizeW(12),
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  rankNum: {
-    width: scaleSizeW(28),
+  singerName: {
+    marginTop: 6,
     textAlign: 'center',
+  },
+  songCard: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  songRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  songIndex: {
+    width: 22,
     fontWeight: '700',
   },
-  rankInfo: {
-    flex: 1,
-    marginLeft: scaleSizeW(6),
+  songPic: {
+    width: 46,
+    height: 46,
+    borderRadius: 10,
   },
-  rankName: {
+  songInfo: {
+    flex: 1,
+    marginLeft: 10,
+    marginRight: 6,
+  },
+  songName: {
     fontWeight: '600',
     marginBottom: 2,
   },
   empty: {
     alignItems: 'center',
-    paddingTop: scaleSizeH(48),
-    paddingBottom: scaleSizeH(24),
+    paddingTop: 48,
   },
   retryBtn: {
-    marginTop: scaleSizeH(14),
-    paddingHorizontal: scaleSizeW(22),
-    paddingVertical: scaleSizeH(8),
+    marginTop: 14,
+    paddingHorizontal: 22,
+    paddingVertical: 8,
     borderRadius: 20,
   },
   retryText: {

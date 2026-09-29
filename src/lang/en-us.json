@@ -531,5 +531,14 @@
   "version_title_update": "🚀 App update 🚀",
   "songlist_tag_all": "All Categories",
   "home_empty_tip": "Online content is unavailable right now, tap retry to reload",
-  "home_retry": "Retry"
+  "home_retry": "Retry",
+  "home_desc": "Picked for you, refreshed daily",
+  "home_hot_singer": "Popular Artists",
+  "home_latest_playlist": "New Playlists",
+  "home_go_songlist": "Browse Playlists",
+  "home_unit_song": " songs",
+  "toplist_desc": "Live charts from every platform",
+  "songlist_desc": "Browse playlists by category",
+  "toplist_boards": "Charts",
+  "toplist_tip": "Tap a chart to see all songs"
 }

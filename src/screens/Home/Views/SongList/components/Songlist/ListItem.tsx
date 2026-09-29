@@ -1,14 +1,14 @@
 import { memo } from 'react'
-import { View, Platform, TouchableOpacity } from 'react-native'
+import { View } from 'react-native'
 import { createStyle } from '@/utils/tools'
 import { type ListInfoItem } from '@/store/songlist/state'
 import Text from '@/components/common/Text'
 import { scaleSizeW } from '@/utils/pixelRatio'
 import { NAV_SHEAR_NATIVE_IDS } from '@/config/constant'
-import { useTheme } from '@/store/theme/hook'
-import Image from '@/components/common/Image'
+import CoverCard from '@/components/common/CoverCard'
 
-const gap = scaleSizeW(15)
+const gap = scaleSizeW(20)
+
 export default memo(({ item, index, width, showSource, onPress }: {
   item: ListInfoItem
   index: number
@@ -16,7 +16,6 @@ export default memo(({ item, index, width, showSource, onPress }: {
   width: number
   onPress: (item: ListInfoItem, index: number) => void
 }) => {
-  const theme = useTheme()
   const itemWidth = width - gap
   const handlePress = () => {
     onPress(item, index)
@@ -25,16 +24,17 @@ export default memo(({ item, index, width, showSource, onPress }: {
     item.source
       ? (
           <View style={{ ...styles.listItem, width: itemWidth }}>
-            <View style={{ ...styles.listItemImg, backgroundColor: theme['c-content-background'] }}>
-              <TouchableOpacity activeOpacity={0.5} onPress={handlePress}>
-                <Image url={item.img} nativeID={`${NAV_SHEAR_NATIVE_IDS.songlistDetail_pic}_from_${item.id}`} style={{ width: itemWidth, height: itemWidth, borderRadius: 12 }} />
-                { showSource ? <Text style={styles.sourceLabel} size={9} color="#fff" >{item.source}</Text> : null }
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity activeOpacity={0.5} onPress={handlePress}>
-              <Text style={styles.listItemTitle} numberOfLines={ 2 }>{item.name}</Text>
-            </TouchableOpacity>
-            {/* <Text>{JSON.stringify(item)}</Text> */}
+            <CoverCard
+              img={item.img}
+              title={item.name}
+              subtitle={item.desc || item.author}
+              playCount={item.play_count}
+              width={itemWidth}
+              radius={16}
+              onPress={handlePress}
+              nativeID={`${NAV_SHEAR_NATIVE_IDS.songlistDetail_pic}_from_${item.id}`}
+            />
+            { showSource ? <Text style={styles.sourceLabel} size={9} color="#fff">{item.source}</Text> : null }
           </View>
         )
       : <View style={{ ...styles.listItem, width: itemWidth }} />
@@ -43,42 +43,17 @@ export default memo(({ item, index, width, showSource, onPress }: {
 
 const styles = createStyle({
   listItem: {
-    // width: 90,
-    margin: 10,
-  },
-  listItemImg: {
-    borderRadius: 12,
-    marginBottom: 6,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.08,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
+    position: 'relative',
+    marginBottom: 18,
   },
   sourceLabel: {
-    paddingLeft: 4,
-    paddingBottom: 2,
-    paddingRight: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
     position: 'absolute',
-    top: 0,
-    right: 0,
-    borderBottomLeftRadius: 3,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  listItemTitle: {
-    fontSize: 13,
-    lineHeight: 17,
-    // overflow: 'hidden',
-    marginBottom: 5,
+    top: 6,
+    left: 6,
+    borderRadius: 6,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.42)',
   },
 })

@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { View } from 'react-native'
 
 import HeaderBar, { type HeaderBarProps, type HeaderBarType } from './HeaderBar'
 import TagSelector from './TagSelector'
 import songlistState, { type InitState, type SortInfo } from '@/store/songlist/state'
 import List, { type ListType } from './List'
+import Text from '@/components/common/Text'
+import { createStyle } from '@/utils/tools'
+import { useTheme } from '@/store/theme/hook'
+import { useI18n } from '@/lang'
 import { getSongListSetting, saveSongListSetting } from '@/utils/data'
 import { getActiveSource, initOnlineSource } from '@/core/onlineSource'
 
@@ -17,6 +21,8 @@ interface SonglistInfo {
 }
 
 export default () => {
+  const theme = useTheme()
+  const t = useI18n()
   const headerBarRef = useRef<HeaderBarType>(null)
   const listRef = useRef<ListType>(null)
   const songlistInfo = useRef<SonglistInfo>({ source: 'kw', sortId: 'new', tagId: '' })
@@ -69,6 +75,7 @@ export default () => {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.desc} size={13} color={theme['c-font-label']}>{t('songlist_desc')}</Text>
       <HeaderBar
         ref={headerBarRef}
         onSortChange={handleSortChange}
@@ -84,9 +91,14 @@ export default () => {
   )
 }
 
-const styles = StyleSheet.create({
+const styles = createStyle({
   container: {
     position: 'relative',
     flex: 1,
+  },
+  desc: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
   },
 })

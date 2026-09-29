@@ -4,7 +4,6 @@ import { useI18n } from '@/lang'
 import { useNavActiveId } from '@/store/common/hook'
 import { useTheme } from '@/store/theme/hook'
 import { Icon } from '@/components/common/Icon'
-import Text from '@/components/common/Text'
 import { NAV_MENUS, BOTTOM_TAB_IDS } from '@/config/constant'
 import { setNavActiveId } from '@/core/common'
 import { scaleSizeH } from '@/utils/pixelRatio'
@@ -18,13 +17,15 @@ const TabItem = memo(({ id, icon }: { id: typeof NAV_MENUS[number]['id'], icon: 
   const active = activeId == id
 
   return (
-    <TouchableOpacity style={styles.item} activeOpacity={.8} onPress={() => setNavActiveId(id)}>
+    <TouchableOpacity
+      style={styles.item}
+      activeOpacity={.8}
+      accessibilityLabel={t(id)}
+      onPress={() => setNavActiveId(id)}
+    >
       <View style={{ ...styles.activePill, backgroundColor: active ? theme['c-primary-alpha-900'] : 'transparent' }}>
-        <Icon name={icon} size={22} color={active ? theme['c-primary-font-active'] : theme['c-font-label']} />
+        <Icon name={icon} size={23} color={active ? theme['c-primary-font-active'] : theme['c-font-label']} />
       </View>
-      <Text size={10} color={active ? theme['c-primary-font-active'] : theme['c-font-label']} style={styles.label}>
-        {t(id)}
-      </Text>
     </TouchableOpacity>
   )
 })
@@ -49,14 +50,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: scaleSizeH(4),
   },
   activePill: {
-    borderRadius: 16,
-    paddingHorizontal: scaleSizeH(12),
-    paddingVertical: scaleSizeH(3),
-  },
-  label: {
-    marginTop: scaleSizeH(2),
+    borderRadius: 18,
+    paddingHorizontal: scaleSizeH(16),
+    paddingVertical: scaleSizeH(7),
   },
 })

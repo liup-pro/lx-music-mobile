@@ -5,6 +5,7 @@ import {
   HOME_SCREEN,
   PLAY_DETAIL_SCREEN,
   SONGLIST_DETAIL_SCREEN,
+  LEADERBOARD_DETAIL_SCREEN,
   COMMENT_SCREEN,
   // SETTING_SCREEN,
 } from './screenNames'
@@ -190,6 +191,64 @@ export function pushPlayDetailScreen(componentId: string, skipAnimation = false)
                   from: 0,
                   to: windowSizeTools.getSize().width,
                   duration: 300,
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+  })
+}
+export function pushLeaderboardDetailScreen(componentId: string, info: { source: LX.OnlineSource, id: string, name: string }) {
+  const theme = themeState.theme
+
+  requestAnimationFrame(() => {
+    void Navigation.push(componentId, {
+      component: {
+        name: LEADERBOARD_DETAIL_SCREEN,
+        passProps: {
+          info,
+        },
+        options: {
+          topBar: {
+            visible: false,
+            height: 0,
+            drawBehind: false,
+          },
+          statusBar: {
+            drawBehind: true,
+            visible: true,
+            style: getStatusBarStyle(theme.isDark),
+            backgroundColor: 'transparent',
+          },
+          navigationBar: {
+            backgroundColor: theme['c-content-background'],
+          },
+          layout: {
+            componentBackgroundColor: theme['c-content-background'],
+          },
+          animations: {
+            push: {
+              content: {
+                translationX: {
+                  from: windowSizeTools.getSize().width,
+                  to: 0,
+                  duration: 260,
+                },
+                alpha: {
+                  from: 0.6,
+                  to: 1,
+                  duration: 220,
+                },
+              },
+            },
+            pop: {
+              content: {
+                translationX: {
+                  from: 0,
+                  to: windowSizeTools.getSize().width,
+                  duration: 220,
                 },
               },
             },

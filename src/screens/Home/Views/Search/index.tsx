@@ -14,6 +14,7 @@ import { createStyle } from '@/utils/tools'
 import TipList, { type TipListType } from './TipList'
 import List, { type ListType } from './List'
 import { addHistoryWord } from '@/core/search/search'
+import { type InitState as CommonState } from '@/store/common/state'
 
 
 interface SearchInfo {
@@ -29,6 +30,7 @@ export default () => {
   const layoutHeightRef = useRef<number>(0)
   const searchInfo = useRef<SearchInfo>({ temp_source: 'kw', source: 'kw', searchType: 'music' })
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const searchedTextRef = useRef('')
 
   useEffect(() => {
     void getSearchSetting().then(info => {
@@ -45,6 +47,7 @@ export default () => {
           break
       }
       headerBarRef.current?.setText(searchState.searchText)
+      searchedTextRef.current = searchState.searchText
       listRef.current?.loadList(searchState.searchText, searchInfo.current.source, searchInfo.current.searchType)
     })
 
@@ -61,10 +64,21 @@ export default () => {
       void saveSearchSetting({ source })
       listRef.current?.loadList(searchState.searchText, source, searchInfo.current.searchType)
     }
+    const handleNavIdUpdate = (id: CommonState['navActiveId']) => {
+      if (id != 'nav_search') return
+      const text = searchState.searchText
+      if (!text || text == searchedTextRef.current) return
+      searchedTextRef.current = text
+      headerBarRef.current?.setText(text)
+      listRef.current?.loadList(text, searchInfo.current.source, searchInfo.current.searchType)
+    }
+    global.state_event.on('navActiveIdUpdated', handleNavIdUpdate)
+
     global.state_event.on('onlineSourceUpdated', handleOnlineSourceUpdated)
 
     return () => {
       global.app_event.off('searchTypeChanged', handleTypeChange)
+      global.state_event.off('navActiveIdUpdated', handleNavIdUpdate)
       global.state_event.off('onlineSourceUpdated', handleOnlineSourceUpdated)
     }
   }, [])
@@ -93,6 +107,7 @@ export default () => {
   }
   const handleSearch: HeaderBarProps['onSearch'] = (text) => {
     handleHideTipList()
+    searchedTextRef.current = text
     searchTipListRef.current?.search(text, layoutHeightRef.current)
     headerBarRef.current?.setText(text)
     headerBarRef.current?.blur()

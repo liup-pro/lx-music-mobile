@@ -24,6 +24,7 @@ export enum COMPONENT_IDS {
   home = 'home',
   playDetail = 'playDetail',
   songlistDetail = 'songlistDetail',
+  leaderboardDetail = 'leaderboardDetail',
   comment = 'comment',
 }
 
