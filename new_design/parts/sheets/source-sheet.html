@@ -1,0 +1,28 @@
+<!--
+  件：parts/sheets/source-sheet —— U72 · sourceSheet 音源浮层实例（chrome 见 U17；「音源只负责一件事…」sheetSub 与 q-note 三句由 renderSheet 生成，文案见符号行）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L389-L408（本件持有 17 个元素）
+    styles.css —— 归本件 0 条（样式在 parts/_base.css 或宿主件 css）
+    app.js：renderSheet (L2172) / renderImportRow (L2262) / handleImport (L2272)
+-->
+<div class="sheet" id="sourceSheet">
+  <div class="sheet-mask" data-close></div>
+  <div class="sheet-body">
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title">音源设置</h3>
+    <div class="sheet-sub" id="sheetSub"></div>
+    <div class="group-label">已安装音源</div>
+    <div class="opt-list" id="scriptList"></div>
+    <div class="group-label">音乐平台</div>
+    <div class="opt-list" id="platformList"></div>
+    <div class="group-label">音质</div>
+    <div class="q-chips" id="qualityRow"></div>
+    <div class="group-label">导入音源</div>
+    <div class="op-box">
+      <input class="op-input" id="importInput" placeholder="音源脚本链接" autocomplete="off" spellcheck="false">
+      <button class="op-go" id="importGo">导入</button>
+    </div>
+    <div class="op-err" id="importErr" hidden></div>
+  </div>
+</div>

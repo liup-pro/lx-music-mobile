@@ -1,0 +1,19 @@
+/*
+  件：parts/_shell —— 壳层 · 文档壳与页面骨架：html/head/body、#viewport、五只 .page（页面壳单列）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L2-L696 / L101-L270（本件持有 16 个元素，2 处根）
+    styles.css 本件收纳 3 条规则（逐条注明来源行号）
+    app.js：switchTab (L2456) / PAGES (L2453) / init (L2533)
+    备注：页面本体就是这五只 .page 空壳，内容全部来自各单元件；五只页壳内的子件以「▸」占位注释互指。
+*/
+/* ─ 源 styles.css L160-L164 ─ */
+.viewport{
+  position:absolute;top:0;right:0;bottom:0;left:var(--nav-w);overflow-y:auto;overflow-x:hidden;
+  padding:110px 0 168px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+/* ─ 源 styles.css L165-L165 ─ */
+.viewport::-webkit-scrollbar{display:none}
+/* ─ 源 styles.css L166-L166 ─ */
+.page{padding:0 16px}

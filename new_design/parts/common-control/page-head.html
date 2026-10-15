@@ -1,0 +1,20 @@
+<!--
+  件：parts/common-control/page-head —— U34 · .page-head 公共页头（歌单/排行/设定三页；含 .pl-open-btn「打开歌单」）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L169-L172 / L204-L206 / L260-L262（本件持有 9 个元素，3 处根）
+    styles.css 中归本件的 5 条见同名 .css
+    app.js：renderPlaylistPage (L719)
+-->
+<div class="page-head">
+  <h2 class="page-title">歌单</h2>
+  <button class="pl-open-btn" id="plOpenBtn" aria-label="打开歌单"><svg class="ic"><use href="#i-link"/></svg></button>
+</div>
+
+<div class="page-head">
+  <h2 class="page-title">排行榜</h2>
+</div>
+
+<div class="page-head">
+  <h2 class="page-title">设定</h2>
+</div>

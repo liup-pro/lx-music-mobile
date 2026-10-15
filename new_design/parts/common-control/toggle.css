@@ -1,0 +1,18 @@
+/*
+  件：parts/common-control/toggle —— U22 · .toggle / .sw-row 开关行唯一定义（静态元素在 sheets/player-sheet 件内；「等当前这首放完再停」文案见 renderTimerSheet）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html —— 本件持有 0 个元素（内容/定义件：标记由宿主件持有，出现处见下）
+    styles.css 本件收纳 4 条规则（逐条注明来源行号）
+    app.js：renderTimerSheet (L2010) / setToggle (L1350)
+*/
+/* ─ 源 styles.css L688-L689 ─ */
+.toggle{width:46px;height:27px;border-radius:14px;background:var(--fill-4);position:relative;flex:none;
+  transition:background .28s var(--ease)}
+/* ─ 源 styles.css L690-L691 ─ */
+.toggle i{position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;
+  transition:transform .28s var(--ease);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+/* ─ 源 styles.css L692-L692 ─ */
+.toggle.on{background:var(--brand)}
+/* ─ 源 styles.css L693-L693 ─ */
+.toggle.on i{transform:translateX(19px)}

@@ -1,0 +1,12 @@
+/*
+  件：parts/player/player-source —— U56 · .player-source 平台+音质文本行（RN 缺件·内联，转正候选）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L332-L332（本件持有 1 个元素）
+    styles.css 本件收纳 2 条规则（逐条注明来源行号）
+    app.js：paintPlayer (L1748) / qLabel (L130)
+*/
+/* ─ 源 styles.css L628-L628 ─ */
+.player-source{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap;font-size:11px;color:var(--text-3)}
+/* ─ 源 styles.css L629-L629 ─ */
+.player-source .ps-from{letter-spacing:.3px}

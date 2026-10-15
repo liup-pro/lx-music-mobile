@@ -1,0 +1,17 @@
+/*
+  件：parts/sheets/confirm-sheet —— U77 · confirmSheet 二次确认浮层实例（.cf-actions/.cf-btn；「要执行这一步吗」默认文案见 askConfirm）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L499-L510（本件持有 9 个元素）
+    styles.css 本件收纳 4 条规则（逐条注明来源行号）
+    app.js：askConfirm (L1454) / askClearCache (L1436) / askDeleteList (L1055)
+*/
+/* ─ 源 styles.css L511-L511 ─ */
+.cf-actions{display:flex;gap:10px;margin-top:20px}
+/* ─ 源 styles.css L512-L513 ─ */
+.cf-btn{flex:1;height:44px;border-radius:15px;font-size:14px;font-weight:800;transition:.2s var(--ease);
+  background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--line);color:var(--text-2)}
+/* ─ 源 styles.css L514-L514 ─ */
+.cf-btn:active{transform:scale(.98)}
+/* ─ 源 styles.css L515-L515 ─ */
+.cf-btn.go{color:#fff;background:var(--grad);box-shadow:none}

@@ -1,0 +1,17 @@
+/*
+  件：parts/songlist-detail/pl-top —— U67 · .pl-top / .pl-crumb / .pl-fav-btn 顶排（RN 缺件·内联，转正候选；面包屑文案见 PLD_CRUMB）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L377-L381（本件持有 8 个元素）
+    styles.css 本件收纳 4 条规则（逐条注明来源行号）
+    app.js：PLD_CRUMB (L826) / togglePlFav (L1040)
+*/
+/* ─ 源 styles.css L465-L465 ─ */
+.pl-top{display:grid;grid-template-columns:34px 1fr 34px;align-items:center}
+/* ─ 源 styles.css L466-L466 ─ */
+.pl-top .icon-btn:first-child .ic{transform:rotate(180deg)}
+/* ─ 源 styles.css L467-L467 ─ */
+#plFavBtn.on{color:var(--brand)}
+/* …（不连续片段：中间规则归属其它件或为注释） … */
+/* ─ 源 styles.css L469-L469 ─ */
+#plFavBtn.err{color:var(--danger-ink)}

@@ -1,0 +1,15 @@
+<!--
+  件：parts/common-control/hscroll-recent —— U16 · .hscroll + .recent-card 继续收听横滚（含区块壳与「清空记录」钮）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L113-L119（本件持有 7 个元素）
+    styles.css 中归本件的 7 条见同名 .css
+    app.js：renderRecent (L261) / recentIds (L259) / clearRecent (L284) / RECENT_LIMIT (L258)
+-->
+<section class="section">
+  <div class="section-head">
+    <h2 class="section-title">继续收听</h2>
+    <button class="section-more" id="recentMore">清空记录<svg class="ic"><use href="#i-chevron"/></svg></button>
+  </div>
+  <div class="hscroll" id="recentRow"></div>
+</section>

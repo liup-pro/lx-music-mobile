@@ -1,0 +1,16 @@
+/*
+  件：parts/home/artist-card —— U31 · .artist-card 热门歌手横滚（含区块壳；section-note 挖出归 U32）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L143-L150（本件持有 4 个元素）
+    styles.css 本件收纳 4 条规则（逐条注明来源行号）
+    app.js：renderArtists (L1536) / ARTIST_LIMIT (L1534)
+*/
+/* ─ 源 styles.css L329-L329 ─ */
+.artist-card{flex:none;width:76px;display:flex;flex-direction:column;align-items:center;gap:8px;transition:.2s var(--ease)}
+/* ─ 源 styles.css L330-L330 ─ */
+.artist-card:active{transform:scale(.93)}
+/* ─ 源 styles.css L331-L331 ─ */
+.artist-card .art{width:68px;height:68px;border-radius:50%}
+/* ─ 源 styles.css L332-L332 ─ */
+.artist-card span{font-size:11.5px;color:var(--text-2);font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

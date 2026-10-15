@@ -1,0 +1,16 @@
+<!--
+  件：parts/search/sc-top —— U62 · .sc-top / .sc-box / .sc-cancel 搜索头排（RN 缺件·内联，转正候选；placeholder「搜歌名、歌手、歌单」与「取消」在件内）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L363-L370（本件持有 9 个元素）
+    styles.css 中归本件的 10 条见同名 .css
+    app.js：openSearch (L2443)
+-->
+<div class="sc-top">
+  <div class="sc-box">
+    <svg class="ic"><use href="#i-search"/></svg>
+    <input class="sc-input" id="searchInput" placeholder="搜歌名、歌手、歌单" autocomplete="off">
+    <button class="sc-x" id="searchClear" hidden aria-label="清空"><svg class="ic"><use href="#i-close"/></svg></button>
+  </div>
+  <button class="sc-cancel" id="searchCancel">取消</button>
+</div>

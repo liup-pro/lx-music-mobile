@@ -1,0 +1,22 @@
+/*
+  件：parts/playlist/my-pl —— U36 · .my-pl-row 我的歌单一排（含区块壳；空态挖出归 U11）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L176-L183（本件持有 7 个元素）
+    styles.css 本件收纳 7 条规则（逐条注明来源行号）
+    app.js：renderPlaylistPage (L719)
+*/
+/* ─ 源 styles.css L379-L379 ─ */
+.my-pl-row{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px}
+/* ─ 源 styles.css L380-L380 ─ */
+.my-pl-row::-webkit-scrollbar{display:none}
+/* ─ 源 styles.css L381-L381 ─ */
+.my-pl{flex:none;width:120px;text-align:left;transition:.2s var(--ease)}
+/* ─ 源 styles.css L382-L382 ─ */
+.my-pl:active{transform:scale(.95)}
+/* ─ 源 styles.css L383-L383 ─ */
+.my-pl .art{width:120px;height:120px;border-radius:16px}
+/* ─ 源 styles.css L384-L384 ─ */
+.my-pl .mp-n{font-size:12.5px;font-weight:700;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ─ 源 styles.css L385-L385 ─ */
+.my-pl .mp-s{font-size:11px;color:var(--text-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

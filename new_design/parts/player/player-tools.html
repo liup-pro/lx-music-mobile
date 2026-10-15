@@ -1,0 +1,14 @@
+<!--
+  件：parts/player/player-tools —— U60 · .player-tools / .pt-btn 次级工具行四颗（定时/循环/浮窗/评论；浮窗本体在 U61，两件对读防「钮有着落、本体悬空」）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L346-L351（本件持有 13 个元素）
+    styles.css 中归本件的 4 条见同名 .css
+    app.js：paintTimerTag (L1826) / cycleLoop (L1325) / toggleFloat (L1900) / setIcon (L5)
+-->
+<div class="player-tools">
+  <button class="pt-btn" id="btnTimer" aria-label="定时停止播放 · 未开启"><svg class="ic"><use href="#i-timer"/></svg></button>
+  <button class="pt-btn" id="btnLoop" aria-label="循环模式 · 列表循环"><svg class="ic"><use href="#i-repeat"/></svg></button>
+  <button class="pt-btn" id="btnFloat" aria-label="LRC 浮窗 · 未开启"><svg class="ic"><use href="#i-float"/></svg></button>
+  <button class="pt-btn" id="btnComment" aria-label="评论"><svg class="ic"><use href="#i-comment"/></svg></button>
+</div>

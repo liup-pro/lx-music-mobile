@@ -1,0 +1,734 @@
+#!/usr/bin/env node
+/**
+ * 把 new_design 原型拆成语义单元小件，产出 new_design/parts/。
+ * 用法：node scripts/gen-newui-parts.mjs        （Node ≥ 18，本项目用 v22）
+ * 输出：new_design/parts/**（派生文件，请勿手改）
+ *
+ * 铁律：
+ * - 输入只读：new_design/index.html、styles.css、app.js（连同 data.js 四文件一字不改）。
+ * - 无损切分：index.html 每个元素恰好归属一个件（拼回总数一致，零丢失零重复）；
+ *   styles.css 每条规则恰好归属一个件（含 _base，规则数与选择器数都对得上）。
+ *   校验不过直接报错退出，不开「其它/杂项」兜底桶。
+ * - 归属表（PART_DEFS / ANCHORS / CSS_MATCHERS）是人工语义判定，源自
+ *   src/newui/PROTOTYPE_INVENTORY.md 的双向对撞结论；原型若新增元素/规则而表未覆盖，
+ *   脚本指名报错，逼着维护者显式补表——这正是「AI 没看全」的兜底。
+ *
+ * 边界规则（对撞报告第六节，照用）：
+ * - U17 sheet：chrome 定义件 + 八个实例件继承；164dfa4 钉住规则(#playerSheet/#psBody)归 chrome。
+ * - U28 rank-tabs 与 U35 cat-row 合并为一个「chip 行」件；CatStickerBar 是 RN 自造件不进 parts。
+ * - 播放器舞台按原型单元写件（U52/U53/U54；U52 内含 disc 与舞台壳、lyric-wrap 挖出归 U53）。
+ * - 查看器 chrome V1–V4 不是 App UI，不参与拆件，集中归 _chrome（壳层单列）。
+ */
+import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
+import { dirname, resolve, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const ND = resolve(root, 'new_design')
+const OUT = join(ND, 'parts')
+const errors = []
+const fail = (msg) => { errors.push(msg) }
+
+const htmlSrc = readFileSync(join(ND, 'index.html'), 'utf8')
+const cssSrc = readFileSync(join(ND, 'styles.css'), 'utf8')
+const jsSrc = readFileSync(join(ND, 'app.js'), 'utf8')
+
+// ---------------------------------------------------------------------------
+// 1. app.js：顶层符号 → 行号（件头注释里的出处；找不到即硬错误）
+// ---------------------------------------------------------------------------
+const jsSymbolLine = new Map()
+jsSrc.split('\n').forEach((line, i) => {
+  const m = line.match(/^(?:function|const|let|var)\s+([A-Za-z0-9_$]+)/)
+  if (m && !jsSymbolLine.has(m[1])) jsSymbolLine.set(m[1], i + 1)
+})
+function resolveJs(symbols) {
+  const out = []
+  for (const s of symbols || []) {
+    const ln = jsSymbolLine.get(s)
+    if (ln == null) fail(`app.js 中找不到顶层符号 ${s}（件元数据过期，请核对原型后补表）`)
+    else out.push(`${s} (L${ln})`)
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// 2. index.html：手写扫描器 → 元素树（精确行号 + 原文偏移）
+// ---------------------------------------------------------------------------
+const VOID_TAGS = new Set(['meta', 'link', 'br', 'img', 'input', 'hr', 'source', 'track', 'wbr', 'col', 'base', 'area'])
+const LINE_STARTS = [0]
+for (let i = 0; i < htmlSrc.length; i++) if (htmlSrc.charCodeAt(i) === 10) LINE_STARTS.push(i + 1)
+function lineOf(offset) {
+  let lo = 0, hi = LINE_STARTS.length - 1
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (LINE_STARTS[mid] <= offset) lo = mid; else hi = mid - 1 }
+  return lo + 1
+}
+function colOf(offset) { return offset - LINE_STARTS[lineOf(offset) - 1] }
+
+function findOpenTagEnd(from) {
+  let i = from + 1, inQ = null
+  for (; i < htmlSrc.length; i++) {
+    const c = htmlSrc[i]
+    if (inQ) { if (c === inQ) inQ = null; continue }
+    if (c === '"' || c === "'") { inQ = c; continue }
+    if (c === '>') return i + 1
+  }
+  fail('index.html 有开放标签找不到 >')
+  return htmlSrc.length
+}
+
+const rootNodes = []
+const allElements = []
+const stack = []
+{
+  let cursor = 0
+  while (cursor < htmlSrc.length) {
+    const lt = htmlSrc.indexOf('<', cursor)
+    if (lt < 0) break
+    if (htmlSrc.startsWith('<!--', lt)) { cursor = htmlSrc.indexOf('-->', lt) + 3; continue }
+    if (htmlSrc.startsWith('<!', lt)) { cursor = htmlSrc.indexOf('>', lt) + 1; continue }
+    if (htmlSrc.startsWith('</', lt)) {
+      const gt = htmlSrc.indexOf('>', lt)
+      const tag = htmlSrc.slice(lt + 2, gt).trim()
+      const top = stack.pop()
+      if (!top || top.tag !== tag) fail(`index.html 标签不配对：L${lineOf(lt)} 的 </${tag}>（栈顶 ${top ? top.tag + '@L' + top.lineStart : '空'}）`)
+      else { top.closeStart = lt; top.closeEnd = gt + 1 }
+      cursor = gt + 1
+      continue
+    }
+    const m = /^<([a-zA-Z][\w:-]*)/.exec(htmlSrc.slice(lt))
+    if (!m) { cursor = lt + 1; continue }
+    const tag = m[1]
+    const gt = findOpenTagEnd(lt)
+    const attrsRaw = htmlSrc.slice(lt + m[1].length + 1, gt - 1).trim()
+    const selfClosed = htmlSrc.slice(lt, gt).trimEnd().endsWith('/>') || VOID_TAGS.has(tag)
+    const idm = attrsRaw.match(/(?:^|\s)id="([^"]+)"/)
+    const clm = attrsRaw.match(/(?:^|\s)class="([^"]+)"/)
+    const node = {
+      tag, attrsRaw,
+      id: idm ? idm[1] : '',
+      classes: clm ? clm[1].split(/\s+/).filter(Boolean) : [],
+      openStart: lt, openEnd: gt, closeStart: selfClosed ? gt : -1, closeEnd: selfClosed ? gt : -1,
+      lineStart: lineOf(lt),
+      children: [],
+      parent: stack.length ? stack[stack.length - 1] : null,
+      selfClosed,
+    }
+    ;(stack.length ? stack[stack.length - 1].children : rootNodes).push(node)
+    allElements.push(node)
+    if (!selfClosed) stack.push(node)
+    cursor = gt
+  }
+  if (stack.length) fail(`index.html 有 ${stack.length} 个未闭合元素：${stack.map((e) => e.tag + '@L' + e.lineStart).join(',')}`)
+}
+for (const el of allElements) el.lineEnd = lineOf(el.closeEnd - 1)
+
+// ---------------------------------------------------------------------------
+// 3. 件定义与元素归属锚点
+// ---------------------------------------------------------------------------
+// anchor 语法：tag:xxx / id:xxx / cls:xxx（class token 精确匹配）/ sec:parentId:n（该页内第 n 个 .section）
+// mode：claim=锚点连未被子锚挖出的后代一起归本件；self=只归自身，子元素须各有归属
+const ANCHORS = [
+  ['tag:html', '_shell', 'self'], ['tag:head', '_shell', 'self'], ['tag:body', '_shell', 'self'],
+  ['tag:meta', '_shell', 'claim'], ['tag:title', '_shell', 'claim'], ['tag:link', '_shell', 'claim'], ['tag:script', '_shell', 'claim'],
+  ['cls:sprite', 'U23', 'claim'],
+  ['cls:stage', '_chrome', 'self'], ['cls:viewer-bar', '_chrome', 'claim'],
+  ['cls:phone', '_chrome', 'self'], ['cls:screen', '_chrome', 'self'],
+  ['cls:island', '_chrome', 'claim'], ['cls:statusbar', '_chrome', 'claim'], ['cls:notes', '_chrome', 'claim'],
+  ['cls:nav-brand', '_chrome', 'claim'], ['cls:nav-sep', '_chrome', 'claim'], ['cls:nav-label', '_chrome', 'claim'], ['cls:nav-foot', '_chrome', 'claim'],
+  ['cls:topbar', 'U01', 'claim'],
+  ['cls:viewport', '_shell', 'self'], ['cls:page', '_shell', 'self'],
+  ['cls:banner-wrap', 'U24', 'claim'], ['cls:quick-row', 'U25', 'claim'],
+  ['sec:page-home:0', 'U16', 'claim'], ['sec:page-home:1', 'U26', 'claim'], ['sec:page-home:2', 'U27', 'claim'],
+  ['sec:page-home:3', 'U29', 'claim'], ['sec:page-home:4', 'U31', 'claim'], ['sec:page-home:5', 'U33', 'claim'],
+  ['cls:rank-tabs', 'U28_35', 'claim'], ['cls:section-note', 'U32', 'claim'],
+  ['cls:page-head', 'U34', 'claim'], ['cls:cat-row', 'U28_35', 'claim'],
+  ['sec:page-playlist:0', 'U36', 'claim'], ['sec:page-playlist:1', 'U38', 'claim'], ['id:plPoolCount', 'U37', 'claim'],
+  ['cls:rank-grid', 'U39', 'claim'],
+  ['sec:page-mine:0', 'U45', 'claim'], ['sec:page-mine:1', 'U46', 'claim'], ['cls:empty-tip', 'U11', 'claim'],
+  ['cls:mine-head', 'U42', 'claim'], ['cls:stat-row', 'U43', 'claim'], ['cls:fav-card', 'U44', 'claim'],
+  ['cls:foot-note', 'U10', 'claim'],
+  ['cls:set-hero', 'U48', 'claim'], ['id:setBody', 'U49', 'claim'],
+  ['cls:minibar', 'U05', 'claim'], ['cls:tabbar', 'U04', 'claim'],
+  ['cls:player-layer', 'UPLAYER_shell', 'self'],
+  ['id:playerBg', 'U50', 'claim'], ['cls:player-top', 'U51', 'claim'],
+  ['cls:player-stage', 'U52', 'claim'], ['cls:lyric-wrap', 'U53', 'claim'], ['cls:stage-dots', 'U54', 'claim'],
+  ['cls:player-meta', 'U55', 'claim'], ['cls:player-source', 'U56', 'claim'],
+  ['cls:seek-time', 'U58', 'claim'], ['cls:seek', 'U57', 'claim'],
+  ['cls:player-controls', 'U59', 'claim'], ['cls:player-tools', 'U60', 'claim'],
+  ['cls:lrc-float', 'U61', 'claim'],
+  ['id:searchLayer', 'USEARCH_shell', 'self'], ['cls:sc-top', 'U62', 'claim'], ['id:searchBody', 'U64', 'claim'],
+  ['id:plLayer', 'UDETAIL_shell', 'self'], ['id:plBg', 'U66', 'claim'], ['cls:pl-top', 'U67', 'claim'],
+  ['id:plHero', 'U68', 'claim'], ['id:plActions', 'U69', 'claim'], ['id:plTracks', 'U70', 'claim'],
+  ['id:sourceSheet', 'U72', 'claim'], ['id:plIdSheet', 'U73', 'claim'], ['id:createSheet', 'U74', 'claim'],
+  ['id:plTagsSheet', 'U75', 'claim'], ['id:nameSheet', 'U47', 'claim'], ['id:moreSheet', 'U76', 'claim'],
+  ['id:playerSheet', 'U78_79', 'claim'], ['id:confirmSheet', 'U77', 'claim'],
+  ['cls:toast', 'U06', 'claim'],
+]
+const anchorMap = new Map(ANCHORS.map(([spec, part, mode]) => [spec, [part, mode]]))
+const secIndexCache = new Map()
+for (const pageId of ['page-home', 'page-playlist', 'page-mine']) {
+  const page = allElements.find((e) => e.id === pageId)
+  if (!page) { fail(`index.html 找不到页面容器 #${pageId}`); continue }
+  let n = 0
+  for (const ch of page.children) if (ch.classes.includes('section')) secIndexCache.set(ch, n++)
+}
+function findAnchor(el, pageId) {
+  if (el.classes.includes('section') && pageId && secIndexCache.has(el)) {
+    const spec = `sec:${pageId}:${secIndexCache.get(el)}`
+    if (anchorMap.has(spec)) return anchorMap.get(spec)
+  }
+  if (el.id && anchorMap.has(`id:${el.id}`)) return anchorMap.get(`id:${el.id}`)
+  for (const c of el.classes) if (anchorMap.has(`cls:${c}`)) return anchorMap.get(`cls:${c}`)
+  if (anchorMap.has(`tag:${el.tag}`)) return anchorMap.get(`tag:${el.tag}`)
+  return null
+}
+
+// ---------------------------------------------------------------------------
+// 4. 件元数据（PART_DEFS）
+// ---------------------------------------------------------------------------
+const P = (key, units, dir, file, title, extra = {}) => ({ key, units, dir, file, title, doc: false, js: [], ...extra })
+const PART_DEFS = [
+  P('_shell', '壳层', '', '_shell', '文档壳与页面骨架：html/head/body、#viewport、五只 .page（页面壳单列）', { js: ['switchTab', 'PAGES', 'init'], note: '页面本体就是这五只 .page 空壳，内容全部来自各单元件；五只页壳内的子件以「▸」占位注释互指。' }),
+  P('_chrome', 'V1–V4', '', '_chrome', '查看器 chrome（非 App UI，不参与拆件）：设备切换条 / 手机外框 / 灵动岛 / 假状态栏 / Pad 侧栏专属节点 / 设计说明面板', { js: ['fitFrame', 'frameZoom', 'setDevice', 'FRAME', 'renderSwatches'], note: 'RN 有意不承接；本件仅作归属收容，避免混进语义单元（对撞报告 K 组）。' }),
+  P('_base', '公共底', '', '_base', '公共底：:root token 与 .phone.light 明亮档、reset、.ic、跨单元复用原子（.art/.chip/.icon-btn/.q-tag/.src-badge/.play-badge/.ghost-btn/.empty-tip/.section-*/.foot-note/.hot-words/分页状态行 .pl-status|.pl-end/.player-crumb/@keyframes spin）', { cssOnly: true, js: ['applyTheme', 'setTheme'], note: '共享样式只在这里出现一份，各件不复刻。' }),
+
+  P('U01', 'U01', 'common-control', 'topbar', '.topbar 吸顶头部（头像 / 搜索条 / 波纹钮；U03 告警点静态实例在本件内）', { js: [], jsNote: '事件接线在 init() 尾部（#searchBtn / #castBtn / #avatarBtn）；头像首字由 renderProfile() 写入。' }),
+  P('U02', 'U02', 'common-control', 'icon-btn', '.icon-btn 圆钮原子（样式归 _base）', { doc: true, occCls: ['.icon-btn'] }),
+  P('U03', 'U03', 'common-control', 'pulse-dot', '.pulse-dot 音源告警呼吸点（样式与 @keyframes pulse 归本件；静态元素在 U01 件内）', { doc: true, occCls: ['.pulse-dot'], js: ['renderNav'] }),
+  P('U04', 'U04', 'common-control', 'tabbar', '.tabbar / .tab 底部 Tab（Pad 侧栏专属子节点归 _chrome）', { js: ['switchTab', 'renderNav', 'PAGES'] }),
+  P('U05', 'U05', 'common-control', 'minibar', '.minibar 迷你播放条（含 .mini-progress 与三颗 .mini-act）', { js: ['syncLists', 'paintProgress'] }),
+  P('U06', 'U06', 'common-control', 'toast', '.toast 全站单例提示', { js: ['toast'] }),
+  P('U07', 'U07', 'common-control', 'art', '.art 程序化封面原子（样式归 _base；由 app.js 生成，静态出现处见列表）', { doc: true, occCls: ['.art'], js: ['svgArt', 'svgAvatar', 'art', 'coverArt', 'faceArt', 'artIcon'] }),
+  P('U08', 'U08', 'common-control', 'chip', '.chip 胶囊原子（样式归 _base）', { doc: true, occCls: ['.chip'] }),
+  P('U09', 'U09', 'common-control', 'section', '.section / .section-head 区块壳（样式归 _base；静态 section 由各宿主件持有，此处列全）', { doc: true, occCls: ['.section'] }),
+  P('U10', 'U10', 'common-control', 'foot-note', '.foot-note 页尾说明（五处静态实例全部归本件；样式归 _base；四页固定文案在件内）', { js: ['PLD_FOOT'] }),
+  P('U11', 'U11', 'common-control', 'empty-tip', '.empty-tip 空态（三处静态实例归本件；样式归 _base；固定文案在件内）', { js: ['PLD_EMPTY'] }),
+  P('U12', 'U12', 'common-control', 'ghost-btn', '.ghost-btn 幽灵按钮原子（样式归 _base；「播放全部 N 首」文案见符号行）', { doc: true, occCls: ['.ghost-btn'], js: ['renderSongs', 'PLD_LABELS'] }),
+  P('U13', 'U13', 'common-control', 'play-badge', '.play-badge 封面播放角标原子（样式归 _base）', { doc: true, occCls: ['.play-badge'] }),
+  P('U14', 'U14', 'common-control', 'q-tag', '.q-tag 音质/时长小标签原子（样式归 _base；静态实例在 U51 件内）', { doc: true, occCls: ['.q-tag'] }),
+  P('U15', 'U15', 'common-control', 'src-badge', '.src-badge 平台来源角标原子（样式归 _base；songRow 生成）', { doc: true, occCls: ['.src-badge'] }),
+  P('U16', 'U16', 'common-control', 'hscroll-recent', '.hscroll + .recent-card 继续收听横滚（含区块壳与「清空记录」钮）', { js: ['renderRecent', 'recentIds', 'clearRecent', 'RECENT_LIMIT'] }),
+  P('U17', 'U17', 'common-control', 'sheet-chrome', '.sheet 浮层 chrome 定义（mask/body/handle/title/sub + 164dfa4 钉住规则 #playerSheet .sheet-body/#psBody——钉住归 chrome，不归评论件；八实例件继承）', { doc: true, sheetIds: ['sourceSheet', 'plIdSheet', 'createSheet', 'plTagsSheet', 'nameSheet', 'moreSheet', 'playerSheet', 'confirmSheet'], js: ['openSheet', 'openLayer', 'closeLayer'] }),
+  P('U18', 'U18', 'common-control', 'group-label', '.group-label 浮层分组标题（「已安装音源/音乐平台/音质/导入音源」等文案见符号行）', { doc: true, occCls: ['.group-label'], js: ['renderSheet', 'renderTagGroups'] }),
+  P('U19', 'U19', 'common-control', 'opt-list', '.opt-list / .opt-row（radio/or-body/or-state/opt-ic）选项行族', { doc: true, occCls: ['.opt-list'], js: ['renderSheet', 'actRow', 'openMore'] }),
+  P('U20', 'U20', 'common-control', 'op-box', '.op-box / .op-input / .op-go / .op-err 输入行族（打开/创建/保存钮文案在实例件内）', { doc: true, occCls: ['.op-box'], js: ['handleImport', 'submitCreateList', 'saveNick', 'tryOpenByPid'] }),
+  P('U21', 'U21', 'common-control', 'q-chips', '.q-chips（+ .q-note）chip 组行', { doc: true, occCls: ['.q-chips'], js: ['renderSheet', 'renderTimerSheet'] }),
+  P('U22', 'U22', 'common-control', 'toggle', '.toggle / .sw-row 开关行唯一定义（静态元素在 sheets/player-sheet 件内；「等当前这首放完再停」文案见 renderTimerSheet）', { doc: true, occCls: ['.sw-row'], js: ['renderTimerSheet', 'setToggle'] }),
+  P('U23', 'U23', 'common-control', 'sprite', 'SVG sprite（36 枚 symbol 全量归本件；RN 侧经 gen-newui-icons.mjs 生成 icons.ts，勿手改）', { js: ['setIcon'], jsNote: 'symbol 按名取用；本件与 RN 生成物 scripts/gen-newui-icons.mjs 同源。' }),
+  P('U30', 'U30', 'common-control', 'eq-bars', '.sr-title .eq 播放中三柱均衡器（含 @keyframes eq；元素由 songRow 生成）', { doc: true, js: ['songRow'] }),
+  P('U28_35', 'U28+U35', 'common-control', 'chip-row', 'chip 行：首页 .rank-tabs 与歌单页 .cat-row(sticky) 合并为一件，不再拆细。CatStickerBar 是 RN 为平台缺 sticky 自造的复制层，属实现税，不进原型件', { js: ['renderRankTabs', 'homeBoards', 'renderPlaylistPage', 'tagChip', 'plHotCats'] }),
+  P('U34', 'U34', 'common-control', 'page-head', '.page-head 公共页头（歌单/排行/设定三页；含 .pl-open-btn「打开歌单」）', { js: ['renderPlaylistPage'] }),
+
+  P('U24', 'U24', 'home', 'banner', '.banner-wrap 轮播三条（track/dots；b-tag、veil 由 renderBanners 生成；电台条「建设中」文案见符号行）', { js: ['bannerItems', 'renderBanners', 'bannerPaint', 'startBannerCarousel', 'BANNER_ACTION'] }),
+  P('U25', 'U25', 'home', 'quick-row', '.quick-row 快捷入口四宫格（每日推荐/排行榜/电台/我喜欢，QUICK 见 data.js）', { js: ['renderQuick'] }),
+  P('U26', 'U26', 'home', 'daily-card', '.daily-card 今日推荐卡（含区块壳）', { js: ['renderDaily', 'dailyPool', 'todayLabel'] }),
+  P('U27', 'U27', 'home', 'pl-card', '.pl-grid / .pl-card 推荐歌单区块（首页那份；歌单页/我的页复用见 U38/U46）', { js: ['renderPlaylists', 'plCard'] }),
+  P('U29', 'U29', 'home', 'song-list', '.song-list 热门单曲区块（section 壳 + ghost-btn + 列表壳；rank-tabs 子块挖出归 chip-row；songRow/src-badge/q-tag/play-badge 复用 _base 与内容件）', { js: ['renderSongs', 'songRow', 'currentSongs', 'currentBoard', 'HOME_SONG_LIMIT'] }),
+  P('U31', 'U31', 'home', 'artist-card', '.artist-card 热门歌手横滚（含区块壳；section-note 挖出归 U32）', { js: ['renderArtists', 'ARTIST_LIMIT'] }),
+  P('U32', 'U32', 'home', 'section-note', '.section-note 区块说明灰字（RN 缺件·页面内联，本轮拆件头号转正候选）', { js: ['renderArtists'] }),
+  P('U33', 'U33', 'home', 'radio-card', '.radio-grid / .radio-card / .wip-tag 随手听（私人 FM/赫兹电台 +「建设中」）', { js: ['renderRadio'] }),
+
+  P('U36', 'U36', 'playlist', 'my-pl', '.my-pl-row 我的歌单一排（含区块壳；空态挖出归 U11）', { js: ['renderPlaylistPage'] }),
+  P('U37', 'U37', 'playlist', 'pl-count', '.pl-count「已列出 N / M 个」计数行（RN 缺件·内联，转正候选）', { js: ['paintPlPool'] }),
+  P('U38', 'U38', 'playlist', 'pl-pool', '推荐池区块（.pl-grid 复用 U27；计数挖出归 U37、空态归 U11；分页状态行样式在 _base）', { js: ['paintPlPool', 'plPool', 'resetPlPool', 'loadPlPoolPage', 'plPoolStatusRow', 'PL_POOL_SIZE'] }),
+
+  P('U39', 'U39', 'rank', 'rank-grid', '.rank-grid / .rk-card（rk-emblem/rk-name/rk-sub）榜单卡网格；卡由 rankCard() 生成', { js: ['renderRankPage', 'rankCard', 'paintRankGrid', 'rankView', 'RANK_PAGE_SIZE'] }),
+  P('U40', 'U40', 'rank', 'rank-group', '.rank-group 平台分段组头（「N 个榜 · 热歌/新歌/飙升在前」文案见符号行）', { doc: true, js: ['rankGroupHead'] }),
+  P('U41', 'U41', 'rank', 'chart-art', 'chartArt 符号体系：色按榜名（CHART_TINT）、形按榜型（CHART_EMBLEM 六枚 512 符号）、底色=强调色×shadeHex；不随主题反相', { doc: true, js: ['chartArt', 'CHART_ACCENT', 'CHART_TINT', 'CHART_EMBLEM', 'chartTint', 'shadeHex'] }),
+
+  P('U42', 'U42', 'mine', 'mine-head', '.mine-head 个人头部（mh-*/头像大字；副行固定文案在件内）', { js: ['renderMinePage', 'renderProfile', 'nickInitial'] }),
+  P('U43', 'U43', 'mine', 'stat-row', '.stat-row / .stat 本地统计三项（喜欢/歌单/最近播放）', { js: ['renderMinePage'] }),
+  P('U44', 'U44', 'mine', 'fav-card', '.fav-card 我喜欢卡', { js: ['renderMinePage', 'refreshFavLayer', 'favPlaylist'] }),
+  P('U45', 'U45', 'mine', 'song-list-compact', '.song-list.compact 最近播放区块（song-row 复用 U29；compact 变体样式归本件）', { js: ['renderMinePage'] }),
+  P('U46', 'U46', 'mine', 'my-pl-mine', '我的歌单区（pl-card 复用 U27 + plCardMine；「新建歌单」入口在区块壳内；空态挖出归 U11）', { js: ['plCardMine'] }),
+
+  P('U48', 'U48', 'setting', 'set-hero', '.set-hero / .sh-sub 设定页说明头（RN 缺件·内联，转正候选；副句文案见 renderSettings）', { js: ['renderSettings'] }),
+  P('U49', 'U49', 'setting', 'settings-group', '.set-group / .set-list / .set-row / .set-ic / st-l / st-r 设定分组行族（组由 renderSettings() 灌入 #setBody）', { js: ['renderSettings', 'setGroup', 'setRow', 'setToggle', 'THEME_ICON', 'setInfo'] }),
+
+  P('UPLAYER_shell', '播放页壳', 'player', '_layer', 'player-layer 壳层（推入定位与 .player-layer>* 层序；子块各有归属件，本件只持有壳元素本身）', { js: ['player'], note: 'RN 侧舞台拆三件是 pager 手势落地方式，不写回原型件。' }),
+  P('U50', 'U50', 'player', 'player-bg', '.player-bg 氛围层（blur70+saturate150；RN 缺件·内联 LinearGradient，转正候选）', { js: ['paintPlayer'] }),
+  P('U51', 'U51', 'player', 'player-top', '.player-top + .player-crumb 顶排（RN 缺件·内联，转正候选；.player-crumb 样式在 _base——U51/U67 两处共用）', { js: ['paintPlayer'] }),
+  P('U52', 'U52', 'player', 'stage', '.player-stage / .disc-wrap / .disc 唱片舞台（按原型单元写件；lyric-wrap 挖出归 U53）', { js: ['bindStageSwipe', 'swipeDir', 'SWIPE_MIN_DX', 'SWIPE_SLOPE'] }),
+  P('U53', 'U53', 'player', 'lyric', '.lyric-wrap/.lyric-scroll/.ln/.ln-note/.ln-empty 歌词层（「这首歌暂时没有歌词…」文案见符号行）', { js: ['renderLyric', 'syncLyric', 'setLyric', 'hasLyric'] }),
+  P('U54', 'U54', 'player', 'stage-dots', '.stage-dots 舞台指示点（左右滑手势唯一的可见提示）', { js: ['bindStageSwipe', 'setLyric'] }),
+  P('U55', 'U55', 'player', 'player-meta', '.player-meta（player-info / .pc.fav 收藏钮；RN 缺件·内联，转正候选）', { js: ['paintFav', 'toggleFav'] }),
+  P('U56', 'U56', 'player', 'player-source', '.player-source 平台+音质文本行（RN 缺件·内联，转正候选）', { js: ['paintPlayer', 'qLabel'] }),
+  P('U57', 'U57', 'player', 'seek', '.seek 进度条（拖动即定位，拖动期间关 transition）', { js: ['seekTo', 'tick', 'bindDragX'] }),
+  P('U58', 'U58', 'player', 'seek-time', '.seek-time 起止时间行（RN 缺件·内联，转正候选）', { js: ['paintProgress', 'fmt'] }),
+  P('U59', 'U59', 'player', 'player-controls', '.player-controls / .pc 主传输行三颗（循环五态文案见 LOOP_* 行）', { js: ['step', 'toggle', 'LOOP_ORDER', 'LOOP_ICON', 'LOOP_NAME', 'paintLoop'] }),
+  P('U60', 'U60', 'player', 'player-tools', '.player-tools / .pt-btn 次级工具行四颗（定时/循环/浮窗/评论；浮窗本体在 U61，两件对读防「钮有着落、本体悬空」）', { js: ['paintTimerTag', 'cycleLoop', 'toggleFloat', 'setIcon'] }),
+  P('U61', 'U61', 'player', 'lrc-float', '.lrc-float 歌词悬浮窗（可拖动气泡）', { js: ['syncFloat', 'paintFloatBtn', 'toggleFloat', 'bindFloatDrag'], warn: 'RN 未落地·功能级缺口（对撞报告 U61 实锤）；派单接件时按整件对照，勿再散着抄。' }),
+
+  P('USEARCH_shell', '搜索层壳', 'search', '_layer', 'search-layer 壳层（复用 .pl-layer 推入基础样式，那份 CSS 归 songlist-detail/_layer.css——拆件在此点它）', { js: ['openSearch', 'closeSearch'] }),
+  P('U62', 'U62', 'search', 'sc-top', '.sc-top / .sc-box / .sc-cancel 搜索头排（RN 缺件·内联，转正候选；placeholder「搜歌名、歌手、歌单」与「取消」在件内）', { js: ['openSearch'] }),
+  P('U63', 'U63', 'search', 'sc-tabs', '.sc-tabs 单曲/歌单分段条（含命中数；scTabs() 生成）', { doc: true, js: ['scTabs'] }),
+  P('U64', 'U64', 'search', 'sc-body', '#searchBody 滚动体 + .sc-label / .sc-clear（「搜索历史」「大家都在搜」由 renderSearchIdle() 生成，文案见符号行）', { js: ['renderSearchIdle', 'scWordRow', 'rememberQuery', 'searchHistory'] }),
+  P('U65', 'U65', 'search', 'sc-result', '.sc-empty / .sc-hint 结果空态与提示族（「正在搜索…」「没找到…」文案见符号行；sheet 里的 .sc-hint 实例在宿主件内）', { doc: true, js: ['scEmpty', 'renderSearch', 'SEARCH_HOT_LIMIT'] }),
+
+  P('UDETAIL_shell', '详情层壳', 'songlist-detail', '_layer', 'pl-layer 推入壳层（搜索层也复用这份基础样式，见 search/_layer 头注）', { js: ['openPlaylist', 'closePlLayer'] }),
+  P('U66', 'U66', 'songlist-detail', 'pl-bg', '.pl-bg 封面氛围层（blur64+saturate150；RN 侧 CoverWash 是降级共通件）', { js: ['openPlaylist'] }),
+  P('U67', 'U67', 'songlist-detail', 'pl-top', '.pl-top / .pl-crumb / .pl-fav-btn 顶排（RN 缺件·内联，转正候选；面包屑文案见 PLD_CRUMB）', { js: ['PLD_CRUMB', 'togglePlFav'] }),
+  P('U68', 'U68', 'songlist-detail', 'pl-hero', '.pl-hero 头图区（ph-body/ph-sub/ph-meta/sep；「N/M 首可播」等文案在 openPlaylist）', { js: ['openPlaylist', 'chartArt'] }),
+  P('U69', 'U69', 'songlist-detail', 'pl-actions', '.pl-actions 播放全部 + 随机钮（RN 缺件·内联，转正候选；PLD_LABELS 文案见符号行）', { js: ['PLD_LABELS'] }),
+  P('U70', 'U70', 'songlist-detail', 'pl-tracks', '#plTracks 曲目表（song-list 复用 U29；分页状态行 .pl-status/.pl-end 样式在 _base——三页共用；PLD_STATUS 文案见符号行）', { js: ['renderPlTracks', 'plStatusRow', 'loadPlPage', 'plEndRow', 'PLD_STATUS', 'PLD_EMPTY', 'PL_PAGE_SIZE'] }),
+
+  P('U72', 'U72', 'sheets', 'source-sheet', 'sourceSheet 音源浮层实例（chrome 见 U17；「音源只负责一件事…」sheetSub 与 q-note 三句由 renderSheet 生成，文案见符号行）', { js: ['renderSheet', 'renderImportRow', 'handleImport'] }),
+  P('U73', 'U73', 'sheets', 'plid-sheet', 'plIdSheet 打开歌单浮层实例（PLID 样例表与错误文案见符号行；本件持有「打开」按钮与三句固定提示）', { js: ['openPlIdSheet', 'PLID', 'pidOf', 'bareIdOf', 'renderPlIdPlats', 'renderPlIdSamples', 'plIdError'] }),
+  P('U74', 'U74', 'sheets', 'create-sheet', 'createSheet 新建歌单浮层实例（CREATE_TXT 见符号行；本件持有「创建」与校验提示）', { js: ['openCreateSheet', 'submitCreateList', 'doCreate', 'CREATE_TXT', 'CREATE_NAME_MAX', 'createListError'] }),
+  P('U75', 'U75', 'sheets', 'tags-sheet', 'plTagsSheet 全部分类浮层实例（分组由 renderTagGroups() 灌入；「正在从平台获取分类…」见符号行）', { js: ['openTagSheet', 'renderTagGroups', 'plGroups', 'PL_TAG_ALL'] }),
+  P('U47', 'U47', 'sheets', 'name-sheet', 'nameSheet 改昵称浮层实例（NICK_PICKS 见符号行；本件持有「想叫什么/保存/换个快的」与收尾提示全文）', { js: ['openNameSheet', 'saveNick', 'NICK_PICKS'] }),
+  P('U76', 'U76', 'sheets', 'more-sheet', 'moreSheet 单曲操作面板实例（.more-song 头 + opt-list 动作；「收藏到「我喜欢」」等文案见 openMore）', { js: ['openMore', 'actRow', 'moreSong'] }),
+  P('U78_79', 'U78+U79', 'sheets', 'player-sheet', '#playerSheet 播放页子面板宿主：定时与评论两种实例共用这一只 DOM（内容件见 timer-sheet / comment-sheet；钉住规则归 U17 chrome）', { js: ['openSheet', 'closeLayer'] }),
+  P('U78', 'U78', 'sheets', 'timer-sheet', 'timer 浮层内容件（renderTimerSheet() 灌入 player-sheet；「不开启」「N 分钟」「等当前这首放完再停」见符号行；开关本体归 U22）', { doc: true, js: ['renderTimerSheet', 'paintTimerTag', 'sleepSub', 'stopAtEdge'] }),
+  P('U79', 'U79', 'sheets', 'comment-sheet', 'comment 浮层内容件（renderCommentSheet()/cmtItem() 嵌套树灌入 player-sheet；cmt-total/cmt-item/cmt-reply/cmt-to 样式归本件；164dfa4：cmt-total 钉在 #psMeta、仅 #psBody 滚——钉住规则本体在 U17）', { doc: true, js: ['renderCommentSheet', 'paintComments', 'cmtItem', 'loadCmtPage', 'CMT_TXT', 'CMT_PAGE_SIZE', 'commentTotal'] }),
+  P('U77', 'U77', 'sheets', 'confirm-sheet', 'confirmSheet 二次确认浮层实例（.cf-actions/.cf-btn；「要执行这一步吗」默认文案见 askConfirm）', { js: ['askConfirm', 'askClearCache', 'askDeleteList'] }),
+]
+const partByKey = new Map(PART_DEFS.map((p) => [p.key, p]))
+const partDirLabel = (p) => (p.dir ? p.dir + '/' : '') + p.file
+
+// ---------------------------------------------------------------------------
+// 5. 元素归属（DFS：内层锚点挖出外层件）
+// ---------------------------------------------------------------------------
+const owner = new Map()
+function walkAssign(el, inherited, pageId) {
+  const a = findAnchor(el, pageId)
+  if (a) {
+    if (!partByKey.has(a[0])) fail(`ANCHORS 引用了不存在的件 key：${a[0]}（index.html L${el.lineStart}）`)
+    el._anchor = { part: a[0], mode: a[1] }
+  }
+  const cur = el._anchor || inherited
+  if (!cur) fail(`index.html L${el.lineStart} <${el.tag}${el.id ? '#' + el.id : ''}> 无归属（请补 ANCHORS）`)
+  owner.set(el, cur || { part: '_ERR', mode: 'claim' })
+  const nextPage = el.id && el.id.startsWith('page-') ? el.id : pageId
+  for (const ch of el.children) walkAssign(ch, cur, nextPage)
+}
+for (const r of rootNodes) walkAssign(r, null, null)
+
+const partRoots = new Map(PART_DEFS.map((p) => [p.key, []]))
+function collectRoots(el, parentPart) {
+  if (el._anchor && el._anchor.part !== parentPart) {
+    const arr = partRoots.get(el._anchor.part)
+    if (!arr) fail(`件 key 未登记：${el._anchor.part}（index.html L${el.lineStart}）`)
+    else arr.push(el)
+  }
+  for (const ch of el.children) collectRoots(ch, el._anchor ? el._anchor.part : parentPart)
+}
+for (const r of rootNodes) collectRoots(r, null)
+const countOwned = (key) => allElements.reduce((a, e) => a + (owner.get(e).part === key ? 1 : 0), 0)
+
+// ---------------------------------------------------------------------------
+// 6. 元素序列化（原文切片 + 他件子树换占位注释）
+// ---------------------------------------------------------------------------
+function marker(el) {
+  const p = partByKey.get(owner.get(el).part)
+  return `<!-- ▸ ${partDirLabel(p)}.html —— ${p.units} · 源 index.html L${el.lineStart}-L${el.lineEnd} -->`
+}
+function renderClaim(el) {
+  const carveRoots = []
+  ;(function find(n) {
+    for (const ch of n.children) {
+      if (ch._anchor && ch._anchor.part !== owner.get(el).part) carveRoots.push(ch)
+      else find(ch)
+    }
+  })(el)
+  carveRoots.sort((a, b) => a.openStart - b.openStart)
+  const chunks = []
+  let pos = el.openStart
+  for (const c of carveRoots) {
+    chunks.push(htmlSrc.slice(pos, c.openStart))
+    chunks.push(marker(c))
+    pos = c.closeEnd
+  }
+  chunks.push(htmlSrc.slice(pos, el.closeEnd))
+  const col = colOf(el.openStart)
+  return chunks.join('').split('\n').map((ln, i) => (i === 0 ? ln : ln.startsWith(' '.repeat(col)) ? ln.slice(col) : ln)).join('\n')
+}
+function indentLines(text, pad) {
+  return text.split('\n').map((l, i) => (i === 0 ? l : (l.trim() ? pad + l : l))).join('\n')
+}
+function renderSelf(el) {
+  const ownPart = owner.get(el).part
+  const lines = [htmlSrc.slice(el.openStart, el.openEnd)]
+  for (const ch of el.children) {
+    const a = ch._anchor
+    if (a && a.part !== ownPart) lines.push('  ' + marker(ch))
+    else if (a && a.mode === 'self') lines.push('  ' + indentLines(renderSelf(ch), '  '))
+    else if (a) lines.push('  ' + indentLines(renderClaim(ch), '  '))
+    else lines.push('  ' + indentLines(renderClaim(ch), '  '))
+  }
+  if (!el.selfClosed) lines.push(htmlSrc.slice(el.closeStart, el.closeEnd))
+  return lines.join('\n')
+}
+
+// ---------------------------------------------------------------------------
+// 7. styles.css：规则切分与归属
+// ---------------------------------------------------------------------------
+let mediaBlockCount = 0
+function parseCss() {
+  const rules = []
+  let i = 0, line = 1
+  const n = cssSrc.length
+  const skipWs = () => {
+    while (i < n) {
+      if (cssSrc[i] === '\n') { line++; i++; continue }
+      if (/\s/.test(cssSrc[i])) { i++; continue }
+      if (cssSrc.startsWith('/*', i)) { const e = cssSrc.indexOf('*/', i); line += (cssSrc.slice(i, e).match(/\n/g) || []).length; i = e + 2; continue }
+      break
+    }
+  }
+  const readBlock = (from) => {
+    let depth = 0
+    for (; from < n; from++) {
+      if (cssSrc[from] === '\n') line++
+      if (cssSrc[from] === '{') depth++
+      else if (cssSrc[from] === '}') { depth--; if (depth === 0) return from + 1 }
+    }
+    fail('styles.css 花括号不配对')
+    return n
+  }
+  const parseLevel = (mediaParams) => {
+    for (;;) {
+      skipWs()
+      if (i >= n) return
+      if (cssSrc[i] === '}') { if (mediaParams) return; return }
+      if (cssSrc.startsWith('@media', i)) {
+        mediaBlockCount++
+        const brace = cssSrc.indexOf('{', i)
+        i = brace + 1
+        parseLevel(cssSrc.slice(i, brace).trim() || '@media')
+        skipWs()
+        if (cssSrc[i] === '}') i++
+        continue
+      }
+      if (cssSrc.startsWith('@keyframes', i)) {
+        const startLine = line
+        const brace = cssSrc.indexOf('{', i)
+        const name = /@keyframes\s+([\w-]+)/.exec(cssSrc.slice(i, brace))[1]
+        const end = readBlock(brace)
+        rules.push({ sel: `@keyframes ${name}`, startLine, endLine: line, at: 'keyframes' })
+        i = end
+        continue
+      }
+      const brace = cssSrc.indexOf('{', i)
+      if (brace < 0) return
+      const selStartLine = line
+      const sel = cssSrc.slice(i, brace).trim()
+      line += (sel.match(/\n/g) || []).length
+      i = brace + 1
+      const end = readBlock(brace)
+      rules.push({ sel, startLine: selStartLine, endLine: line, media: mediaParams || null })
+      i = end
+    }
+  }
+  parseLevel(null)
+  return rules
+}
+const cssRules = parseCss()
+
+const BOUND = ' \t>+~,:.([-['
+function containsSel(sel, pat) {
+  let from = 0
+  for (;;) {
+    const k = sel.indexOf(pat, from)
+    if (k < 0) return false
+    const before = k === 0 ? '' : sel[k - 1]
+    const afterIdx = k + pat.length
+    const after = afterIdx >= sel.length ? '' : sel[afterIdx]
+    const okBefore = k === 0 || BOUND.includes(before)
+    const okAfter = afterIdx >= sel.length || BOUND.includes(after) || after === '>'
+    if (okBefore && okAfter && !sel.slice(0, k).includes('{')) return true
+    from = k + 1
+  }
+}
+const CSS_EXC = [
+  [/^\.pl-grid>\.pl-status,\.rank-grid>\.pl-status$/, '_base'],
+  [/^\.pl-grid>\.pl-end,\.rank-grid>\.pl-end$/, '_base'],
+  [/^#psBody>\.q-chips$/, 'U78'],
+  [/^\.player-layer>\.player-bg$/, 'U50'],
+  [/^\.pl-layer>\.pl-bg$/, 'U66'],
+  [/^\.art\.chart-art$/, 'U41'],
+  [/^\.song-list\.compact/, 'U45'],
+  [/^\.phone\.light/, '_base'],
+  [/^\.sr-title \.eq/, 'U30'],
+  [/^\.pc\.fav/, 'U55'],
+  [/^#plIdSamples/, 'U73'],
+  [/^\.sr-sub \.src-badge,\.sr-sub \.q-tag$/, '_base'],
+  [/^\.opt-row\.on \.radio$/, 'U19'],
+  [/^\.pl-layer \.empty-tip$/, 'U70'],
+]
+const CSS_MATCHERS = [
+  ['_chrome', ['.pad ', '.land ', '.phone.pad', '.phone.land', 'body.pad', '.stage', '.phone', '.screen', '.island', '.statusbar', '.sb-time', '.sb-right', '.sb-signal', '.sb-batt', '.viewer-bar', '.vb-label', '.vb-seg', '.vb-btn', '.vb-note', '.nav-brand', '.nav-sep', '.nav-label', '.nav-foot', '.notes', '.swatches', '.sw']],
+  ['U01', ['.topbar', '.topbar-row', '.avatar-btn', '.avatar', '.searchbar']],
+  ['U03', ['.pulse-dot']],
+  ['U05', ['.minibar', '.mini-progress', '.mini-main', '.mini-art', '.mini-meta', '.mini-title', '.mini-sub', '.mini-act']],
+  ['U06', ['.toast']],
+  ['U23', ['.sprite']],
+  ['U16', ['.hscroll', '.recent-card']],
+  ['U17', ['.sheet', '#playerSheet', '#psBody', '#psMeta']],
+  ['U18', ['.group-label']],
+  ['U33', ['.radio-grid', '.radio-card', '.wip-tag']],
+  ['U19', ['.opt-list', '.opt-row', '.radio', '.or-body', '.or-state', '.opt-ic']],
+  ['U20', ['.op-box', '.op-input', '.op-go', '.op-err']],
+  ['U21', ['.q-chips', '.q-note']],
+  ['U22', ['.sw-row', '.toggle']],
+  ['U04', ['.tabbar', '.tab']],
+  ['U28_35', ['.rank-tabs', '.cat-row']],
+  ['U34', ['.page-head', '.page-title', '.pl-open-btn']],
+  ['U24', ['.banner-wrap', '.banner-track', '.banner', '.banner-dots']],
+  ['U25', ['.quick-row', '.quick']],
+  ['U26', ['.daily-card']],
+  ['U27', ['.pl-grid', '.pl-card']],
+  ['U29', ['.song-list', '.song-row', '.sr-body', '.sr-title', '.sr-sub', '.sr-right', '.sr-dur']],
+  ['U31', ['.artist-card']],
+  ['U32', ['.section-note']],
+  ['U36', ['.my-pl-row', '.my-pl']],
+  ['U37', ['.pl-count']],
+  ['U39', ['.rank-grid', '.rk-card', '.rk-emblem', '.rk-name', '.rk-sub']],
+  ['U40', ['.rank-group']],
+  ['U42', ['.mine-head', '.mh-art', '.mh-body', '.mh-name', '.mh-sub', '.mh-edit']],
+  ['U43', ['.stat-row', '.stat']],
+  ['U44', ['.fav-card']],
+  ['U48', ['.set-hero', '.sh-sub']],
+  ['U49', ['.set-group', '.sg-label', '.set-list', '.set-row', '.set-ic', '.st-l', '.st-r']],
+  ['UPLAYER_shell', ['.player-layer']],
+  ['U50', ['.player-bg']],
+  ['U51', ['.player-top', '#playerClose']],
+  ['U52', ['.player-stage', '.disc-wrap', '.disc']],
+  ['U53', ['.lyric-wrap', '.lyric-scroll', '.ln', '.ln-note', '.ln-empty']],
+  ['U54', ['.stage-dots']],
+  ['U55', ['.player-meta', '.player-info', '.player-artist']],
+  ['U56', ['.player-source']],
+  ['U58', ['.seek-time']],
+  ['U57', ['.seek']],
+  ['U59', ['.player-controls', '.pc']],
+  ['U60', ['.player-tools', '.pt-btn']],
+  ['U61', ['.lrc-float']],
+  ['USEARCH_shell', ['.search-layer']],
+  ['U62', ['.sc-top', '.sc-box', '.sc-input', '.sc-x', '.sc-cancel']],
+  ['U63', ['.sc-tabs']],
+  ['U64', ['.sc-body', '.sc-label', '.sc-clear']],
+  ['U65', ['.sc-empty', '.sc-hint']],
+  ['U67', ['.pl-top', '#plFavBtn']],
+  ['U68', ['.pl-hero', '.ph-body', '.ph-sub', '.ph-meta']],
+  ['U69', ['.pl-actions']],
+  ['UDETAIL_shell', ['.pl-layer']],
+  ['U66', ['.pl-bg']],
+  ['U76', ['.more-song']],
+  ['U77', ['.cf-actions', '.cf-btn']],
+  ['U79', ['.cmt-total', '.cmt-item', '.cmt-body', '.cmt-line', '.cmt-name', '.cmt-like', '.cmt-text', '.cmt-reply', '.cmt-to']],
+  ['_shell', ['.viewport', '.page']],
+  ['_base', [':root', '*', 'html', 'body', 'button', 'h1', 'h2', 'h3', 'p', 'code', '.ic', '.art', '.icon-btn', '.chip', '.q-tag', '.src-badge', '.play-badge', '.empty-tip', '.section', '.section-head', '.section-title', '.section-more', '.section-sub', '.foot-note', '.foot-mark', '.ghost-btn', '.hot-words', '.pl-status', '.pl-end', '.player-crumb']],
+]
+const KF_PART = { spin: '_base', pulse: 'U03', eq: 'U30', pop: 'U55' }
+function matchOneSel(s0) {
+  for (const [part, pats] of CSS_MATCHERS) for (const pat of pats) {
+    if (pat.endsWith(' ')) { if (s0.startsWith(pat)) return part; continue }
+    if (containsSel(s0, pat)) return part
+  }
+  return null
+}
+function assignRule(rule) {
+  if (rule.media) return '_chrome'
+  if (rule.at === 'keyframes') {
+    const name = rule.sel.replace('@keyframes ', '')
+    if (!KF_PART[name]) fail(`styles.css L${rule.startLine} 出现未登记的 @keyframes ${name}，请在 KF_PART 补归属`)
+    return KF_PART[name] || '_ERR'
+  }
+  for (const [re, part] of CSS_EXC) if (re.test(rule.sel)) return part
+  const sels = rule.sel.split(/,(?![^(]*\))/).map((s) => s.trim())
+  const hits = sels.map(matchOneSel)
+  if (hits.some((h) => !h)) fail(`styles.css L${rule.startLine}「${sels[hits.findIndex((h) => !h)]}」无归属，请在 CSS_MATCHERS 补条目`)
+  const uniq = new Set(hits.filter(Boolean))
+  if (uniq.size > 1) fail(`styles.css L${rule.startLine} 多义：${rule.sel} → 命中 ${[...uniq].join(' / ')} 多个件，请用 CSS_EXC 定夺`)
+  return hits[0] || '_ERR'
+}
+for (const r of cssRules) r.part = assignRule(r)
+for (const r of cssRules) {
+  if (!partByKey.has(r.part)) fail(`styles.css L${r.startLine} 归到了不存在的件 ${r.part}`)
+}
+const cssByPart = new Map()
+for (const r of cssRules) {
+  if (!cssByPart.has(r.part)) cssByPart.set(r.part, [])
+  cssByPart.get(r.part).push(r)
+}
+
+// ---------------------------------------------------------------------------
+// 8. 无损校验（断言不过就退出）
+// ---------------------------------------------------------------------------
+const htmlTotal = allElements.length
+const htmlSum = PART_DEFS.reduce((a, p) => a + countOwned(p.key), 0)
+const cssTotal = cssRules.length
+const cssSelTotal = cssRules.reduce((a, r) => a + (r.at ? 1 : r.sel.split(/,(?![^(]*\))/).length), 0)
+if (htmlSum !== htmlTotal) fail(`元素无损性：原件 ${htmlTotal} ≠ 各件之和 ${htmlSum}`)
+// 防回归（本轮调试实锤的坑）：class/id 解析若坏掉，所有元素会静默继承 _shell，总数照样相等——
+// 用两条硬断言兜住：① 每条 cls:/id: 锚点必须在 index.html 上至少命中一个元素；② 非 doc 件必须至少有一个 roots。
+for (const [spec] of ANCHORS) {
+  if (!spec.startsWith('cls:') && !spec.startsWith('id:')) continue
+  const token = spec.slice(spec.indexOf(':') + 1)
+  const hit = allElements.some((e) => (spec[0] === 'c' ? e.classes.includes(token) : e.id === token))
+  if (!hit) fail(`锚点 ${spec} 在 index.html 上零命中（class/id 解析或原型已变，请核对）`)
+}
+for (const p of PART_DEFS) {
+  if (p.cssOnly || p.doc) continue
+  if (!(partRoots.get(p.key) || []).length) fail(`件 ${p.key}（${partDirLabel(p)}）没有静态根元素；若确为内容/定义件请标 doc`)
+}
+const ownedOnce = allElements.every((e) => owner.get(e).part && partByKey.has(owner.get(e).part))
+if (!ownedOnce) fail('存在归属到不存在件元素的元素')
+const sumByPart = new Map()
+for (const p of PART_DEFS) sumByPart.set(p.key, (cssByPart.get(p.key) || []).length)
+const cssSum = [...sumByPart.values()].reduce((a, b) => a + b, 0)
+if (cssSum !== cssTotal) fail(`规则无损性：原件 ${cssTotal} ≠ 各件之和 ${cssSum}`)
+if (errors.length) {
+  console.error('拆件校验未通过：')
+  for (const e of errors.slice(0, 80)) console.error('  - ' + e)
+  if (errors.length > 80) console.error(`  …共 ${errors.length} 条`)
+  process.exit(1)
+}
+
+// ---------------------------------------------------------------------------
+// 9. 落盘
+// ---------------------------------------------------------------------------
+rmSync(OUT, { recursive: true, force: true })
+mkdirSync(OUT, { recursive: true })
+for (const p of PART_DEFS) if (p.dir) mkdirSync(join(OUT, p.dir), { recursive: true })
+
+const GEN_NOTE = '派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）'
+function headerLines(p, kind) {
+  const roots = partRoots.get(p.key) || []
+  const ownedCount = countOwned(p.key)
+  const htmlRange = roots.length
+    ? `index.html ${roots.map((r) => `L${r.lineStart}-L${r.lineEnd}`).join(' / ')}（本件持有 ${ownedCount} 个元素${roots.length > 1 ? '，' + roots.length + ' 处根' : ''}）`
+    : `index.html —— 本件持有 ${ownedCount} 个元素${p.doc ? '（内容/定义件：标记由宿主件持有，出现处见下）' : ''}`
+  const rs = cssByPart.get(p.key) || []
+  const cssLine = p.cssOnly
+    ? `styles.css —— 本件即公共底，收纳 ${rs.length} 条跨单元规则`
+    : rs.length
+      ? `styles.css ${kind === 'css' ? '本件收纳 ' + rs.length + ' 条规则（逐条注明来源行号）' : '中归本件的 ' + rs.length + ' 条见同名 .css'}`
+      : 'styles.css —— 归本件 0 条（样式在 parts/_base.css 或宿主件 css）'
+  const js = resolveJs(p.js)
+  const jsLine = js.length ? `app.js：${js.join(' / ')}` : `app.js：${p.jsNote || '无独立渲染函数（静态壳件）'}`
+  return [
+    `件：parts/${partDirLabel(p)} —— ${p.units} · ${p.title}`,
+    GEN_NOTE,
+    '权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：',
+    '  ' + htmlRange,
+    '  ' + cssLine,
+    '  ' + jsLine,
+    p.note ? '  备注：' + p.note : null,
+    p.warn ? '  ⚠ ' + p.warn : null,
+  ].filter(Boolean)
+}
+function htmlBlock(lines) { return `<!--\n${lines.map((l) => '  ' + l).join('\n')}\n-->\n` }
+function cssBlock(lines) { return `/*\n${lines.map((l) => '  ' + l).join('\n')}\n*/\n` }
+
+const fileCount = { html: 0, css: 0 }
+// 9.1 html 件
+for (const p of PART_DEFS) {
+  if (p.cssOnly) continue
+  const roots = partRoots.get(p.key) || []
+  let body
+  if (p.doc) {
+    const lines = ['本件为【内容/定义件】：原型中它没有独立静态壳（或元素作为后代归宿主件），静态出现处仅列位置，不重复收录标记——无损性由此保证。']
+    if (p.sheetIds) for (const id of p.sheetIds) {
+      const el = allElements.find((e) => e.id === id)
+      lines.push(`  · .sheet #${id}  L${el.lineStart}-L${el.lineEnd} → 实例件 ${partDirLabel(partByKey.get(owner.get(el).part))}.html`)
+    }
+    if (p.occCls) {
+      const token = p.occCls[0].replace(/^\./, '')
+      const occ = allElements.filter((e) => e.classes.includes(token))
+      if (occ.length) {
+        lines.push(`静态出现处 ${occ.length} 个（元素所有权在各宿主件）：`)
+        for (const e of occ) lines.push(`  · <${e.tag}${e.id ? ' #' + e.id : ''}> L${e.lineStart} → ${partDirLabel(partByKey.get(owner.get(e).part))}.html`)
+      } else lines.push('静态出现处 0 个：全部由 app.js 运行时生成，见头注 app.js 出处行。')
+    }
+    body = lines.join('\n')
+  } else {
+    body = roots.map((r) => (r._anchor.mode === 'self' ? renderSelf(r) : renderClaim(r))).join('\n\n')
+  }
+  writeFileSync(join(OUT, p.dir || '', p.file + '.html'), htmlBlock(headerLines(p, 'html')) + body + '\n', 'utf8')
+  fileCount.html++
+}
+// 9.2 css 件
+for (const p of PART_DEFS) {
+  const rs = cssByPart.get(p.key) || []
+  if (!rs.length) continue
+  let out = cssBlock(headerLines(p, 'css'))
+  let last = null
+  for (const r of rs) {
+    if (last !== null && r.startLine - last > 1) out += '/* …（不连续片段：中间规则归属其它件或为注释） … */\n'
+    const srcLines = cssSrc.split('\n').slice(r.startLine - 1, r.endLine).join('\n')
+    out += `/* ─ 源 styles.css L${r.startLine}-L${r.endLine}${r.media ? '（' + r.media + ' 内）' : ''} ─ */\n${srcLines}\n`
+    last = r.endLine
+  }
+  writeFileSync(join(OUT, p.dir || '', p.file + '.css'), out, 'utf8')
+  fileCount.css++
+}
+
+// 9.3 README
+const dirStats = {}
+for (const p of PART_DEFS) {
+  const d = p.dir || '(root)'
+  dirStats[d] = dirStats[d] || { html: 0, css: 0 }
+  if (!p.cssOnly) dirStats[d].html++
+  if ((cssByPart.get(p.key) || []).length) dirStats[d].css++
+}
+const dirLine = Object.entries(dirStats).map(([d, c]) => '`' + d + '`: ' + c.html + ' 件 html / ' + c.css + ' 件 css').join('；')
+const readme = `# new_design/parts —— 原型语义单元小件（派生物）
+
+> **${GEN_NOTE}**
+
+- 权威源是 \`new_design/index.html\`（结构）与 \`new_design/styles.css\`（样式），交互/渲染在 \`new_design/app.js\`，数据模型示例在 \`new_design/data.js\`。**本目录只是它们的无损切分，任何人不许手改**；原型改了重跑：
+  \`\`\`bash
+  # Node ≥ 18（本项目 v22：/home/joe/.nvm/versions/node/v22.23.2/bin/node）
+  node scripts/gen-newui-parts.mjs
+  \`\`\`
+- 拆件边界依据：\`src/newui/PROTOTYPE_INVENTORY.md\`（U01–U79 双向对撞报告）。派单粒度 = 一个小件，读到件即读到原型原文。
+- 无损性由脚本运行时断言（不过即报错退出，无兜底桶）：
+  - index.html 每个元素恰好归属一个件：本次 ${htmlTotal} 个元素 = 各件之和 ${htmlSum}，零丢失零重复；
+  - styles.css 每条规则恰好归属一个件（含 _base）：本次 ${cssTotal} 条规则 / ${cssSelTotal} 个选择器，逐条唯一归属。
+- 目录构成：
+  - \`_base.css\`：:root token、reset、跨单元复用原子的唯一样本处（.art/.chip/.icon-btn/分页状态行等）。
+  - \`_shell.html/.css\`：文档壳 + #viewport + 五只 .page 页壳（页面壳单列）。
+  - \`_chrome.html/.css\`：查看器 chrome（V1–V4）——不是 App UI，RN 不承接，仅作归属收容。
+  - \`common-control/ home/ playlist/ rank/ mine/ setting/ player/ search/ songlist-detail/ sheets/\`：按页面分组的单元件，一件一单元（合并/继承规则见对撞报告第六节）。
+- 件里的 \`<!-- ▸ … -->\` 是「子树已划给别件」的占位指针，指回 parts 内文件；\`内容/定义件\`（如 U02/U07/sheet-chrome/timer-sheet/comment-sheet）无独立静态壳，头注列出全部出现处。
+- 固定文案留在件里（本来就在 HTML/符号行里）；对照 RN 侧时文案仍走 \`src/newui/const/\`，靠件头注的 app.js 符号行回溯，不靠复制。
+- 约定（对撞报告边界）：sheet = U17 chrome 定义件 + 八实例件继承，164dfa4 钉住规则归 chrome；.rank-tabs 与 .cat-row 合并为 chip-row 一件；播放器舞台按原型单元写件；CatStickerBar 是 RN 自造件不进 parts；查看器 chrome 不参与拆件。
+- 本次产出：${dirLine}。
+`
+writeFileSync(join(OUT, 'README.md'), readme, 'utf8')
+
+// 9.4 src/newui/PROTOTYPE_PARTS.md（本轮唯一允许的 src/newui 写入）
+const unitTable = PART_DEFS.filter((p) => !p.cssOnly).map((p) => {
+  const rs = cssByPart.get(p.key) || []
+  return `| ${p.units} | \`${partDirLabel(p)}\` | ${countOwned(p.key)} | ${rs.length} | ${p.title.split('（')[0]} |`
+}).join('\n')
+writeFileSync(resolve(root, 'src/newui/PROTOTYPE_PARTS.md'), `# PROTOTYPE_PARTS —— new_design/parts 拆件校验清单
+
+> 本文件由 \`scripts/gen-newui-parts.mjs\` 重写（派生，勿手改）。件本体在 \`new_design/parts/\`。
+> 边界依据：\`src/newui/PROTOTYPE_INVENTORY.md\`（双向对撞报告）。
+
+## 无损校验数字（本次生成实测，运行时断言）
+
+- index.html 元素：原件 **${htmlTotal}** = 各件持有之和 **${htmlSum}**（重复 0 / 丢失 0 / 无归属 0）。
+- styles.css 规则：原件 **${cssTotal}** 条 = 各件收纳之和 **${cssSum}**；选择器 **${cssSelTotal}** 个，逐条唯一归属（@media ${mediaBlockCount} 块整体归 _chrome，@keyframes 按登记表归属）。
+- app.js：只读；件头注释的符号行号在运行时实探，符号缺失即报错退出。
+- 四个原型文件（index.html / styles.css / app.js / data.js）零改动。
+
+## 件清单
+
+| 单元 | 件（相对 parts/） | 持有元素 | 收纳规则 | 一句话 |
+|---|---|---|---|---|
+${unitTable}
+
+## 派单接法建议（RN 侧）
+
+- 一次任务 = 一个小件：读 \`parts/…/*.html\` + 同名 \`.css\`，与 RN 对应件逐字对拍。
+- 缺件转正优先序（对撞报告第六节 2 条）：U32/U37/U48/U50/U51/U55/U56/U58/U62/U67/U69 十一个内联缺件已在各件头注标「转正候选」；U61 lrc-float 为功能级缺口。
+- 共享原子样式只在 \`parts/_base.css\` 出现一份，别在单元件里找。
+`, 'utf8')
+
+console.log('parts 生成完成，无损校验通过')
+console.log(`  元素：原件 ${htmlTotal} = 各件之和 ${htmlSum}（零丢失/零重复/零兜底）`)
+console.log(`  规则：原件 ${cssTotal} 条 / 选择器 ${cssSelTotal} 个，全部唯一归属（@media ${mediaBlockCount} 块 → _chrome；@keyframes ${cssRules.filter((r) => r.at).length} 枚）`)
+console.log(`  产出：${fileCount.html} 个 .html + ${fileCount.css} 个 .css + README.md（含 _base/_shell/_chrome）`)

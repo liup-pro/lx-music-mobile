@@ -1,0 +1,10 @@
+/*
+  件：parts/player/seek-time —— U58 · .seek-time 起止时间行（RN 缺件·内联，转正候选）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L337-L337（本件持有 3 个元素）
+    styles.css 本件收纳 1 条规则（逐条注明来源行号）
+    app.js：paintProgress (L1782) / fmt (L16)
+*/
+/* ─ 源 styles.css L640-L640 ─ */
+.seek-time{display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums}

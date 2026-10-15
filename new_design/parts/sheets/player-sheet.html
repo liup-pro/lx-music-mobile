@@ -1,0 +1,18 @@
+<!--
+  件：parts/sheets/player-sheet —— U78+U79 · #playerSheet 播放页子面板宿主：定时与评论两种实例共用这一只 DOM（内容件见 timer-sheet / comment-sheet；钉住规则归 U17 chrome）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L487-L496（本件持有 8 个元素）
+    styles.css —— 归本件 0 条（样式在 parts/_base.css 或宿主件 css）
+    app.js：openSheet (L2000) / closeLayer (L19)
+-->
+<div class="sheet" id="playerSheet">
+  <div class="sheet-mask" data-close></div>
+  <div class="sheet-body">
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title" id="psTitle"></h3>
+    <div class="sheet-sub" id="psSub"></div>
+    <div id="psMeta"></div>
+    <div id="psBody"></div>
+  </div>
+</div>

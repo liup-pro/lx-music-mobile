@@ -1,0 +1,14 @@
+/*
+  件：parts/mine/song-list-compact —— U45 · .song-list.compact 最近播放区块（song-row 复用 U29；compact 变体样式归本件）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L232-L238（本件持有 7 个元素）
+    styles.css 本件收纳 3 条规则（逐条注明来源行号）
+    app.js：renderMinePage (L1206)
+*/
+/* ─ 源 styles.css L445-L445 ─ */
+.song-list.compact .song-row{padding:5px 6px 5px 3px}
+/* ─ 源 styles.css L446-L446 ─ */
+.song-list.compact .art{width:40px;height:40px}
+/* ─ 源 styles.css L447-L447 ─ */
+.song-list.compact .sr-title{font-size:13.5px}

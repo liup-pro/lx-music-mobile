@@ -1,0 +1,12 @@
+/*
+  件：parts/setting/set-hero —— U48 · .set-hero / .sh-sub 设定页说明头（RN 缺件·内联，转正候选；副句文案见 renderSettings）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L263-L265（本件持有 2 个元素）
+    styles.css 本件收纳 2 条规则（逐条注明来源行号）
+    app.js：renderSettings (L1359)
+*/
+/* ─ 源 styles.css L485-L485 ─ */
+.set-hero{margin:8px 2px 2px}
+/* ─ 源 styles.css L486-L486 ─ */
+.set-hero .sh-sub{font-size:12px;color:var(--text-3);line-height:1.65}

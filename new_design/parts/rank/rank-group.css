@@ -1,0 +1,16 @@
+/*
+  件：parts/rank/rank-group —— U40 · .rank-group 平台分段组头（「N 个榜 · 热歌/新歌/飙升在前」文案见符号行）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html —— 本件持有 0 个元素（内容/定义件：标记由宿主件持有，出现处见下）
+    styles.css 本件收纳 4 条规则（逐条注明来源行号）
+    app.js：rankGroupHead (L494)
+*/
+/* ─ 源 styles.css L391-L391 ─ */
+.rank-group{grid-column:1/-1;display:flex;align-items:baseline;gap:8px;margin:12px 0 -4px}
+/* ─ 源 styles.css L392-L392 ─ */
+.rank-group b{font-size:13.5px;font-weight:800;color:var(--text)}
+/* ─ 源 styles.css L393-L393 ─ */
+.rank-group span{font-size:10.5px;color:var(--text-3)}
+/* ─ 源 styles.css L394-L394 ─ */
+.rank-group:first-child{margin-top:0}

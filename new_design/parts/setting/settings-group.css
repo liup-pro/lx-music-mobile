@@ -1,0 +1,47 @@
+/*
+  件：parts/setting/settings-group —— U49 · .set-group / .set-list / .set-row / .set-ic / st-l / st-r 设定分组行族（组由 renderSettings() 灌入 #setBody）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L266-L266（本件持有 1 个元素）
+    styles.css 本件收纳 17 条规则（逐条注明来源行号）
+    app.js：renderSettings (L1359) / setGroup (L1332) / setRow (L1341) / setToggle (L1350) / THEME_ICON (L1399) / setInfo (L1463)
+*/
+/* ─ 源 styles.css L487-L487 ─ */
+.set-group{margin-top:26px}
+/* ─ 源 styles.css L488-L488 ─ */
+.set-group .sg-label{font-size:10.5px;font-weight:800;letter-spacing:1.3px;color:var(--text-3);margin:0 0 9px 3px}
+/* ─ 源 styles.css L489-L490 ─ */
+.set-list{display:flex;flex-direction:column;border-radius:18px;overflow:hidden;
+  background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+/* ─ 源 styles.css L491-L492 ─ */
+.set-row{display:flex;align-items:center;gap:11px;padding:13px 14px;width:100%;text-align:left;
+  border-top:1px solid var(--line);transition:.18s var(--ease)}
+/* ─ 源 styles.css L493-L493 ─ */
+.set-row:first-child{border-top:0}
+/* ─ 源 styles.css L494-L494 ─ */
+.set-row:active{background:var(--fill-1)}
+/* ─ 源 styles.css L495-L496 ─ */
+.set-ic{width:28px;height:28px;flex:none;border-radius:9px;display:grid;place-items:center;
+  background:var(--fill-2);color:var(--text-2)}
+/* ─ 源 styles.css L497-L497 ─ */
+.set-ic .ic{width:15px;height:15px}
+/* ─ 源 styles.css L498-L498 ─ */
+.set-row.on .set-ic{background:var(--grad-soft);color:var(--brand)}
+/* ─ 源 styles.css L499-L499 ─ */
+.st-l{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+/* ─ 源 styles.css L500-L500 ─ */
+.st-l b{font-size:14px;font-weight:700;letter-spacing:.1px}
+/* ─ 源 styles.css L501-L502 ─ */
+.st-l em{font-size:11px;font-style:normal;color:var(--text-3);line-height:1.45;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ─ 源 styles.css L503-L503 ─ */
+.st-r{flex:none;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--text-3)}
+/* ─ 源 styles.css L504-L504 ─ */
+.st-r .ic{width:14px;height:14px;opacity:.5}
+/* ─ 源 styles.css L505-L505 ─ */
+.st-r.hi{color:var(--brand)}
+/* …（不连续片段：中间规则归属其它件或为注释） … */
+/* ─ 源 styles.css L507-L507 ─ */
+.set-row.info{cursor:default}
+/* ─ 源 styles.css L508-L508 ─ */
+.set-row.info:active{background:transparent}

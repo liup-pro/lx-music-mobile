@@ -1,0 +1,12 @@
+/*
+  件：parts/common-control/q-chips —— U21 · .q-chips（+ .q-note）chip 组行
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html —— 本件持有 0 个元素（内容/定义件：标记由宿主件持有，出现处见下）
+    styles.css 本件收纳 2 条规则（逐条注明来源行号）
+    app.js：renderSheet (L2172) / renderTimerSheet (L2010)
+*/
+/* ─ 源 styles.css L760-L760 ─ */
+.q-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+/* ─ 源 styles.css L761-L761 ─ */
+.q-note{font-size:11px;color:var(--text-3);width:100%;line-height:1.6}

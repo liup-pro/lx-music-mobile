@@ -1,0 +1,22 @@
+<!--
+  件：parts/common-control/minibar —— U05 · .minibar 迷你播放条（含 .mini-progress 与三颗 .mini-act）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L273-L286（本件持有 17 个元素）
+    styles.css 中归本件的 16 条见同名 .css
+    app.js：syncLists (L1628) / paintProgress (L1782)
+-->
+<div class="minibar" id="minibar">
+  <div class="mini-progress"><i id="miniProgressFill"></i></div>
+  <div class="mini-main">
+    <div class="mini-art" id="miniArt"></div>
+    <div class="mini-meta">
+      <div class="mini-title" id="miniTitle"></div>
+      <div class="mini-sub" id="miniSub"></div>
+    </div>
+    <button class="mini-act" id="miniHeart" aria-label="喜欢"><svg class="ic"><use href="#i-heart"/></svg></button>
+    <button class="mini-act primary" id="miniPlay" aria-label="播放/暂停"><svg class="ic"><use href="#i-play"/></svg></button>
+    <!-- 迷你条只给一枚「下一曲」：上一曲要回到开头得进播放页操作，这里放不下两个 -->
+    <button class="mini-act" id="miniNext" aria-label="下一曲"><svg class="ic"><use href="#i-next"/></svg></button>
+  </div>
+</div>

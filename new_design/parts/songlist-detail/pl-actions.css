@@ -1,0 +1,18 @@
+/*
+  件：parts/songlist-detail/pl-actions —— U69 · .pl-actions 播放全部 + 随机钮（RN 缺件·内联，转正候选；PLD_LABELS 文案见符号行）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L383-L383（本件持有 1 个元素）
+    styles.css 本件收纳 5 条规则（逐条注明来源行号）
+    app.js：PLD_LABELS (L848)
+*/
+/* ─ 源 styles.css L478-L478 ─ */
+.pl-actions{display:flex;gap:8px;margin:18px 0 16px}
+/* ─ 源 styles.css L479-L479 ─ */
+.pl-actions .ghost-btn{margin-top:0;flex:1}
+/* ─ 源 styles.css L480-L480 ─ */
+.pl-actions .icon-btn{width:42px;height:42px;flex:none;border-radius:14px}
+/* ─ 源 styles.css L481-L481 ─ */
+.pl-actions .icon-btn .ic{width:19px;height:19px}
+/* ─ 源 styles.css L482-L482 ─ */
+.pl-actions .icon-btn.on{color:var(--brand);background:rgba(255,92,138,.16)}

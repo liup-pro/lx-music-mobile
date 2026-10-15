@@ -1,0 +1,28 @@
+/*
+  件：parts/common-control/op-box —— U20 · .op-box / .op-input / .op-go / .op-err 输入行族（打开/创建/保存钮文案在实例件内）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html —— 本件持有 0 个元素（内容/定义件：标记由宿主件持有，出现处见下）
+    styles.css 本件收纳 8 条规则（逐条注明来源行号）
+    app.js：handleImport (L2272) / submitCreateList (L1292) / saveNick (L1188) / tryOpenByPid (L1139)
+*/
+/* ─ 源 styles.css L763-L763 ─ */
+.op-box{display:flex;align-items:center;gap:9px;margin-top:16px}
+/* ─ 源 styles.css L764-L766 ─ */
+.op-input{flex:1;min-width:0;height:42px;padding:0 14px;border:0;outline:none;border-radius:13px;
+  background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--line);
+  font-family:inherit;font-size:13.5px;color:var(--text);transition:.2s var(--ease)}
+/* ─ 源 styles.css L767-L767 ─ */
+.op-input:focus{background:var(--fill-3);box-shadow:inset 0 0 0 1.5px rgba(255,92,138,.5)}
+/* ─ 源 styles.css L768-L768 ─ */
+.op-input::placeholder{color:var(--text-3)}
+/* ─ 源 styles.css L769-L771 ─ */
+.op-go{flex:none;height:42px;padding:0 18px;border-radius:13px;font-size:13.5px;font-weight:800;color:#fff;
+  background:linear-gradient(120deg,var(--brand),var(--brand-2));
+  box-shadow:0 14px 28px -16px rgba(255,92,138,.95);transition:.16s var(--ease)}
+/* ─ 源 styles.css L772-L772 ─ */
+.op-go:active{transform:scale(.955)}
+/* ─ 源 styles.css L773-L773 ─ */
+.op-err{margin-top:10px;font-size:11.5px;font-weight:600;line-height:1.65;color:var(--danger-ink)}
+/* ─ 源 styles.css L774-L774 ─ */
+.op-err[hidden]{display:none}

@@ -1,0 +1,10 @@
+/*
+  件：parts/common-control/group-label —— U18 · .group-label 浮层分组标题（「已安装音源/音乐平台/音质/导入音源」等文案见符号行）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html —— 本件持有 0 个元素（内容/定义件：标记由宿主件持有，出现处见下）
+    styles.css 本件收纳 1 条规则（逐条注明来源行号）
+    app.js：renderSheet (L2172) / renderTagGroups (L781)
+*/
+/* ─ 源 styles.css L739-L739 ─ */
+.group-label{font-size:10.5px;font-weight:800;letter-spacing:1.3px;color:var(--text-3);margin:20px 0 9px}

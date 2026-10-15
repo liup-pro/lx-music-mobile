@@ -1,0 +1,14 @@
+/*
+  件：parts/search/sc-result —— U65 · .sc-empty / .sc-hint 结果空态与提示族（「正在搜索…」「没找到…」文案见符号行；sheet 里的 .sc-hint 实例在宿主件内）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html —— 本件持有 0 个元素（内容/定义件：标记由宿主件持有，出现处见下）
+    styles.css 本件收纳 3 条规则（逐条注明来源行号）
+    app.js：scEmpty (L2385) / renderSearch (L2397) / SEARCH_HOT_LIMIT (L2297)
+*/
+/* ─ 源 styles.css L806-L806 ─ */
+.sc-empty{padding:46px 0;text-align:center;font-size:12.5px;color:var(--text-3);line-height:1.9}
+/* ─ 源 styles.css L807-L807 ─ */
+.sc-empty b{display:block;font-size:14px;color:var(--text-2);font-weight:750;margin-bottom:4px}
+/* ─ 源 styles.css L808-L808 ─ */
+.sc-hint{font-size:11px;color:var(--text-3);margin-top:16px;line-height:1.7}

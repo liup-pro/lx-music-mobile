@@ -32,6 +32,7 @@ tools: Read, Write, Edit, Grep, Glob, Bash
 - **分页范式**：每批 N 张 + 距底 160px 触底续取 + `.pl-status` 状态行（`正在载入下一批…` / `这一批没有载入 · 点击重试`）。歌单推荐池 `PL_POOL_PAGING.pageSize=10`，榜单 `RANK_PAGING.pageSize=8`。
 - **内容平台切换**：只在音源浮层切/回显，页面不加平台标注；榜单与搜索不受控。
 - **硬编码列表只是示意**：`new_design/data.js` 里的短数组只是原型示意，落地前先读真实类型取全量（如 `rankBoardKind` 扩六型、`CHART_TINT` 23 项），别照抄。
+- **接单前先查的两份索引**：`src/newui/PROTOTYPE_INVENTORY.md`（79 单元 ↔ 72 组件的对撞结论：一致 62 / 缺件 12 / 多件 1 / 偏粗 2 / 偏细 2）与 `src/newui/PROTOTYPE_PARTS.md`（`parts/` 83 件清单表 + 无损校验数字）。
 
 ## 已知限制与阻塞
 
@@ -79,7 +80,10 @@ tools: Read, Write, Edit, Grep, Glob, Bash
 **必须做：**
 - **纯 UI 层**：只做界面、样式、交互。数据/播放/音源/存储/状态复用既有代码。
 - **零破坏**：对现有文件的改动只能新增，不得修改/删除既有逻辑。
-- **原型即真相**：`new_design/index.html`（结构）、`styles.css`（token）、`app.js`（交互）、`data.js`（数据模型示例）。
+- **原型即真相（件粒度）**：读原型以 `new_design/parts/` 拆件为准；**派单粒度 = 一个件**，一个件小到能被一次读全。
+- **读件即读原文**：件是原型的无损切片（件头带单元号、原件行号与 app.js 符号），**禁止转述改写**；件内固定文案逐字引用，不许"顺一下口语"。
+- **读件必连带读** `parts/_base.css`（跨件复用的原子样式全在那，件里只剩指针）；涉及页面壳/查看器时连带 `_shell` / `_chrome`。
+- **回读权威源**：需要全貌或做跨件对撞时，才回读 `index.html`（结构）/ `styles.css`（token）/ `app.js`（交互）/ `data.js`（数据模型示例）四个权威源。
 - **渐进迭代**：每轮只做一件事，说明进度。
 
 **禁止做：**
@@ -87,6 +91,7 @@ tools: Read, Write, Edit, Grep, Glob, Bash
 - 禁止修改 `src/core/`、`src/plugins/`、`src/store/` 的既有行为。
 - 禁止引入 Expo 相关依赖。
 - 禁止把原型 mock 数据（`data.js`）硬编码进界面。
+- **禁止手改** `new_design/parts/`（派生物；改了原型要重跑 `node scripts/gen-newui-parts.mjs` 同步，Node v22）。四个原型源文件（`new_design/index.html`、`styles.css`、`app.js`、`data.js`）本身也**禁止修改**——原型是真相来源，不能被顺手"修正"。
 - 禁止臆造文件路径/组件名/API。
 
 ## 工作方式

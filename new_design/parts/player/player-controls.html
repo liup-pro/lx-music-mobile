@@ -1,0 +1,13 @@
+<!--
+  件：parts/player/player-controls —— U59 · .player-controls / .pc 主传输行三颗（循环五态文案见 LOOP_* 行）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L339-L343（本件持有 10 个元素）
+    styles.css 中归本件的 6 条见同名 .css
+    app.js：step (L1714) / toggle (L1659) / LOOP_ORDER (L1593) / LOOP_ICON (L1594) / LOOP_NAME (L1595) / paintLoop (L1814)
+-->
+<div class="player-controls">
+  <button class="pc ghost" id="btnPrev" aria-label="上一曲"><svg class="ic"><use href="#i-prev"/></svg></button>
+  <button class="pc main" id="playerPlay" aria-label="播放/暂停"><svg class="ic"><use href="#i-play"/></svg></button>
+  <button class="pc ghost" id="btnNext" aria-label="下一曲"><svg class="ic"><use href="#i-next"/></svg></button>
+</div>

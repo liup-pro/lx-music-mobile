@@ -1,0 +1,20 @@
+/*
+  件：parts/player/player-controls —— U59 · .player-controls / .pc 主传输行三颗（循环五态文案见 LOOP_* 行）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L339-L343（本件持有 10 个元素）
+    styles.css 本件收纳 6 条规则（逐条注明来源行号）
+    app.js：step (L1714) / toggle (L1659) / LOOP_ORDER (L1593) / LOOP_ICON (L1594) / LOOP_NAME (L1595) / paintLoop (L1814)
+*/
+/* ─ 源 styles.css L651-L651 ─ */
+.player-controls{display:flex;align-items:center;justify-content:center;gap:38px;margin-top:18px}
+/* ─ 源 styles.css L652-L652 ─ */
+.pc{width:46px;height:46px;display:grid;place-items:center;border-radius:50%;color:var(--text-2)}
+/* ─ 源 styles.css L653-L653 ─ */
+.pc.ghost .ic{width:27px;height:27px;color:var(--text)}
+/* ─ 源 styles.css L654-L654 ─ */
+.pc.main{width:64px;height:64px;background:var(--grad);color:#0a0a0f;box-shadow:0 14px 34px -12px rgba(255,92,138,.85)}
+/* ─ 源 styles.css L655-L655 ─ */
+.pc.main .ic{width:27px;height:27px}
+/* ─ 源 styles.css L656-L656 ─ */
+.pc:active{transform:scale(.93)}

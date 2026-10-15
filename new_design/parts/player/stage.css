@@ -1,0 +1,25 @@
+/*
+  件：parts/player/stage —— U52 · .player-stage / .disc-wrap / .disc 唱片舞台（按原型单元写件；lyric-wrap 挖出归 U53）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L317-L322（本件持有 3 个元素）
+    styles.css 本件收纳 6 条规则（逐条注明来源行号）
+    app.js：bindStageSwipe (L1960) / swipeDir (L1957) / SWIPE_MIN_DX (L1955) / SWIPE_SLOPE (L1956)
+*/
+/* ─ 源 styles.css L592-L592 ─ */
+.player-stage{position:relative;flex:1;min-height:0;display:grid;place-items:center;padding:16px 0}
+/* ─ 源 styles.css L593-L593 ─ */
+.disc-wrap{display:grid;place-items:center}
+/* …（不连续片段：中间规则归属其它件或为注释） … */
+/* ─ 源 styles.css L595-L599 ─ */
+.disc{
+  width:206px;height:206px;border-radius:50%;overflow:hidden;position:relative;
+  box-shadow:0 30px 60px -22px rgba(0,0,0,.9),inset 0 0 0 8px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.1);
+  animation:spin 22s linear infinite;
+}
+/* ─ 源 styles.css L600-L600 ─ */
+.disc.spin-paused{animation-play-state:paused}
+/* ─ 源 styles.css L601-L601 ─ */
+.disc .art{width:100%;height:100%;border-radius:50%}
+/* ─ 源 styles.css L602-L602 ─ */
+.disc::after{content:'';position:absolute;inset:38%;border-radius:50%;background:rgba(0,0,0,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}

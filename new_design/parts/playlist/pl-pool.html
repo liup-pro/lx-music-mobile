@@ -1,0 +1,16 @@
+<!--
+  件：parts/playlist/pl-pool —— U38 · 推荐池区块（.pl-grid 复用 U27；计数挖出归 U37、空态归 U11；分页状态行样式在 _base）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L185-L192（本件持有 4 个元素）
+    styles.css —— 归本件 0 条（样式在 parts/_base.css 或宿主件 css）
+    app.js：paintPlPool (L756) / plPool (L669) / resetPlPool (L676) / loadPlPoolPage (L691) / plPoolStatusRow (L683) / PL_POOL_SIZE (L662)
+-->
+<section class="section">
+  <div class="section-head">
+    <h3 class="section-sub" id="plPoolTitle">推荐歌单</h3>
+    <!-- ▸ playlist/pl-count.html —— U37 · 源 index.html L188-L188 -->
+  </div>
+  <div class="pl-grid" id="plPoolGrid"></div>
+  <!-- ▸ common-control/empty-tip.html —— U11 · 源 index.html L191-L191 -->
+</section>

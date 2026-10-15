@@ -1,0 +1,42 @@
+/*
+  件：parts/sheets/comment-sheet —— U79 · comment 浮层内容件（renderCommentSheet()/cmtItem() 嵌套树灌入 player-sheet；cmt-total/cmt-item/cmt-reply/cmt-to 样式归本件；164dfa4：cmt-total 钉在 #psMeta、仅 #psBody 滚——钉住规则本体在 U17）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html —— 本件持有 0 个元素（内容/定义件：标记由宿主件持有，出现处见下）
+    styles.css 本件收纳 15 条规则（逐条注明来源行号）
+    app.js：renderCommentSheet (L2063) / paintComments (L2090) / cmtItem (L2131) / loadCmtPage (L2109) / CMT_TXT (L2045) / CMT_PAGE_SIZE (L2044) / commentTotal (L1605)
+*/
+/* ─ 源 styles.css L694-L694 ─ */
+.cmt-total{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
+/* ─ 源 styles.css L695-L695 ─ */
+.cmt-total b{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums}
+/* ─ 源 styles.css L696-L696 ─ */
+.cmt-item{display:flex;gap:11px;padding:13px 0;border-top:1px solid var(--line)}
+/* ─ 源 styles.css L697-L697 ─ */
+.cmt-item .art{width:34px;height:34px;border-radius:50%;flex:none}
+/* ─ 源 styles.css L698-L698 ─ */
+.cmt-body{flex:1;min-width:0}
+/* ─ 源 styles.css L699-L699 ─ */
+.cmt-line{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+/* ─ 源 styles.css L700-L700 ─ */
+.cmt-name{font-size:11.5px;font-weight:700;color:var(--text-3)}
+/* ─ 源 styles.css L701-L701 ─ */
+.cmt-like{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--text-3);flex:none}
+/* ─ 源 styles.css L702-L702 ─ */
+.cmt-like .ic{width:13px;height:13px}
+/* ─ 源 styles.css L703-L703 ─ */
+.cmt-text{font-size:13px;line-height:1.55;margin-top:4px}
+/* ─ 源 styles.css L704-L705 ─ */
+.cmt-reply{margin-top:7px;padding:8px 10px;border-radius:10px;background:var(--fill-2);
+  font-size:11.5px;line-height:1.55;color:var(--text-2)}
+/* ─ 源 styles.css L706-L706 ─ */
+.cmt-reply b{color:var(--brand);font-weight:700}
+/* …（不连续片段：中间规则归属其它件或为注释） … */
+/* ─ 源 styles.css L708-L709 ─ */
+.cmt-reply .cmt-reply{margin:7px 0 0;border-radius:0 10px 10px 0;
+  background:var(--fill-1);border-left:2px solid var(--line-strong);padding-left:9px}
+/* ─ 源 styles.css L710-L710 ─ */
+.cmt-to{font-style:normal;font-weight:400;color:var(--text-3)}
+/* …（不连续片段：中间规则归属其它件或为注释） … */
+/* ─ 源 styles.css L712-L712 ─ */
+.cmt-like.on{color:var(--brand)}

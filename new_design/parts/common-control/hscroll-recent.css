@@ -1,0 +1,23 @@
+/*
+  件：parts/common-control/hscroll-recent —— U16 · .hscroll + .recent-card 继续收听横滚（含区块壳与「清空记录」钮）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L113-L119（本件持有 7 个元素）
+    styles.css 本件收纳 7 条规则（逐条注明来源行号）
+    app.js：renderRecent (L261) / recentIds (L259) / clearRecent (L284) / RECENT_LIMIT (L258)
+*/
+/* ─ 源 styles.css L224-L224 ─ */
+.hscroll{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;margin:0 -16px;padding-left:16px;padding-right:16px;scroll-padding-inline:16px}
+/* ─ 源 styles.css L225-L225 ─ */
+.hscroll::-webkit-scrollbar{display:none}
+/* …（不连续片段：中间规则归属其它件或为注释） … */
+/* ─ 源 styles.css L227-L227 ─ */
+.recent-card{flex:none;width:112px;transition:.2s var(--ease)}
+/* ─ 源 styles.css L228-L228 ─ */
+.recent-card:active{transform:scale(.95)}
+/* ─ 源 styles.css L229-L229 ─ */
+.recent-card .art{width:112px;height:112px}
+/* ─ 源 styles.css L230-L230 ─ */
+.recent-card .rt{font-size:12.5px;font-weight:700;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ─ 源 styles.css L231-L231 ─ */
+.recent-card .rs{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}

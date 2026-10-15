@@ -1,0 +1,28 @@
+/*
+  件：parts/home/radio-card —— U33 · .radio-grid / .radio-card / .wip-tag 随手听（私人 FM/赫兹电台 +「建设中」）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L152-L157（本件持有 4 个元素）
+    styles.css 本件收纳 7 条规则（逐条注明来源行号）
+    app.js：renderRadio (L1555)
+*/
+/* ─ 源 styles.css L335-L335 ─ */
+.radio-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* ─ 源 styles.css L336-L339 ─ */
+.radio-card{
+  position:relative;overflow:hidden;height:108px;border-radius:var(--r-m);padding:16px;display:flex;flex-direction:column;justify-content:flex-end;
+  box-shadow:inset 0 0 0 1px var(--line);text-align:left;
+}
+/* ─ 源 styles.css L340-L340 ─ */
+.radio-card .bgart{position:absolute;inset:0;opacity:.5}
+/* …（不连续片段：中间规则归属其它件或为注释） … */
+/* ─ 源 styles.css L342-L342 ─ */
+.radio-card .ic-top{position:absolute;top:16px;left:16px;width:20px;height:20px;color:var(--text);opacity:.85;z-index:2}
+/* ─ 源 styles.css L343-L343 ─ */
+.radio-card h4{position:relative;z-index:2;font-size:15px;font-weight:800;margin:30px 0 0}
+/* ─ 源 styles.css L344-L344 ─ */
+.radio-card p{position:relative;z-index:2;font-size:11px;color:var(--text-2);margin:5px 0 0}
+/* ─ 源 styles.css L345-L347 ─ */
+.wip-tag{position:absolute;top:12px;right:12px;z-index:2;font-size:9.5px;font-weight:800;letter-spacing:.4px;
+  padding:3px 7px;border-radius:999px;color:var(--glass-ink);background:var(--glass);box-shadow:inset 0 0 0 1px var(--line);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}

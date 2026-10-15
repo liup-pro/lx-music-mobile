@@ -1,0 +1,41 @@
+/*
+  件：parts/common-control/topbar —— U01 · .topbar 吸顶头部（头像 / 搜索条 / 波纹钮；U03 告警点静态实例在本件内）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L84-L98（本件持有 12 个元素）
+    styles.css 本件收纳 8 条规则（逐条注明来源行号）
+    app.js：事件接线在 init() 尾部（#searchBtn / #castBtn / #avatarBtn）；头像首字由 renderProfile() 写入。
+*/
+/* ─ 源 styles.css L105-L112 ─ */
+.topbar{
+  position:absolute;top:0;left:var(--nav-w);right:0;z-index:40;
+  padding:54px 16px 10px;
+  background:linear-gradient(to bottom,color-mix(in srgb,var(--bg) 92%,transparent) 0%,color-mix(in srgb,var(--bg) 66%,transparent) 62%,transparent 100%);
+  -webkit-backdrop-filter:blur(22px) saturate(180%);
+  backdrop-filter:blur(22px) saturate(180%);
+  transition:box-shadow .3s var(--ease);
+}
+/* ─ 源 styles.css L113-L113 ─ */
+.topbar.pinned{box-shadow:0 12px 26px -18px rgba(0,0,0,.9)}
+/* ─ 源 styles.css L114-L114 ─ */
+.topbar-row{display:flex;align-items:center;gap:10px;height:46px}
+/* ─ 源 styles.css L115-L115 ─ */
+.avatar-btn{width:34px;height:34px;flex:none;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px var(--line-strong)}
+/* ─ 源 styles.css L116-L120 ─ */
+.avatar{
+  display:grid;place-items:center;width:100%;height:100%;
+  background:linear-gradient(135deg,var(--c1),var(--c2));
+  font-size:13px;font-weight:800;color:#fff;
+}
+/* ─ 源 styles.css L121-L127 ─ */
+.searchbar{
+  flex:1;height:38px;display:flex;align-items:center;gap:8px;
+  padding:0 14px;border-radius:19px;
+  background:var(--fill-2);
+  box-shadow:inset 0 0 0 1px var(--hairline);
+  color:var(--text-3);
+}
+/* ─ 源 styles.css L128-L128 ─ */
+.searchbar .ic{width:17px;height:17px}
+/* ─ 源 styles.css L129-L129 ─ */
+.searchbar .ph{font-size:13px;letter-spacing:.2px}

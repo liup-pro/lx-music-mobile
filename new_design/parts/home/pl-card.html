@@ -1,0 +1,15 @@
+<!--
+  件：parts/home/pl-card —— U27 · .pl-grid / .pl-card 推荐歌单区块（首页那份；歌单页/我的页复用见 U38/U46）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L125-L131（本件持有 7 个元素）
+    styles.css 中归本件的 7 条见同名 .css
+    app.js：renderPlaylists (L328) / plCard (L334)
+-->
+<section class="section">
+  <div class="section-head">
+    <h2 class="section-title">推荐歌单</h2>
+    <button class="section-more" data-tab="playlist">全部歌单<svg class="ic"><use href="#i-chevron"/></svg></button>
+  </div>
+  <div class="pl-grid" id="playlistGrid"></div>
+</section>

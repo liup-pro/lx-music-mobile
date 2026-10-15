@@ -1,0 +1,10 @@
+/*
+  件：parts/common-control/sprite —— U23 · SVG sprite（36 枚 symbol 全量归本件；RN 侧经 gen-newui-icons.mjs 生成 icons.ts，勿手改）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L12-L54（本件持有 100 个元素）
+    styles.css 本件收纳 1 条规则（逐条注明来源行号）
+    app.js：setIcon (L5)
+*/
+/* ─ 源 styles.css L60-L60 ─ */
+.sprite{position:absolute;width:0;height:0;overflow:hidden}

@@ -1,0 +1,10 @@
+/*
+  件：parts/sheets/plid-sheet —— U73 · plIdSheet 打开歌单浮层实例（PLID 样例表与错误文案见符号行；本件持有「打开」按钮与三句固定提示）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L411-L429（本件持有 15 个元素）
+    styles.css 本件收纳 1 条规则（逐条注明来源行号）
+    app.js：openPlIdSheet (L1129) / PLID (L1087) / pidOf (L1079) / bareIdOf (L1098) / renderPlIdPlats (L1108) / renderPlIdSamples (L1119) / plIdError (L1102)
+*/
+/* ─ 源 styles.css L775-L775 ─ */
+#plIdSamples .chip b{font-family:ui-monospace,SFMono-Regular,monospace;font-weight:700;font-size:11.5px}

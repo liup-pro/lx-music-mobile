@@ -1,0 +1,27 @@
+<!--
+  件：parts/sheets/plid-sheet —— U73 · plIdSheet 打开歌单浮层实例（PLID 样例表与错误文案见符号行；本件持有「打开」按钮与三句固定提示）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L411-L429（本件持有 15 个元素）
+    styles.css 中归本件的 1 条见同名 .css
+    app.js：openPlIdSheet (L1129) / PLID (L1087) / pidOf (L1079) / bareIdOf (L1098) / renderPlIdPlats (L1108) / renderPlIdSamples (L1119) / plIdError (L1102)
+-->
+<div class="sheet" id="plIdSheet">
+  <div class="sheet-mask" data-close></div>
+  <div class="sheet-body">
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title">打开歌单</h3>
+    <div class="sheet-sub">把平台上分享出来的歌单链接贴进来，或者只填那串歌单 ID。</div>
+    <div class="op-box">
+      <input class="op-input" id="plIdInput" placeholder="歌单链接 / ID" autocomplete="off" spellcheck="false">
+      <button class="op-go" id="plIdGo">打开</button>
+    </div>
+    <div class="op-err" id="plIdErr" hidden></div>
+    <!-- 裸 ID 形态必须有平台坐标：链接能按域名认出来，一串号认不出来，所以让用户点一下 -->
+    <div class="group-label" id="plIdPlatLabel">只填 ID 的话，先点这份歌单来自哪个平台</div>
+    <div class="hot-words" id="plIdPlats"></div>
+    <div class="group-label">可以试试这几个</div>
+    <div class="hot-words" id="plIdSamples"></div>
+    <p class="sc-hint">歌单包含哪些平台的歌曲取决于歌单本身 · 能否播放在点播放时确认。</p>
+  </div>
+</div>

@@ -1,0 +1,10 @@
+/*
+  件：parts/songlist-detail/pl-tracks —— U70 · #plTracks 曲目表（song-list 复用 U29；分页状态行 .pl-status/.pl-end 样式在 _base——三页共用；PLD_STATUS 文案见符号行）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L384-L384（本件持有 1 个元素）
+    styles.css 本件收纳 1 条规则（逐条注明来源行号）
+    app.js：renderPlTracks (L985) / plStatusRow (L1003) / loadPlPage (L1011) / plEndRow (L845) / PLD_STATUS (L842) / PLD_EMPTY (L834) / PL_PAGE_SIZE (L824)
+*/
+/* ─ 源 styles.css L477-L477 ─ */
+.pl-layer .empty-tip{padding:34px 0}

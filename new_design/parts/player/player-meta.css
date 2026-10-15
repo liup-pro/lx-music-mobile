@@ -1,0 +1,26 @@
+/*
+  件：parts/player/player-meta —— U55 · .player-meta（player-info / .pc.fav 收藏钮；RN 缺件·内联，转正候选）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L325-L331（本件持有 7 个元素）
+    styles.css 本件收纳 9 条规则（逐条注明来源行号）
+    app.js：paintFav (L1795) / toggleFav (L1805)
+*/
+/* ─ 源 styles.css L619-L619 ─ */
+.player-meta{display:flex;align-items:center;gap:12px}
+/* ─ 源 styles.css L620-L620 ─ */
+.player-info{flex:1;min-width:0}
+/* ─ 源 styles.css L621-L621 ─ */
+.player-info h3{font-size:21px;font-weight:900;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ─ 源 styles.css L622-L622 ─ */
+.player-artist{font-size:13px;color:var(--text-2);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ─ 源 styles.css L623-L623 ─ */
+.pc.fav{width:40px;height:40px;flex:none;color:var(--text-2)}
+/* ─ 源 styles.css L624-L624 ─ */
+.pc.fav .ic{width:24px;height:24px}
+/* ─ 源 styles.css L625-L625 ─ */
+.pc.fav.on{color:var(--brand)}
+/* ─ 源 styles.css L626-L626 ─ */
+.pc.fav.on .ic{animation:pop .42s var(--ease)}
+/* ─ 源 styles.css L627-L627 ─ */
+@keyframes pop{45%{transform:scale(1.3)}}

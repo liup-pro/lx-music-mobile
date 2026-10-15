@@ -1,0 +1,11 @@
+<!--
+  件：parts/common-control/chip-row —— U28+U35 · chip 行：首页 .rank-tabs 与歌单页 .cat-row(sticky) 合并为一件，不再拆细。CatStickerBar 是 RN 为平台缺 sticky 自造的复制层，属实现税，不进原型件
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L138-L138 / L174-L174（本件持有 2 个元素，2 处根）
+    styles.css 中归本件的 4 条见同名 .css
+    app.js：renderRankTabs (L367) / homeBoards (L359) / renderPlaylistPage (L719) / tagChip (L799) / plHotCats (L656)
+-->
+<div class="rank-tabs" id="rankTabs"></div>
+
+<div class="cat-row" id="catRow"></div>

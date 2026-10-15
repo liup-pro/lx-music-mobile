@@ -1,0 +1,63 @@
+<!--
+  件：parts/_shell —— 壳层 · 文档壳与页面骨架：html/head/body、#viewport、五只 .page（页面壳单列）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L2-L696 / L101-L270（本件持有 16 个元素，2 处根）
+    styles.css 中归本件的 3 条见同名 .css
+    app.js：switchTab (L2456) / PAGES (L2453) / init (L2533)
+    备注：页面本体就是这五只 .page 空壳，内容全部来自各单元件；五只页壳内的子件以「▸」占位注释互指。
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>EchoIsle · UI 原型</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2308080C'/%3E%3Cpath d='M9 21.5V10.5m0 0c6 0 6 11 12 11V10.5' fill='none' stroke='%23FF5C8A' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles.css?v=2">
+  </head>
+  <body>
+    <!-- ▸ common-control/sprite.html —— U23 · 源 index.html L12-L54 -->
+    <!-- ▸ _chrome.html —— V1–V4 · 源 index.html L56-L691 -->
+    <script src="data.js?v=2"></script>
+    <script src="app.js?v=2"></script>
+  </body>
+</html>
+
+<main class="viewport" id="viewport">
+  <div class="page" id="page-home">
+    <!-- ▸ home/banner.html —— U24 · 源 index.html L106-L109 -->
+    <!-- ▸ home/quick-row.html —— U25 · 源 index.html L111-L111 -->
+    <!-- ▸ common-control/hscroll-recent.html —— U16 · 源 index.html L113-L119 -->
+    <!-- ▸ home/daily-card.html —— U26 · 源 index.html L121-L123 -->
+    <!-- ▸ home/pl-card.html —— U27 · 源 index.html L125-L131 -->
+    <!-- ▸ home/song-list.html —— U29 · 源 index.html L133-L141 -->
+    <!-- ▸ home/artist-card.html —— U31 · 源 index.html L143-L150 -->
+    <!-- ▸ home/radio-card.html —— U33 · 源 index.html L152-L157 -->
+    <!-- ▸ common-control/foot-note.html —— U10 · 源 index.html L159-L162 -->
+  </div>
+  <div class="page" id="page-playlist" hidden>
+    <!-- ▸ common-control/page-head.html —— U34 · 源 index.html L169-L172 -->
+    <!-- ▸ common-control/chip-row.html —— U28+U35 · 源 index.html L174-L174 -->
+    <!-- ▸ playlist/my-pl.html —— U36 · 源 index.html L176-L183 -->
+    <!-- ▸ playlist/pl-pool.html —— U38 · 源 index.html L185-L192 -->
+    <!-- ▸ common-control/foot-note.html —— U10 · 源 index.html L194-L197 -->
+  </div>
+  <div class="page" id="page-rank" hidden>
+    <!-- ▸ common-control/page-head.html —— U34 · 源 index.html L204-L206 -->
+    <!-- ▸ rank/rank-grid.html —— U39 · 源 index.html L208-L208 -->
+    <!-- ▸ common-control/foot-note.html —— U10 · 源 index.html L210-L213 -->
+  </div>
+  <div class="page" id="page-mine" hidden>
+    <!-- ▸ mine/mine-head.html —— U42 · 源 index.html L220-L227 -->
+    <!-- ▸ mine/stat-row.html —— U43 · 源 index.html L229-L229 -->
+    <!-- ▸ mine/fav-card.html —— U44 · 源 index.html L230-L230 -->
+    <!-- ▸ mine/song-list-compact.html —— U45 · 源 index.html L232-L238 -->
+    <!-- ▸ mine/my-pl-mine.html —— U46 · 源 index.html L240-L248 -->
+    <!-- ▸ common-control/foot-note.html —— U10 · 源 index.html L250-L253 -->
+  </div>
+  <div class="page" id="page-setting" hidden>
+    <!-- ▸ common-control/page-head.html —— U34 · 源 index.html L260-L262 -->
+    <!-- ▸ setting/set-hero.html —— U48 · 源 index.html L263-L265 -->
+    <!-- ▸ setting/settings-group.html —— U49 · 源 index.html L266-L266 -->
+  </div>
+</main>

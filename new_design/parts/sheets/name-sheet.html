@@ -1,0 +1,24 @@
+<!--
+  件：parts/sheets/name-sheet —— U47 · nameSheet 改昵称浮层实例（NICK_PICKS 见符号行；本件持有「想叫什么/保存/换个快的」与收尾提示全文）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L459-L474（本件持有 13 个元素）
+    styles.css —— 归本件 0 条（样式在 parts/_base.css 或宿主件 css）
+    app.js：openNameSheet (L1174) / saveNick (L1188) / NICK_PICKS (L1165)
+-->
+<div class="sheet" id="nameSheet">
+  <div class="sheet-mask" data-close></div>
+  <div class="sheet-body">
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title">修改昵称</h3>
+    <div class="sheet-sub">头像用昵称的第一个字，顶左上角的那颗圆也一起换。</div>
+    <div class="op-box">
+      <input class="op-input" id="nameInput" placeholder="想叫什么" autocomplete="off" maxlength="12">
+      <button class="op-go" id="nameGo">保存</button>
+    </div>
+    <div class="op-err" id="nameErr" hidden></div>
+    <div class="group-label">换个快的</div>
+    <div class="hot-words" id="namePicks"></div>
+    <p class="sc-hint">昵称只保存在这台设备的存储里，不上传任何服务器 · 更换设备后回到「EchoIsle」。</p>
+  </div>
+</div>

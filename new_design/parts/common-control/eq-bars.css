@@ -1,0 +1,18 @@
+/*
+  件：parts/common-control/eq-bars —— U30 · .sr-title .eq 播放中三柱均衡器（含 @keyframes eq；元素由 songRow 生成）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html —— 本件持有 0 个元素（内容/定义件：标记由宿主件持有，出现处见下）
+    styles.css 本件收纳 5 条规则（逐条注明来源行号）
+    app.js：songRow (L420)
+*/
+/* ─ 源 styles.css L298-L298 ─ */
+.sr-title .eq{display:inline-flex;align-items:flex-end;gap:1.5px;height:11px}
+/* ─ 源 styles.css L299-L299 ─ */
+.sr-title .eq i{width:2px;background:var(--brand);border-radius:1px;animation:eq 1s infinite ease-in-out}
+/* ─ 源 styles.css L300-L300 ─ */
+.sr-title .eq i:nth-child(2){animation-delay:.2s}.sr-title .eq i:nth-child(3){animation-delay:.4s}
+/* ─ 源 styles.css L300-L300 ─ */
+.sr-title .eq i:nth-child(2){animation-delay:.2s}.sr-title .eq i:nth-child(3){animation-delay:.4s}
+/* ─ 源 styles.css L301-L301 ─ */
+@keyframes eq{0%,100%{height:3px}50%{height:11px}}

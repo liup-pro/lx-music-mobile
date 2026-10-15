@@ -1,0 +1,31 @@
+/*
+  件：parts/mine/fav-card —— U44 · .fav-card 我喜欢卡
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L230-L230（本件持有 1 个元素）
+    styles.css 本件收纳 9 条规则（逐条注明来源行号）
+    app.js：renderMinePage (L1206) / refreshFavLayer (L881) / favPlaylist (L877)
+*/
+/* ─ 源 styles.css L430-L433 ─ */
+.fav-card{position:relative;overflow:hidden;width:100%;display:flex;align-items:center;gap:13px;text-align:left;
+  margin-top:20px;padding:14px;border-radius:22px;
+  background:linear-gradient(120deg,rgba(255,92,138,.26),rgba(122,59,255,.24));
+  box-shadow:inset 0 0 0 1px var(--line-strong)}
+/* ─ 源 styles.css L434-L434 ─ */
+.fav-card:active{transform:scale(.99)}
+/* ─ 源 styles.css L435-L436 ─ */
+.fav-card .fc-art{width:62px;height:62px;flex:none;border-radius:17px;display:grid;place-items:center;
+  background:var(--grad);color:#0a0a0f;box-shadow:0 12px 24px -12px rgba(255,92,138,.9)}
+/* ─ 源 styles.css L437-L437 ─ */
+.fav-card .fc-art .ic{width:25px;height:25px}
+/* ─ 源 styles.css L438-L438 ─ */
+.fav-card .fc-body{flex:1;min-width:0}
+/* ─ 源 styles.css L439-L439 ─ */
+.fav-card h3{font-size:16px;font-weight:900}
+/* ─ 源 styles.css L440-L440 ─ */
+.fav-card p{font-size:11.5px;color:var(--text-2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ─ 源 styles.css L441-L442 ─ */
+.fav-card .fc-go{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(0,0,0,.3);color:#fff}
+/* ─ 源 styles.css L443-L443 ─ */
+.fav-card .fc-go .ic{width:15px;height:15px}

@@ -1,0 +1,17 @@
+<!--
+  件：parts/mine/my-pl-mine —— U46 · 我的歌单区（pl-card 复用 U27 + plCardMine；「新建歌单」入口在区块壳内；空态挖出归 U11）
+  派生物 · 请勿手改：重跑 node scripts/gen-newui-parts.mjs 同步原型（Node v22）
+  权威源（本件是它们的无损切片，元素/规则归属唯一；读件即读原型原文，禁止转述）：
+    index.html L240-L248（本件持有 7 个元素）
+    styles.css —— 归本件 0 条（样式在 parts/_base.css 或宿主件 css）
+    app.js：plCardMine (L1254)
+-->
+<section class="section">
+  <div class="section-head">
+    <h3 class="section-sub">我的歌单</h3>
+    <!-- 这一角原本是「去歌单页」：跳过去只是换个 Tab，给不了用户想要的动作，换成就地新建 -->
+    <button class="section-more" id="createListBtn">新建歌单<svg class="ic"><use href="#i-chevron"/></svg></button>
+  </div>
+  <div class="pl-grid" id="minePlGrid"></div>
+  <!-- ▸ common-control/empty-tip.html —— U11 · 源 index.html L247-L247 -->
+</section>
