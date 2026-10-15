@@ -6,8 +6,10 @@ export type ThemeScheme = 'light' | 'dark'
 
 /**
  * 语义色板：浅色与深色共用同一套键名，仅取值不同。
- * 深色值精确提取自 new_design/styles.css 的 :root 与散落规则；
- * 浅色系原型已给出（.phone.light，fill / hairline / card / glass 等新 token）+ 早期自造值。
+ * 深色值精确提取自 new_design/styles.css 的 :root 与散落规则；浅色值取自同一文件的 .phone.light 档。
+ * 原型没有对应物的早期自造键（err / glass / glassStrong / chip / overlay / overlayStrong /
+ * glassBorder / tagBorder / press / pressStrong）已整组删除——组件侧全部迁到了 fill / hairline /
+ * card / glassPatch / lineStrong 这套与原型同名的 token，留着只会在浅色档上留非原型值（QA D80）。
  */
 export interface ThemeColors {
   /** 中性底 --bg */
@@ -38,24 +40,6 @@ export interface ThemeColors {
   brand3: string
   /** 成功 / 可用 --ok */
   ok: string
-  /** 错误 / 不可用（.op-err） */
-  err: string
-  /** 玻璃面板底（对应 rgba(255,255,255,.07) 一类覆盖底） */
-  glass: string
-  /** 玻璃面板底加强（Pad 侧栏选中态） */
-  glassStrong: string
-  /** chips 底 */
-  chip: string
-  /** 表面覆盖层 10%（.q-tag 底） */
-  overlay: string
-  /** 表面覆盖层 18%（.b-tag 底） */
-  overlayStrong: string
-  /** 玻璃 1px 内描边 */
-  glassBorder: string
-  /** .q-tag 1px 描边 */
-  tagBorder: string
-  /** 行按压高亮（.song-row:active / .ghost-btn 底 rgba(255,255,255,.06)） */
-  press: string
   /** 正在播放行 1px 内描边（.song-row.playing inset rgba(255,255,255,.07)） */
   playingBorder: string
   /** 渐变上的文字 / 图标色（.chip.on / .pc.main） */
@@ -64,8 +48,6 @@ export interface ThemeColors {
   onGradient: string
   /** brand 16% 洗底（选中态图标按钮底 .icon-btn.on） */
   brandWash: string
-  /** 行 / 按钮按压高亮加强档 rgba(255,255,255,.1)（.ghost-btn:active） */
-  pressStrong: string
   /** 开关轨道底色（.toggle off 态 rgba(255,255,255,.16)） */
   switchOff: string
   /** 开关旋钮色（.toggle i 恒为白，浅深同值） */
@@ -101,9 +83,9 @@ export interface ThemeColors {
   /** --danger-ink：危险文案色（深底亮珊瑚 / 浅底深红，按底反转保对比） */
   dangerInk: string
   /** 歌词当前行投影色（.ln.on text-shadow）：原型深 rgba(0,0,0,.55)（styles.css L612）/
-   *  浅 rgba(21,22,28,.22)（L1166 单独覆盖）——原型注释言明此为无法反相表达的真差异，两套各给一档。
-   *  2026-10-15 两档浓度下调（.30 / .10）：RN 的大半径文字阴影会糊成当前行身后的可见暗块，
-   *  与原型「当前行无背景、只抬字」的观感相违，半径/偏移见 PLAYER.lyricGlow* */
+   *  浅 rgba(21,22,28,.22)（L1171 单独覆盖）——原型注释言明此为无法反相表达的真差异，两套各给一档。
+   *  2026-10-15 曾把两档浓度自降为 .30 / .10（怕 RN 大半径阴影糊成暗块），2026-10-16 审计轮按
+   *  「原型即真相」回到原值；半径/偏移见 PLAYER.lyricGlow*，真机若确实脏再改口径 */
   lyricGlow: string
 }
 

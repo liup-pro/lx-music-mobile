@@ -12,13 +12,17 @@ export const NEW_UI_PLAYLIST_TITLES = {
   allTags: '全部分类',
 } as const
 
-/** 「全部分类」浮层文案（原型没有这一层：示意数据只有 11 个硬编码 chip，真实侧全量目录按平台分组展示） */
+/**
+ * 「全部分类」浮层文案（原型没有这一层：示意数据只有 11 个硬编码 chip，真实侧全量目录按平台分组展示）。
+ * 2026-07-30 审计轮：D84 补 .sheet-sub 尾「。」（index.html L454）、D19/D20 按 app.js L772/L785
+ * 实际渲染句逐字（D20 注：原型 index.html L616 说明段写「没找到」、app.js 渲染「取不到」，以渲染句为准）。
+ */
 export const NEW_UI_PLAYLIST_TAG_SHEET = {
-  sub: '当前平台的全部分类 · 选一个，下面的推荐歌单就换成这一类',
+  sub: '当前平台的全部分类 · 选一个，下面的推荐歌单就换成这一类。',
   /** 浮层顶部第一枚：回到不筛选状态 */
   all: '全部',
-  loading: '正在从平台取分类 · 稍等',
-  empty: '这个平台暂时没找到分类 · 稍后再试',
+  loading: '正在从平台获取分类…',
+  empty: '这个平台暂时取不到分类 · 稍后再试',
 } as const
 
 /** 「我的歌单」右侧动作（原型 #plManage） */
@@ -26,8 +30,8 @@ export const NEW_UI_PLAYLIST_MANAGE = '管理'
 
 /** 空态 / 加载态文案（原型 .empty-tip 原句优先照抄） */
 export const NEW_UI_PLAYLIST_EMPTY = {
-  /** 原型 #plPoolEmpty 原句 */
-  pool: '这个分类下暂时没有推荐，换一个试试',
+  /** 原型 #plPoolEmpty 原句（index.html L191） */
+  pool: '这个分类下暂时没有推荐 · 换一个分类试试',
   /**
    * 「我的歌单」空态。原型两处同一句原话（index.html L182 #myPlEmpty / L247 #minePlEmpty）：
    * 「还没有自建歌单 · 听到喜欢的先收藏进来」——歌单页与我的页共用这一份措辞。

@@ -52,7 +52,10 @@ export const FavCard = memo(({ title, sub, onPress, onPlayPress }: FavCardProps)
       onPress={onPress}
       style={({ pressed }) => [
         styles.root,
-        { borderColor: withAlpha(ART_INK.fg, MINE.favRingAlpha) },
+        // .fav-card 描边：原型 `inset 0 0 0 1px var(--line-strong)`（styles.css L433），
+        // 直接取色板 lineStrong（深 rgba(255,255,255,.14) / 浅 rgba(21,22,28,.16)），随主题反相
+        // ——此前固定压白 .13 的自造档在浅底上颜色族不对（QA D79）
+        { borderColor: theme.colors.lineStrong },
         pressed && styles.pressed,
       ]}
     >

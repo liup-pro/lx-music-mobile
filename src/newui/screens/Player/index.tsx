@@ -30,6 +30,7 @@ import {
   NEW_UI_PLAYER_LYRIC_EMPTY,
   NEW_UI_PLAYER_LYRIC_NOTE,
   NEW_UI_PLAYER_NO_SONG,
+  NEW_UI_PLAYER_PREV_RESTART_SEC,
   NEW_UI_PLAYER_TOOL_ARIA,
   NEW_UI_SHEET_COMMENT,
   PLAYER_PLAY_MODE_META,
@@ -151,8 +152,24 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
     const index = MUSIC_TOGGLE_MODE_LIST.indexOf(togglePlayMethod)
     const next = MUSIC_TOGGLE_MODE_LIST[(index + 1) % MUSIC_TOGGLE_MODE_LIST.length]
     updateSetting({ 'player.togglePlayMethod': next })
-    showNewUiToast(PLAYER_PLAY_MODE_META[next]?.label ?? '')
+    // toast 带「循环模式 · 」前缀（原型 app.js L1329 `toast('循环模式 · ' + LOOP_NAME[state.loop])`，
+    // QA D76：此前只报档位名，前缀缺失；档位名认不出来时不报半截句）
+    const label = PLAYER_PLAY_MODE_META[next]?.label
+    if (label != null) showNewUiToast(newUiPlayerLoopAria(label))
   }, [togglePlayMethod])
+
+  /**
+   * 「上一曲」（原型 app.js L2615 `state.t > 3 ? seekTo(0) : step(-1)`，QA D03）：
+   * 当前这首已经播过 3 秒时，第一下先回到开头，再按才是前一首——跳转走的就是
+   * 进度条那一条既有提交路径（app_event.setProgress），不另碰播放核心。
+   */
+  const handlePrevPress = useCallback(() => {
+    if (maxPlayTime > 0 && nowPlayTime > NEW_UI_PLAYER_PREV_RESTART_SEC) {
+      handleSeekCommit(0)
+      return
+    }
+    void playPrev()
+  }, [handleSeekCommit, maxPlayTime, nowPlayTime])
 
   // 舞台横滑落定时翻一次互斥状态（右滑 → 歌词，左滑 → 唱片）
   const handleStageSwipe = useCallback((direction: StageSwipeDirection) => {
@@ -263,7 +280,7 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
           「定时」已按改版挪进次级工具行，第 5 枚「均衡」钮早已随假能力移除） */}
       <View style={styles.controls}>
         {/* playPrev/playNext 首参是 isAutoToggle（布尔），不能直接接 onPress（会收到事件对象），必须无参转接 */}
-        <PcButton kind="ghost" name="prev" onPress={() => { void playPrev() }} accessibilityLabel="上一曲" />
+        <PcButton kind="ghost" name="prev" onPress={handlePrevPress} accessibilityLabel="上一曲" />
         <PcButton
           kind="main"
           name={playing ? 'pause' : 'play'}

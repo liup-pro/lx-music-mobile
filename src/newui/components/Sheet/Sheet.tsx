@@ -82,9 +82,9 @@ export interface SheetProps<T = unknown> {
 }
 
 /**
- * 通用底部浮层（对应原型 .sheet，styles.css L706-723）：
- * 遮罩淡入 .3s + 体贴退场（原型 translateY 100%→0 / .4s，styles.css L715-720；RN 落地为窗口高像素位移，见 translateY 注释），
- * 圆角顶部 28 / 底部直角（原型 L712 底部 40px 是嵌合假机框 .screen L77 的 44px 圆角，真机贴屏底应为直角，第 14 轮口径），
+ * 通用底部浮层（对应原型 .sheet，styles.css L716-733）：
+ * 遮罩淡入 .3s + 体贴退场（原型 translateY 100%→0 / .4s，styles.css L725 与 L730；RN 落地为窗口高像素位移，见 translateY 注释），
+ * 圆角顶部 28 / 底部直角（原型 L722 底部 40px 是嵌合假机框 .screen L77 的 44px 圆角，真机贴屏底应为直角，第 14 轮口径），
  * surface2→surface 竖向渐变 + 顶边高光，max-height 78% 内滚动；点遮罩或 Android 返回键关闭。
  * 实现形态：所在屏幕根 View 内的 absolute-fill 覆盖层（原型 .sheet 就是所在层的 inset:0 子层，
  * 浮层不跨屏幕复用，因此不用 RNN Modal/新路由，改动最小、退场动画也最顺）。

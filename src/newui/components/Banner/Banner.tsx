@@ -104,8 +104,10 @@ export const Banner = memo(({ items, onPress }: BannerProps) => {
 
   if (!count) return null
 
-  // .banner-dots i 底色：未选中项用主文字色压淡，两套主题都能看清
-  const idleDot = withAlpha(theme.colors.text, BANNER.dotIdleAlpha)
+  // .banner-dots i 未选中项底色：原型锁白 rgba(255,255,255,.22)（styles.css L213，index.html L209 同口径
+  // ——轮播恒压在固定暗色封面氛围上，不随主题反相，浅色档下换成墨色会在暗底上看不见）。
+  // 此前用 theme.colors.text 派生，alpha 对上了但颜色族不对（QA D82）
+  const idleDot = withAlpha(ART_INK.fg, BANNER.dotIdleAlpha)
 
   return (
     <View style={styles.root}>

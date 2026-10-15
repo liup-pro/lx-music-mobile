@@ -18,7 +18,6 @@ import {
   StatRow,
 } from '@/newui/components'
 import {
-  getPlatformMeta,
   NEW_UI_BOARD_LIST_ID_PREFIX,
   NEW_UI_MINE_EDIT,
   NEW_UI_MINE_EMPTY,
@@ -104,10 +103,11 @@ export const MinePage = ({ componentId, onOpenNameSheet, onOpenMore, onOpenCreat
   )
 
   // 整卡 = 打开「我喜欢」内置歌单详情（2026-10-14 用户条目）：与「我的歌单」卡同一入口、
-  // 同一详情层形态。LOVE 是内置列表，详情层 isDeletableUserListId 兜住，自然不出现删除钮
-  // （不额外加「内置」判断分支）
+  // 同一详情层形态。LOVE 是内置列表，详情层 isDeletableUserListId 兜住，自然不出现删除钮。
+  // kind 传 'fav'（QA D04）：原型 PLD_CRUMB / PLD_FOOT / PLD_EMPTY 三张表都有 fav 一档
+  // （面包屑「内置歌单」+ 专属页脚 + 专属空态），这张单子不该顶用「我的歌单」的文案
   const handleLoveCardPress = useCallback(() => {
-    pushNewUiLocalListDetail(componentId, { id: LIST_IDS.LOVE, name: NEW_UI_MINE_TITLES.love }, 'mine')
+    pushNewUiLocalListDetail(componentId, { id: LIST_IDS.LOVE, name: NEW_UI_MINE_TITLES.love }, 'mine', 'fav')
   }, [componentId])
 
   // 圆钮 = 播放全部（原整卡动作保留）：沿用原型 play(can[0], can) + openLayer(player()) 口径，
@@ -245,11 +245,13 @@ export const MinePage = ({ componentId, onOpenNameSheet, onOpenMore, onOpenCreat
                   artSeed={`${NEW_UI_PLAYLIST_ART_SEED.mine}:${list.id}`}
                   artUri={listCovers[list.id]}
                   meta={
+                    // meta 口径按原型 plCardMine（app.js L1262 `${n} 首 · ${can} 首可播`，QA D17）：
+                    // 可播数取 useMyPlaylists 同一份曲目的真实计数，还没数出来时先只报首数
                     list.count == null
                       ? '还在数有几首'
-                      : list.source
-                        ? `${list.count} 首 · 来自${getPlatformMeta(list.source).short}`
-                        : `${list.count} 首`
+                      : list.playable == null
+                        ? `${list.count} 首`
+                        : `${list.count} 首 · ${list.playable} 首可播`
                   }
                   tint={
                     list.source

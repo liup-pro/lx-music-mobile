@@ -48,7 +48,7 @@ export const NEW_UI_HOME_DAILY_SUB = {
 /**
  * 首页各处上屏上限——原型注释里明说的设计值，集中收口（改一处全对齐）：
  * - recent 12：app.js L255-258「最多上屏 12 张（RECENT_LIMIT）」；
- * - artists 8：app.js L1476-1479「原型一排 8 个，与 RN ARTIST_LIMIT 同量」；
+ * - artists 8：app.js L1533-1534「原型一排 8 个，与 RN ARTIST_LIMIT 同量」；
  * - rankTabs 4 / rankSongs 10：app.js L349-357 HOME_RANK_TAB_LIMIT / HOME_SONG_LIMIT，
  *   注释「这两条上限与 RN 同名参数对齐」；
  * - daily 10：app.js L292-297「池子取前 10」。
@@ -63,15 +63,15 @@ export const NEW_UI_HOME_LIMITS = {
 
 /** 区块内常见的「还没取到」文案 */
 export const NEW_UI_HOME_EMPTY = {
-  recent: '还没听过什么 · 先从下面的榜单点一首',
+  recent: '还没有播放记录 · 先从排行榜里点一首',
   loading: '正在从平台取歌 · 稍等',
   artists: '这个榜里没认出歌手',
 } as const
 
 /** 还没做完的动作给的一句话提示（说人话，别漏开发术语）；音源轮播已接 SourceSheet（9d），条目随之清理 */
 export const NEW_UI_HOME_TODO_TOAST = {
-  radio: '电台 · 还在建设中',
-  artists: '歌手主页还没做 · 先给你播这个榜里他的歌',
+  radio: '电台 · 建设中',
+  artists: '歌手主页建设中 · 先播放这张榜里 TA 的歌曲',
 } as const
 
 /** 轮播条目的动作 key（useHomeBanners 产出、HomePage 分派，两处共用） */
@@ -83,8 +83,8 @@ export const NEW_UI_HOME_BANNER_KEYS = {
 
 /** 播放相关反馈 */
 export const NEW_UI_HOME_PLAY_TOAST = {
-  daily: '今日推荐已经放上了',
-  nothingPlayable: '这些曲目当前的音源放不出来 · 换个音源或换批歌',
+  daily: '今日推荐已开始播放',
+  nothingPlayable: '这几首在当前音源下不可播 · 换个音源或换几首',
 } as const
 
 /** 快捷入口四格（原型 QUICK，动作为 key 分派） */

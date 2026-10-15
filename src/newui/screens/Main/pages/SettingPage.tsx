@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { PageHeader, SettingsGroup, SettingsRow } from '@/newui/components'
 import { NEW_UI_APP_NAME, NEW_UI_APP_VERSION, NEW_UI_RECENT_CLEARED_TOAST, NEW_UI_SETTING_LABELS } from '@/newui/const'
 import { useRecentPlays } from '@/newui/hooks'
-import { SETTINGS, useTheme, useThemeMode } from '@/newui/theme'
+import { SETTINGS, useTheme, useThemeMode, type ThemeMode } from '@/newui/theme'
 import { clearNewUiRecentPlays, showNewUiToast } from '@/newui/utils'
 import { clearCache, getCacheSize } from '@/plugins/player/utils'
 import { sizeFormate } from '@/utils'
@@ -49,6 +49,15 @@ export const SettingPage = memo(({ onOpenClearCacheConfirm, onRegisterClearCache
     clearNewUiRecentPlays()
     showNewUiToast(NEW_UI_RECENT_CLEARED_TOAST)
   }, [])
+
+  /**
+   * 切外观档（QA D32）：原型 app.js L1396-1406 在 setTheme(mode) 之后固定补一句
+   * `toast('外观 · ' + 档名)`——此前实现只切不报，反馈缺失，本轮按原型补齐。
+   */
+  const handleAppearancePress = useCallback((next: ThemeMode, label: string) => {
+    setMode(next)
+    showNewUiToast(L.appearanceToast(label))
+  }, [setMode])
 
   const recountCache = useCallback(() => {
     setCacheValue(L.cacheCounting)
@@ -110,7 +119,7 @@ export const SettingPage = memo(({ onOpenClearCacheConfirm, onRegisterClearCache
           selected={mode === 'light'}
           value={mode === 'light' ? L.appearanceActive : undefined}
           valueHighlight={mode === 'light'}
-          onPress={() => setMode('light')}
+          onPress={() => handleAppearancePress('light', L.appearanceLight)}
         />
         <SettingsRow
           icon="moon"
@@ -119,7 +128,7 @@ export const SettingPage = memo(({ onOpenClearCacheConfirm, onRegisterClearCache
           selected={mode === 'dark'}
           value={mode === 'dark' ? L.appearanceActive : undefined}
           valueHighlight={mode === 'dark'}
-          onPress={() => setMode('dark')}
+          onPress={() => handleAppearancePress('dark', L.appearanceDark)}
         />
         <SettingsRow
           icon="phone"
@@ -128,7 +137,7 @@ export const SettingPage = memo(({ onOpenClearCacheConfirm, onRegisterClearCache
           selected={mode === 'system'}
           value={mode === 'system' ? L.appearanceActive : undefined}
           valueHighlight={mode === 'system'}
-          onPress={() => setMode('system')}
+          onPress={() => handleAppearancePress('system', L.appearanceSystem)}
         />
       </SettingsGroup>
 

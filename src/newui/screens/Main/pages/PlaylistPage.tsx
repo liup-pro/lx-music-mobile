@@ -21,7 +21,6 @@ import {
   Section,
 } from '@/newui/components'
 import {
-  getPlatformMeta,
   NEW_UI_BOARD_LIST_ID_PREFIX,
   NEW_UI_PAGING_END_TEXT,
   NEW_UI_PLAYLIST_ART_SEED,
@@ -252,11 +251,10 @@ export const PlaylistPage = ({
                   key={list.id}
                   name={list.name}
                   sub={
-                    list.count == null
-                      ? '还在数有几首'
-                      : list.source
-                        ? `${list.count} 首 · 来自${getPlatformMeta(list.source).short}`
-                        : `${list.count} 首`
+                    // 副行口径按原型 my-pl（app.js L745 `${n} 首 · ${p.desc}`，QA D16）：项目里的
+                    // 本地歌单没有「描述」字段（store/list 只存 name / source / sourceListId），
+                    // 如实只报首数——不再拿「来自某平台」顶替描述位（那是另一回事的信息）
+                    list.count == null ? '还在数有几首' : `${list.count} 首`
                   }
                   artSeed={`${NEW_UI_PLAYLIST_ART_SEED.mine}:${list.id}`}
                   artUri={listCovers[list.id]}

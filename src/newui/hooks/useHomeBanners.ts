@@ -40,7 +40,7 @@ export const useHomeBanners = (): BannerItem[] => {
         // 原型 app.js L159-161：可获取的说法是「音乐内容可获取」，不说「取到地址」（开发术语）
         sub: covered.length
           ? `${joinPlatformNames(covered)} 的音乐内容可获取`
-          : '现在这个源还没报出能播的平台',
+          : '当前音源还没有报出可播的平台',
         artSeed: 'banner-api',
       },
     ]
@@ -60,7 +60,7 @@ export const useHomeBanners = (): BannerItem[] => {
       key: NEW_UI_HOME_BANNER_KEYS.radio,
       tag: '随手听',
       title: '电台',
-      sub: '按你的口味随机 · 还没建好',
+      sub: '按口味随机播放 · 建设中',
       artSeed: 'banner-radio',
     })
     return items

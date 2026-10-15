@@ -50,7 +50,7 @@ export default () => {
   Navigation.registerComponent(SYNC_MODE_MODAL, () => WrappedComponent(SyncModeModal))
   // Navigation.registerComponent(SETTING_SCREEN, () => WrappedComponent(Setting))
 
-  // 新 UI（野花音乐原型）独立注册，与旧界面并存；启用入口见 @/newui/navigation 的 setNewUiRoot
+  // 新 UI（EchoIsle，落地自 new_design 原型）独立注册，与旧界面并存；启用入口见 @/newui/navigation 的 setNewUiRoot
   registerNewUiScreens()
 
   console.info('All screens have been registered...')

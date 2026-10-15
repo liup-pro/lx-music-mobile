@@ -21,7 +21,8 @@ export interface CreateListSheetProps {
 
 /**
  * 新建歌单浮层（2026-10-13 bug-fix「我的」7a：入口在我的页「我的歌单」区块右上角）。
- * 原型没有这一层（MY_PLAYLISTS 是 mock，index.html L526 自述「没有真实的建单流程」），
+ * 原型对应层是 #createSheet（index.html L431-445），建单只写内存里的 MY_PLAYLISTS
+ * （app.js L1269 自述「原型旧版没有建单流程（MY_PLAYLISTS 是写死的 4 张）」），真实侧落 core/list；
  * 骨架整体照抄 NameSheet / PlIdSheet：通用 Sheet + OpInputRow（.op-box/.op-input/.op-go）
  * + .op-err 错误行 + .sc-hint 灰字，不另起一套输入层。
  * 校验链逐条照抄旧屏 ListNameEdit.handleRename（L95-111）：
@@ -122,7 +123,7 @@ export const CreateListSheet = ({ visible, onClose, bottomInset }: CreateListShe
           onSubmitEditing={submit}
           style={styles.opRow}
         />
-        {/* .op-err（与 NameSheet / PlIdSheet 错误行同规格，styles.css L704） */}
+        {/* .op-err（与 NameSheet / PlIdSheet 错误行同规格，styles.css L773） */}
         {err.length > 0 && (
           <Text style={[styles.opErr, { color: theme.colors.dangerInk }]}>{err}</Text>
         )}
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
   opRow: {
     marginTop: OP_BOX.marginTop,
   },
-  /** .op-err：margin-top 10 / 11.5 / 行高 1.65（styles.css L704） */
+  /** .op-err：margin-top 10 / 11.5 / 行高 1.65（styles.css L773） */
   opErr: {
     marginTop: OP_BOX.errMarginTop,
     fontSize: FONT_SIZE.captionLg,

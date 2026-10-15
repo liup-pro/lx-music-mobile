@@ -42,7 +42,7 @@ export interface OpInputRowProps {
 }
 
 /**
- * 浮层「输入 + 主色按钮」行（对应原型 .op-box / .op-input / .op-go，styles.css L694-704）。
+ * 浮层「输入 + 主色按钮」行（对应原型 .op-box / .op-input / .op-go，styles.css L763-774）。
  * 抽自阶段 9d 的 SourceSheet 导入行，改昵称浮层（阶段 9e NameSheet）同款复用——
  * 一处定义、两处引用，token 全走 OP_BOX / GRADIENTS.brand。
  * ref 转发到 TextInput：原型 openNameSheet 打开即聚焦（app.js L555），由容器掌握时机。
@@ -64,7 +64,7 @@ export const OpInputRow = forwardRef<TextInput, OpInputRowProps>(({
   style,
 }, ref) => {
   const theme = useTheme()
-  // .op-input:focus 主色描边（styles.css L698）
+  // .op-input:focus 主色描边（styles.css L767）
   const [focused, setFocused] = useState(false)
   return (
     <View style={[styles.root, style]}>
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     height: OP_BOX.height,
     borderRadius: OP_BOX.inputRadius,
     paddingHorizontal: OP_BOX.inputPaddingX,
-    // 原型常态 1px / focus 1.5px（styles.css L695-698）；RN 改宽会抖，恒取 focus 档
+    // 原型常态 1px / focus 1.5px（styles.css L764-767）；RN 改宽会抖，恒取 focus 档
     borderWidth: OP_BOX.focusRingWidth,
     fontSize: FONT_SIZE.bodyLg,
   },

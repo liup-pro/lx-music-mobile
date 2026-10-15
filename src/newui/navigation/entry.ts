@@ -198,13 +198,15 @@ export const pushNewUiSonglistDetail = (
  * 同一个详情页、同一套布局，只是取数换成按本地 listId 读 @/core/list 的 getListMusics；
  * passProps 只带 id 与名字两个字符串（本地歌单没有平台封面，头部如实回落种子纹理）。
  * fromTab（QA D-16）同 pushNewUiSonglistDetail。
+ * kind（QA D04 补）：缺省仍是 'local'；内置「我喜欢」这一张传 'fav'——取数链路完全相同
+ * （都是按本地 listId 读 @/core/list），只有面包屑 / 页脚 / 空态三处文案换成原型 PLD_* 的 fav 一档。
  */
 export const pushNewUiLocalListDetail = (
   componentId: string,
   list: { id: string; name: string },
   fromTab?: NewUiTabKey,
+  kind: NewUiSonglistDetailKind = 'local',
 ) => {
-  const kind: NewUiSonglistDetailKind = 'local'
   return pushSonglistDetailLayer(componentId, fromTab != null
     ? { kind, listId: list.id, listName: list.name, fromTab }
     : { kind, listId: list.id, listName: list.name })

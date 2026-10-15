@@ -15,42 +15,43 @@ export const NEW_UI_MINE_TITLES = {
 export const NEW_UI_MINE_MORES = {
   recent: '清空记录',
   // 2026-10-13（bug-fix「我的」7a）：入口由「去歌单页」换成「新建歌单」。
-  // 视觉口径不变——原型这一角本就是 .section-more 文字 + chevron（index.html L232），
-  // 原型没有建单流程（其笔记 L526 自述「没有真实的建单流程」），只按 bug-fix 换动作与文案。
+  // 视觉口径不变——原型这一角本就是 .section-more 文字 + chevron（index.html L244 #createListBtn），
+  // 原型的建单只走内存数组（MY_PLAYLISTS），真实侧落 core/list；动作与文案按 bug-fix 换。
   lists: '新建歌单',
 } as const
 
 /**
  * 新建歌单浮层（CreateListSheet，2026-10-13 bug-fix「我的」7a）。
- * 原型没有这一层（MY_PLAYLISTS 是 mock）；校验规则逐条抄旧屏
+ * 原型对应层是 #createSheet（index.html L431-445；逻辑 app.js L1268-1300 的 CREATE_TXT /
+ * submitCreateList，建单结果只写进内存里的 MY_PLAYLISTS）；校验规则逐条抄旧屏
  * ListNameEdit.handleRename（src/screens/Home/Views/Mylist/MyList/ListNameEdit.tsx L95-111）：
  * 空名不创建（旧屏静默 return，这里按新 UI 浮层惯例给一句 .op-err 人话报错，语义同）、
  * 超 100 字截断（L98）、同名先问「继续吗」（L102-105，zh-cn list_duplicate_tip 的说人话版）、
  * 都过才落 createUserList（经 core/list 的 createList）。
  */
 export const NEW_UI_SHEET_CREATE_LIST = {
-  /** .sheet-title */
+  /** .sheet-title（index.html L436） */
   title: '新建歌单',
-  /** .sheet-sub */
+  /** .sheet-sub（index.html L437 原句） */
   sub: '起个名字就能建，建好就出现在「我的歌单」这一排里。',
-  /** .op-input placeholder（旧屏 list_create_input_placeholder「你想起啥名...」同款口吻） */
+  /** .op-input placeholder（index.html L439；旧屏 list_create_input_placeholder「你想起啥名...」同款口吻） */
   placeholder: '你想起啥名...',
-  /** .op-go */
+  /** .op-go（index.html L440） */
   go: '创建',
-  /** 落库进行中的按钮态（原型无此态，真实异步补，同 OpInputRow busy 口径） */
+  /** 落库进行中的按钮态（原型 CREATE_TXT.busy app.js L1275，真实异步补，同 OpInputRow busy 口径） */
   busy: '创建中',
-  /** 空名报错（.op-err） */
-  errEmpty: '歌单得有个名字 · 一个汉字也行',
-  /** 同名确认浮层标题（原型 app.js L1243 askConfirm title「同名歌单」，QA D-09 载体换回 Sheet 家族） */
+  /** 空名报错（.op-err，原型 app.js L1273 CREATE_TXT.errEmpty） */
+  errEmpty: '请先填写歌单名称 · 单个汉字也可以',
+  /** 同名确认浮层标题（原型 app.js L1297 askConfirm title「同名歌单」，QA D-09 载体换回 Sheet 家族） */
   dupTitle: '同名歌单',
-  /** 同名确认浮层正文（旧屏 list_duplicate_tip 的说人话版，措辞沿用第 9 轮 D-08 定稿） */
-  dupConfirm: '已经有一份同名歌单了，还要继续建吗？',
-  /** 同名确认浮层右键（原型 app.js L1243 okLabel「继续建」） */
+  /** 同名确认浮层正文（原型 app.js L1274 dupConfirm） */
+  dupConfirm: '已存在同名歌单 · 确认继续创建？',
+  /** 同名确认浮层右键（原型 app.js L1297 okLabel「继续建」） */
   dupOk: '继续建',
-  /** .sc-hint 底部灰字 */
-  hint: '新歌单只存在这台设备上，点进去就能往里头加歌。',
-  /** 建好 toast */
-  created: (name: string): string => `歌单「${name}」建好了`,
+  /** .sc-hint 底部灰字（原型 index.html L443 原句） */
+  hint: '新歌单只存在这台设备上，进入后即可添加歌曲。',
+  /** 建好 toast（原型 app.js L1276） */
+  created: (name: string): string => `歌单「${name}」已创建`,
 } as const
 
 /** 歌单名长度上限：旧屏 ListNameEdit L98 对超 100 字的名字截断 */
@@ -69,7 +70,7 @@ export const NEW_UI_MINE_EDIT = '改昵称'
 /** 空态文案（原型 .empty-tip / .fav-card p 原句优先照抄） */
 export const NEW_UI_MINE_EMPTY = {
   recent: '暂无播放记录',
-  love: '还没有收藏，点歌右边的爱心',
+  love: '还没有收藏 · 点歌曲右侧的爱心，收进来的都会留在这里',
 } as const
 
 /**

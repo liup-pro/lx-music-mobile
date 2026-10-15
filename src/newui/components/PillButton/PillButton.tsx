@@ -13,16 +13,24 @@ export interface PillButtonProps {
   onPress?: () => void
   /** 图标尺寸，默认 15（.pl-open-btn）；.mh-edit 传 14 */
   iconSize?: number
+  /**
+   * 原型形态档（QA D85）：这两件规格几乎一致但差在两处细节——
+   * - 'open'（缺省，= .pl-open-btn）：左右内衬同 13，按压缩放 .95；
+   * - 'edit'（= .mh-edit）：左内衬 11 / 右 13，按压缩放 .96。
+   */
+  variant?: 'open' | 'edit'
   style?: StyleProp<ViewStyle>
 }
 
 /**
- * 小胶囊按钮（对应原型 .pl-open-btn / .mh-edit，两者规格几乎一致故合并为一件）。
+ * 小胶囊按钮（对应原型 .pl-open-btn / .mh-edit，两者规格几乎一致故合并为一件，
+ * 差异走 variant 档位：左内衬与按压缩放各一档，见 PillButtonProps.variant）。
  * 用于卡内 / 区段头的轻操作入口，不占满整行。
  */
 export const PillButton = memo(
-  ({ label, icon, onPress, iconSize = BUTTON.pillIcon, style }: PillButtonProps) => {
+  ({ label, icon, onPress, iconSize = BUTTON.pillIcon, variant = 'open', style }: PillButtonProps) => {
     const theme = useTheme()
+    const isEdit = variant === 'edit'
     return (
       <Pressable
         accessibilityRole="button"
@@ -33,7 +41,8 @@ export const PillButton = memo(
             backgroundColor: pressed ? theme.colors.fill3 : theme.colors.fill2,
             borderColor: theme.colors.line,
           },
-          pressed && styles.pressed,
+          isEdit && { paddingLeft: BUTTON.pillPaddingLeftEdit },
+          pressed && { transform: [{ scale: isEdit ? BUTTON.pillPressScaleEdit : BUTTON.pillPressScale }] },
           style,
         ]}
       >
@@ -64,9 +73,5 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FONT_SIZE.smallLg,
     fontWeight: FONT_WEIGHT.bold,
-  },
-  /** .pl-open-btn:active 缩放反馈（原型 .95 / .mh-edit .96 取 .95） */
-  pressed: {
-    transform: [{ scale: 0.95 }],
   },
 })

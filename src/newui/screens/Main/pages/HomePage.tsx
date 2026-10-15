@@ -39,6 +39,7 @@ import {
   NEW_UI_HOME_TITLES,
   NEW_UI_RECENT_CLEARED_TOAST,
   NEW_UI_HOME_TODO_TOAST,
+  NEW_UI_SEARCH_UNPLAYABLE_TOAST,
   type RadioEntry,
 } from '@/newui/const'
 import type { NewUiPageProps } from '../../types'
@@ -290,20 +291,28 @@ export const HomePage = ({
           title={pl.name}
           artSeed={`${NEW_UI_HOME_ART_SEED.playlist}:${pl.id}`}
           artUri={pl.img ?? undefined}
-          meta={[pl.play_count, pl.total ? `${pl.total} 首` : null]
-            .filter(Boolean)
-            .join(' · ')}
+          meta={
+            // meta 口径按原型 app.js L343「播放数 · N/M 首可播」（QA D15）：可播数按当前音源对
+            // 该平台的覆盖如实判定——整家没接上就是 0/M，接上了就是 M/M；真实侧此刻还没有逐首
+            // 取曲目，不伪造逐首数
+            [pl.play_count, pl.total
+              ? `${assertApiSupport(pl.source) ? pl.total : 0}/${pl.total} 首可播`
+              : null]
+              .filter(Boolean)
+              .join(' · ')
+          }
           tint={/* QA 2026-10-14 D-14：原型 .pl-card .ps 恒有 .src-dot（app.js L341-343），项目口径换平台 tint 上色（与歌单页池子卡/我的页同款） */
             PLATFORM_TINTS[pl.source as PlatformTintKey]}
           onPress={() => handlePlaylistPress(pl)}
         />
       ))}
     </View>
-  ), [cardWidth, handlePlaylistPress])
+  ), [assertApiSupport, cardWidth, handlePlaylistPress])
 
   const handleSongPress = useCallback((song: LX.Music.MusicInfoOnline) => {
     if (!assertApiSupport(song.source)) {
-      showNewUiToast('这首歌所在的平台，当前音源放不出来')
+      // 不可播提示走共通键（原型 app.js L458 同一句，QA D10：此处原本硬编码自造句）
+      showNewUiToast(NEW_UI_SEARCH_UNPLAYABLE_TOAST)
       return
     }
     void playQueue(ranks.activeId, ranks.songs, ranks.songs.indexOf(song))
@@ -447,14 +456,14 @@ export const HomePage = ({
               </View>
             )
             : <EmptyTip text={NEW_UI_HOME_EMPTY.loading} />}
-        {ranks.songs.length > 0 && (
-          <GhostButton
-            icon="play"
-            label={`播放全部 ${playableRankSongs.length} 首`}
-            onPress={handlePlayAll}
-            style={styles.playAll}
-          />
-        )}
+        {/* 「播放全部」恒渲染（原型 renderSongs app.js L411-413：空列表也照旧重绘「播放全部 0 首」，
+            按下给「这几首在当前音源下不可播…」），QA D01 撤掉此前多写的 ranks.songs.length > 0 条件 */}
+        <GhostButton
+          icon="play"
+          label={`播放全部 ${playableRankSongs.length} 首`}
+          onPress={handlePlayAll}
+          style={styles.playAll}
+        />
       </Section>
 
       {artists.length > 0 && (

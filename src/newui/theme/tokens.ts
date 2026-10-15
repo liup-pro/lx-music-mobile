@@ -1,7 +1,8 @@
 /**
  * 新 UI 设计 token（唯一数据源）
  * 深色取值精确提取自 new_design/styles.css（:root 与规则内散落值）；
- * 浅色取值自 .phone.light 规则（原型改版后已给双套 token），早期自造部分仍为同一设计语言下的浅底深字。
+ * 浅色取值精确提取自 new_design/styles.css 的 .phone.light 档（原型改版后已给双套 token）；
+ * 早期自造、原型没有同名物的浅色键已在审计轮整组删除（QA D80），组件一律从这里取，不得再自造。
  * 组件内禁止硬编码色值 / 尺寸，一律从这里取。
  */
 import type { GlassLayerSpec, GradientSpec, ShadowSpec, ThemeColors, ThemeScheme } from './types'
@@ -25,20 +26,10 @@ export const PALETTES: Record<ThemeScheme, ThemeColors> = {
     brand2: '#7A3BFF',
     brand3: '#FFD36E',
     ok: '#31C27C',
-    err: '#FF8B7E',
-    glass: 'rgba(255, 255, 255, 0.07)',
-    glassStrong: 'rgba(255, 255, 255, 0.085)',
-    chip: 'rgba(255, 255, 255, 0.055)',
-    overlay: 'rgba(255, 255, 255, 0.10)',
-    overlayStrong: 'rgba(255, 255, 255, 0.18)',
-    glassBorder: 'rgba(255, 255, 255, 0.06)',
-    tagBorder: 'rgba(255, 255, 255, 0.08)',
-    press: 'rgba(255, 255, 255, 0.06)',
     playingBorder: 'rgba(255, 255, 255, 0.07)',
     onBrand: '#0A0A0F',
     onGradient: '#FFFFFF',
     brandWash: 'rgba(255, 92, 138, 0.16)',
-    pressStrong: 'rgba(255, 255, 255, 0.10)',
     switchOff: 'rgba(255, 255, 255, 0.16)',
     switchKnob: '#FFFFFF',
     glowA: 'rgba(122, 59, 255, 0.28)',
@@ -46,7 +37,8 @@ export const PALETTES: Record<ThemeScheme, ThemeColors> = {
     artScrim: 'rgba(0, 0, 0, 0.34)',
     seekTrack: 'rgba(255, 255, 255, 0.14)',
     /* 语义化填充 / 描边 / 贴片（styles.css :root L18-28，照抄不改透明度）；
-       旧 key（glass/glassStrong/glassBorder/press/overlay…）下一轮由组件侧换到这里 */
+       组件侧已全部走这一套与原型同名的 token，旧自造 key（glass / glassStrong / glassBorder /
+       press / overlay…）随之整组删除，浅色档不再留非原型来源的值（QA D80） */
     fill1: 'rgba(255, 255, 255, 0.06)',
     fill2: 'rgba(255, 255, 255, 0.07)',
     fill3: 'rgba(255, 255, 255, 0.12)',
@@ -58,14 +50,13 @@ export const PALETTES: Record<ThemeScheme, ThemeColors> = {
     glassPatchInk: '#FFFFFF',
     dangerInk: '#FF8B7E',
     /* .ln.on text-shadow 0 5px 22px rgba(0,0,0,.55)（styles.css L612）；
-       浅色 .phone.light .ln.on 单独覆盖为 rgba(21,22,28,.22)（L1166）——
+       浅色 .phone.light .ln.on 单独覆盖为 rgba(21,22,28,.22)（L1171）——
        原型注释明言这是「同一语义浅底要换值、无法反相表达」的真差异，故两套各留一档。
-       2026-10-15「正在演播的歌词行背景丑」一条：原型那层 22px 大半径在浏览器里是
-       几乎看不见的柔光（只用于把字从封面氛围底上抬一点），RN 照抄数值后 Android 的
-       文字阴影按半径逐像素涂抹，实际糊成当前行身后一块肉眼可见的暗脏斑，还吃掉字形
-       边缘（字发灰）。为还原原型「当前行没有任何背景块」的观感，此处把浓度一并降档，
-       半径/偏移见 PLAYER.lyricGlow* */
-    lyricGlow: 'rgba(0, 0, 0, 0.30)',
+       QA D77（2026-10-16 审计轮）：这组四项数值回到原型原值，不再自降浓度。
+       遗留风险照实记一句：2026-10-15 曾报「正在演播的歌词行背景丑」，RN（Android）的文字阴影
+       按半径逐像素涂抹，22 大半径可能糊成当前行身后可见暗斑；本轮按「原型即真相」恢复数字，
+       真机若确实脏，改的是这条口径记录而不是偷偷改值 */
+    lyricGlow: 'rgba(0, 0, 0, 0.55)',
   },
   light: {
     bg: '#F6F6FA',
@@ -82,20 +73,10 @@ export const PALETTES: Record<ThemeScheme, ThemeColors> = {
     brand2: '#7A3BFF',
     brand3: '#FFD36E',
     ok: '#31C27C',
-    err: '#E5484D',
-    glass: 'rgba(21, 22, 28, 0.06)',
-    glassStrong: 'rgba(21, 22, 28, 0.09)',
-    chip: 'rgba(21, 22, 28, 0.05)',
-    overlay: 'rgba(21, 22, 28, 0.07)',
-    overlayStrong: 'rgba(21, 22, 28, 0.14)',
-    glassBorder: 'rgba(21, 22, 28, 0.08)',
-    tagBorder: 'rgba(21, 22, 28, 0.08)',
-    press: 'rgba(21, 22, 28, 0.06)',
     playingBorder: 'rgba(255, 92, 138, 0.34)',
     onBrand: '#0A0A0F',
     onGradient: '#FFFFFF',
     brandWash: 'rgba(255, 92, 138, 0.16)',
-    pressStrong: 'rgba(21, 22, 28, 0.10)',
     switchOff: 'rgba(21, 22, 28, 0.16)',
     switchKnob: '#FFFFFF',
     glowA: 'rgba(122, 59, 255, 0.14)',
@@ -114,7 +95,8 @@ export const PALETTES: Record<ThemeScheme, ThemeColors> = {
     glassPatch: 'rgba(255, 255, 255, 0.82)',
     glassPatchInk: '#15161C',
     dangerInk: '#C43C2E',
-    lyricGlow: 'rgba(21, 22, 28, 0.10)',
+    /** 同 dark 档注释：原型 .phone.light .ln.on 为 rgba(21,22,28,.22)（styles.css L1171，QA D77） */
+    lyricGlow: 'rgba(21, 22, 28, 0.22)',
   },
 }
 
@@ -377,8 +359,10 @@ export const SONG_ROW = {
   /** 收缩优先级（styles.css L296-298）：角标 flex:none，歌手 0 1 auto，专辑 0 100 auto */
   artistFlexShrink: 1,
   albumFlexShrink: 100,
-  /** 排名槽最小宽 28px（等宽 14px 的 3 位编号约 25dp，原型 22px 在超 99 首时折行，放宽为下限） */
-  rankWidth: 28,
+  /** 排名槽宽 22px（原型 .song-row .rank{width:22px}，styles.css L292，QA D78 回到原值）。
+   *  组件侧用的是 minWidth（SongRow.tsx L322）：1～2 位编号正好 22dp，三位数（榜单 / 大歌单）
+   *  自动撑宽不折行——原型那档固定宽在 CSS 里同样会把「100」挤折行，这里取的是它的视觉宽而非缺陷 */
+  rankWidth: 22,
   /** 封面 46px / 紧凑 40px（圆角走 RADIUS.artXs） */
   artSize: 46,
   artSizeCompact: 40,
@@ -423,6 +407,11 @@ export const BUTTON = {
   pillPaddingX: 13,
   pillGap: 6,
   pillIcon: 15,
+  /** .mh-edit 的专属两档（原型 styles.css L419-423，QA D85）：左内衬 11（padding:0 13px 0 11px，
+   *  右侧仍 13，让图标离左边缘更紧）、按压缩放 .96（.pl-open-btn 是 .95，L360） */
+  pillPaddingLeftEdit: 11,
+  pillPressScale: 0.95,
+  pillPressScaleEdit: 0.96,
 } as const
 
 /* ================= 开关（.toggle） ================= */
@@ -805,8 +794,8 @@ export const MINE = {
   favMarginTop: 20,
   favPadding: 14,
   favGap: 13,
-  /** .fav-card inset 0 0 0 1px rgba(255,255,255,.13)（压在渐变洗底上，走 ART_INK 白） */
-  favRingAlpha: 0.13,
+  // .fav-card 描边走色板 lineStrong 原值（原型 inset 0 0 0 1px var(--line-strong)，深 .14 白 / 浅 .16 墨，
+  // 随主题反相）——此前自造的 favRingAlpha（固定压白 .13、浅底颜色族不对）已废，QA D79
   /** .fc-art 62×62 圆角 17，图标 heartFill 25（渐变底 --grad + SHADOW.glow） */
   favArtSize: 62,
   favArtRadius: 17,
@@ -1026,11 +1015,10 @@ export const PLAYER = {
   lyricOpacity: 0.75,
   /** .ln.on 17px / 800 */
   lyricActiveSize: 17,
-  /** .ln.on text-shadow 0 5px 22px <color>（styles.css L612 / L1166）：颜色走 colors.lyricGlow（两套主题各一档），此处只收偏移与半径。
-   *  2026-10-15 半径/偏移由原值 22/5 收到 6/1：CSS 的大半径是几乎不可见的柔光，RN（Android）同数值会糊成可见暗斑脏了当前行，
-   *  这里对齐的是「原型当前行无背景块、只靠字号字重颜色分层」的真实观感，而非字面数字 */
-  lyricGlowOffsetY: 1,
-  lyricGlowRadius: 6,
+  /** .ln.on text-shadow 0 5px 22px <color>（styles.css L612 / L1171）：颜色走 colors.lyricGlow（两套主题各一档），此处只收偏移与半径。
+   *  QA D77（2026-10-16 审计轮）回到原型原值 5 / 22（此前自降为 1 / 6，理由见色板 lyricGlow 处的遗留风险记录） */
+  lyricGlowOffsetY: 5,
+  lyricGlowRadius: 22,
   /** .ln-note margin-top 14 / opacity .8（字号走 FONT_SIZE.tiny） */
   lyricNoteMarginTop: 14,
   lyricNoteAlpha: 0.8,
@@ -1122,7 +1110,7 @@ export const MINIBAR = {
   pressScale: 0.9,
 } as const
 
-/* ================= 底部浮层（.sheet，styles.css L706-723，阶段 9b） ================= */
+/* ================= 底部浮层（.sheet，styles.css L716-733，阶段 9b） ================= */
 
 // 原型 .sheet 是所在层的绝对定位覆盖（遮罩 + 上滑体），RN 侧同构实现为
 // 「所在屏幕根 View 内的 absolute-fill 覆盖层」（见 components/Sheet）。
@@ -1267,7 +1255,7 @@ export const COMMENT = {
   morePadding: 10,
 } as const
 
-/* ================= 搜索层（.search-layer，styles.css L707-739，阶段 9b） ================= */
+/* ================= 搜索层（.search-layer，styles.css L776-808，阶段 9b） ================= */
 
 // 原型 .pl-layer 右推转场 transform translateX 100% → 0 / .44s（L394-402），
 // 新 UI 用 RNN push + elementTransitions translationX 复刻（见 navigation/entry）。
@@ -1468,7 +1456,7 @@ export const MORE_SONG = {
   subGap: 6,
 } as const
 
-/* ================= 输入行（.op-box / .op-input / .op-go，styles.css L694-704，阶段 9d） ================= */
+/* ================= 输入行（.op-box / .op-input / .op-go，styles.css L763-774，阶段 9d） ================= */
 
 // 原型「打开歌单」贴链接输入行；音源浮层的「导入音源」同款复用。
 // 输入底 rgba(255,255,255,.07) 归到色板 glass、描边归 line（同 .sc-box L711-712 口径）。
@@ -1491,7 +1479,7 @@ export const OP_BOX = {
   errLineHeight: 19,
 } as const
 
-/* ================= 换行胶囊组（.q-chips / .hot-words，styles.css L691 / L735） ================= */
+/* ================= 换行胶囊组（.q-chips styles.css L760 / .hot-words L804） ================= */
 
 export const CHIP_FLOW = {
   /** 两条规则同为 flex-wrap gap:8px，合并一个度量 */

@@ -24,15 +24,16 @@ export interface PlIdSheetProps {
   bottomInset?: number
 }
 
-/** 样本 chips 取前几条（原型 renderPlIdSamples 取 PLAYLISTS 前 4 条，app.js L503） */
+/** 样本 chips 取前几条（原型 renderPlIdSamples 取 PLAYLISTS 前 4 条，app.js L1122） */
 const SAMPLE_LIMIT = 4
 
 /**
- * 「打开歌单」浮层（原型 #plIdSheet，index.html L390-405；tryOpenByPid，app.js L518-531）。
- * 入口 = 歌单页页头「按链接打开」胶囊（原型 #plOpenBtn，app.js L1597）。
+ * 「打开歌单」浮层（原型 #plIdSheet，index.html L411-427；tryOpenByPid，app.js L1139-1162）。
+ * 入口 = 歌单页页头「按链接打开」胶囊（原型 #plOpenBtn，index.html L171；接线 app.js L2591）。
  *
  * 与原型 tryOpenByPid 的语义差异（原型是 mock，真实侧不能照抄）：
- * - 原型拿 pid 去 mock 数组全表遍历（L523），真实侧打开在线歌单需要 {source, listId} 两个坐标：
+ * - 原型在 mock 表里按 pid + 平台匹配（L1154-1156，匹不到就合成一张空单交详情层承担），
+ *   真实侧打开在线歌单同样需要 {source, listId} 两个坐标：
  *   **链接按域名定平台**（映射与依据行号见 utils/plId.ts），判定出平台后整条输入原样交给
  *   对应 SDK 的 getListDetail 解析（五平台 SDK 都自带链接解析，不另写一份更脆的抽取正则）；
  * - **裸 ID 必须显式选平台**：新 UI 没有全局「当前平台」状态可猜（搜索页自带来源 tab），
@@ -42,11 +43,12 @@ const SAMPLE_LIMIT = 4
  *   池子为空（还在加载 / 取数失败）时整组连同 .group-label 隐藏，不留空组、不写死示例 id；
  * - 打开动作 = 关浮层 → pushNewUiSonglistDetail（**不在本层预取详情再传**，info 只带真实拿得到的
  *   坐标，name 留空走详情屏自己的头部兜底，取不到由详情屏 NEW_UI_PLD_EMPTY.error 空态承担）；
- * - 成功 toast 去掉原型的「N/M 首现在能播」计数（此刻还没有任何曲目，宁缺毋假，见 const/plIdSheet.ts）。
+ * - 成功 toast 用原型实际渲染句 PLID.opened（app.js L1160，句内本就不报数量：此刻一首都没取回来，
+ *   见 const/plIdSheet.ts 的 QA D56 注）。
  *
  * 结构说明：输入态与池子 hook 都在 `PlIdSheetBody` 子件里，Sheet 关闭后卸载子件（见 Sheet.tsx
  * mounted 逻辑），故浮层没打开时 usePlaylistCategories/usePlaylistPool 不发请求；每次重开都是全新
- * 挂载，输入自然复位（等价原型 openPlIdSheet L511-512 的清空），平台选择也回到未选、不残留误导。
+ * 挂载，输入自然复位（等价原型 openPlIdSheet L1130-1132 的清空），平台选择也回到未选、不残留误导。
  */
 export const PlIdSheet = ({ visible, onClose, componentId, bottomInset }: PlIdSheetProps) => (
   <Sheet
@@ -113,7 +115,7 @@ const PlIdSheetBody = ({ componentId, onClose }: Pick<PlIdSheetProps, 'component
 
   return (
     <>
-      {/* .op-box（index.html L396-399）：打开即聚焦输入框（原型 openPlIdSheet L515 的 focus） */}
+      {/* .op-box（index.html L417-420）：打开即聚焦输入框（原型 openPlIdSheet L1136 的 focus） */}
       <OpInputRow
         value={input}
         onChangeText={text => {
@@ -128,18 +130,20 @@ const PlIdSheetBody = ({ componentId, onClose }: Pick<PlIdSheetProps, 'component
         onSubmitEditing={handleOpen}
         style={styles.opRow}
       />
-      {/* .op-err（index.html L400，styles.css L704） */}
+      {/* .op-err（index.html L421，styles.css L773） */}
       {err.length > 0 && (
         <Text style={[styles.opErr, { color: theme.colors.dangerInk }]}>{err}</Text>
       )}
 
-      {/* 「裸 ID 先选平台」chips（原型没有这一组：mock 全表遍历不需要平台坐标，真实侧需要，
-          且不许猜——选中的平台仅对「没有域名的输入」生效，见头部注释） */}
+      {/* 「裸 ID 先选平台」chips（原型这一组本就渲染：静态组名 index.html L423 + 胶囊容器 #plIdPlats
+          L424 由 renderPlIdPlats 按 SOURCES 全称填充（app.js L1108-1116，QA D58）；
+          链接能按域名认出来，一串号认不出来，真实侧需要 source 坐标且不许猜） */}
       <GroupLabel label={NEW_UI_SHEET_PL_ID.groupPlatform} />
       <ChipFlow
         items={PLATFORM_SOURCE_KEYS.map(key => ({
           key,
-          label: PLATFORM_META[key as keyof typeof PLATFORM_META].short,
+          // 平台胶囊用全称（原型 renderPlIdPlats app.js L1113 取 SOURCES[p].label，QA D58）
+          label: PLATFORM_META[key as keyof typeof PLATFORM_META].label,
           active: key === picked,
         }))}
         onSelect={key => {
@@ -148,16 +152,18 @@ const PlIdSheetBody = ({ componentId, onClose }: Pick<PlIdSheetProps, 'component
         }}
       />
 
-      {/* 「可以试试这几个」样本 chips（原型 renderPlIdSamples，app.js L500-508：
-          mock 前 4 条 → 真实推荐池前 4 条；池为空整组隐藏。原型是「填输入再试开」（L505），
-          真实侧条目自带 {source, id} 坐标，点 chip 直接走同一条打开路径） */}
+      {/* 「可以试试这几个」样本 chips（原型 renderPlIdSamples，app.js L1123：
+          mock 前 4 条 → 真实推荐池前 4 条；池为空整组隐藏。原型是「填输入再试开」（L1124），
+          真实侧条目自带 {source, id} 坐标，点 chip 直接走同一条打开路径。
+          胶囊两段式（QA D87）：平台短名走常规 chip 字、ID 走原型 .chip b 的等宽 11.5/700 */}
       {pool.items.length > 0 && (
         <>
           <GroupLabel label={NEW_UI_SHEET_PL_ID.groupSamples} />
           <ChipFlow
             items={pool.items.slice(0, SAMPLE_LIMIT).map((item, i) => ({
               key: String(i),
-              label: `${getPlatformMeta(item.source).short} ${item.id}`,
+              label: getPlatformMeta(item.source).short,
+              monoLabel: item.id,
             }))}
             onSelect={key => {
               const item = pool.items[Number(key)]
@@ -167,7 +173,7 @@ const PlIdSheetBody = ({ componentId, onClose }: Pick<PlIdSheetProps, 'component
         </>
       )}
 
-      {/* .sc-hint（index.html L403，原句真实侧同样成立） */}
+      {/* .sc-hint（index.html L427 原句逐字，QA D57） */}
       <Text style={[styles.hint, { color: theme.colors.text3 }]}>
         {NEW_UI_SHEET_PL_ID.hint}
       </Text>
@@ -182,7 +188,7 @@ const styles = StyleSheet.create({
   opRow: {
     marginTop: OP_BOX.marginTop,
   },
-  /** .op-err：margin-top 10 / 11.5 / 行高 1.65 / err 色（styles.css L704） */
+  /** .op-err：margin-top 10 / 11.5 / 行高 1.65 / err 色（styles.css L773） */
   opErr: {
     marginTop: OP_BOX.errMarginTop,
     fontSize: FONT_SIZE.captionLg,

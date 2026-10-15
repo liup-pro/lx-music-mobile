@@ -60,6 +60,7 @@ import {
   NEW_UI_PLD_LABELS,
   NEW_UI_PLD_LOAD_TIMEOUT_MS,
   NEW_UI_PLD_STATUS,
+  NEW_UI_PLD_TAG_EMPTY_FAV,
   NEW_UI_PLD_TAG_PENDING,
   NEW_UI_PLD_TOAST,
   NEW_UI_PLAYLIST_ART_SEED,
@@ -96,11 +97,12 @@ export interface SonglistDetailScreenProps {
   componentId: string
   /** 歌单坐标与已知信息（形状即旧 pushSonglistDetailScreen 的 ListInfoItem）；平台形态必传，local 形态不传 */
   info?: ListInfoItem
-  /** 形态（面包屑 / 页脚文案），缺省 pl；平台导入的自建卡传 mine，纯本地歌单传 local */
+  /** 形态（面包屑 / 页脚文案），缺省 pl；平台导入的自建卡传 mine，纯本地歌单传 local，
+   *  内置「我喜欢」传 fav（QA D04：取数走 local 那一套，文案走 PLD_* 的 fav 一档） */
   kind?: NewUiSonglistDetailKind
-  /** local 形态必传：本地歌单 id（store/list 的 allList 项，非平台坐标） */
+  /** local / fav 形态必传：本地歌单 id（store/list 的 allList 项，非平台坐标） */
   listId?: string
-  /** local 形态：本地歌单名（头部先行展示，与入口卡片一致） */
+  /** local / fav 形态：本地歌单名（头部先行展示，与入口卡片一致） */
   listName?: string
   /** 来源 Tab（QA D-16）：从哪个主屏 Tab 推入本层，返回时先切回该 Tab 再 pop；
    * 非 Tab 页入口（如搜索层）不传，返回维持原样直接 pop 回上一层 */
@@ -196,7 +198,12 @@ export const SonglistDetailScreen = ({
   // rank 形态开关：取数 / 分页 store / 播放收藏动作整套换走（见文件头注释），pl / mine 行为不变
   const isRank = kind === 'rank'
   // local 形态开关：取数换 @/core/list、播放换 playList、右上角心钮位换成删除钮（可删的单子才有）
-  const isLocal = kind === 'local'
+  // QA D04：内置「我喜欢」(kind='fav') 的数据链路与 local 完全相同（按本地 listId 读整单、
+  // 队列即这张单本身），所以一并走 local 这套取数；差异只在文案（面包屑 / 页脚 / 空态各按
+  // PLD_* 的 fav 一档）与 hero 胶囊，见下面的 isFav 分支。删除钮不受影响——LOVE 是系统列表，
+  // isDeletableUserListId 恒假，这一位仍是同尺寸空槽（原型 app.js L902-911 也是「整位留空但占位」，口径句在 L903）。
+  const isFav = kind === 'fav'
+  const isLocal = kind === 'local' || isFav
 
   const loadPage = useCallback((page: number) => {
     // local 形态整单一次取全（见 loadLocalList），不进平台分页 API
@@ -410,7 +417,10 @@ export const SonglistDetailScreen = ({
     ? getPlatformMeta(info.source).label
     : tracksPending
       ? (info?.source != null ? getPlatformMeta(info.source).label : NEW_UI_PLD_TAG_PENDING)
-      : newUiPlayableTag(playable.length, totalCount)
+      : isFav && tracks.length === 0
+        // 空收藏报「0/0 首可播」是废话，原型 app.js L944-947 同一取向，改成如实一句
+        ? NEW_UI_PLD_TAG_EMPTY_FAV
+        : newUiPlayableTag(playable.length, totalCount)
   const metaParts = useMemo(() => {
     const parts: string[] = []
     // rank 没有总数头字段、local 整单在手且无平台播放数，都如实显示已载/全量首数；
@@ -698,9 +708,13 @@ export const SonglistDetailScreen = ({
               <FootNote text={NEW_UI_PLD_FOOT_NOTE[kind]} />
             </>
           )
-          // 空单子分两种对象（10b 轮，走查缺陷 bug-fix.md L58）：刚建的本地空歌单引导去加歌，
-          // 平台歌单明细为空才说「换一份听听」——不把后者的措辞套到前者头上
-          : <EmptyTip variant="layer" text={isLocal ? NEW_UI_PLD_EMPTY.localEmpty : NEW_UI_PLD_EMPTY.end} />)}
+          // 空单子分三种对象（10b 轮，走查缺陷 bug-fix.md L58 + QA D04）：
+          // 内置「我喜欢」空收藏走原型 PLD_EMPTY.fav 那句，刚建的本地空歌单引导去加歌，
+          // 平台歌单明细为空才说「换一份听听」——措辞各归各，不互相顶替
+          : <EmptyTip variant="layer"
+              text={isFav
+                ? NEW_UI_PLD_EMPTY.fav
+                : isLocal ? NEW_UI_PLD_EMPTY.localEmpty : NEW_UI_PLD_EMPTY.end} />)}
       {status === 'error' &&
         (tracks.length
           ? (

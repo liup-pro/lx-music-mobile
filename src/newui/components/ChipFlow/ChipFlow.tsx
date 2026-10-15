@@ -8,6 +8,8 @@ import { Chip } from '../Chip'
 export interface ChipFlowItem {
   key: string
   label: string
+  /** 第二段等宽文字（原型 `#plIdSamples .chip b`，见 Chip.monoLabel） */
+  monoLabel?: string
   /** 单项自带选中态（不传时按 activeKey 判定） */
   active?: boolean
   /** 单项不可选态（降显但仍可点，点击说明由容器在 onSelect 里给；见 Chip.disabled） */
@@ -34,6 +36,7 @@ export const ChipFlow = memo(({ items, activeKey, onSelect, style }: ChipFlowPro
         <Chip
           key={item.key}
           label={item.label}
+          monoLabel={item.monoLabel}
           active={item.active ?? item.key === activeKey}
           disabled={item.disabled}
           onPress={onSelect == null ? undefined : () => onSelect(item.key)}

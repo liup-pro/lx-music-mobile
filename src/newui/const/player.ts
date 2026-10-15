@@ -27,8 +27,14 @@ export const NEW_UI_PLAYER_TOOL_ARIA = {
   comment: '评论',
 } as const
 
-/** 循环钮 aria-label（原型 app.js L1760：`循环模式 · ${LOOP_NAME[state.loop]}`） */
+/** 循环钮 aria-label（原型 app.js L1817：`循环模式 · ${LOOP_NAME[state.loop]}`） */
 export const newUiPlayerLoopAria = (label: string): string => `循环模式 · ${label}`
+
+/**
+ * 「上一曲」钮的回退阈值（原型 app.js L2615 `state.t > 3 ? seekTo(0) : step(-1)`，QA D03）：
+ * 当前这首已经播过 3 秒，第一下先回到开头，再按才是前一首（主流 App 惯例）。
+ */
+export const NEW_UI_PLAYER_PREV_RESTART_SEC = 3
 
 /** 「来自 XX 音源」整句（原型 .ps-from：'来自 ' + script().name，app.js L1719）。
  * QA 2026-10-14 D-02（播放器报告 D-3）：未导入音源时 apiName 为空串，
@@ -37,8 +43,8 @@ export const newUiPlayerLoopAria = (label: string): string => `循环模式 · $
 export const newUiPlayerApiSourceText = (apiName: string): string =>
   apiName.length > 0 ? `来自 ${apiName} 音源` : '还没有选好音源'
 
-/** 歌词缺失 / 加载中（原型无此态：真实数据可能没有歌词） */
-export const NEW_UI_PLAYER_LYRIC_EMPTY = '这首歌暂时没有歌词，或歌词还在取'
+/** 歌词缺失 / 加载中（原型 app.js L1843 逐字，QA D75） */
+export const NEW_UI_PLAYER_LYRIC_EMPTY = '这首歌暂时没有歌词 · 或歌词仍在载入'
 
 /** 歌词区尾部说明（原型「此处为原型占位文案」一句在真实数据下不再成立，改为如实说明） */
 export const NEW_UI_PLAYER_LYRIC_NOTE = '歌词由各平台提供'

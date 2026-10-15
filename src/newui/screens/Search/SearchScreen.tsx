@@ -42,7 +42,8 @@ export interface SearchScreenProps {
 }
 
 /**
- * 搜索层（原型 #searchLayer，app.js L1348-1486 / styles.css L707-739）。
+ * 搜索层（原型 #searchLayer，app.js L2331-2450 renderSearchIdle / renderSearch / openSearch，
+ * styles.css L776-808）。
  * 全屏右推屏幕（转场见 navigation/entry.ts 的 pushNewUiSearch，复刻 .pl-layer 的 translateX 100%→0 / .44s）。
  * 数据全部走既有核心：core/search/music + core/search/songlist（'all' 合并搜索）、
  * core/search/search（历史）、core/hotSearch（热搜）；动作为既有 playQueue / pushNewUiSonglistDetail（阶段 9c 换线）。
@@ -127,14 +128,16 @@ export const SearchScreen = ({ componentId }: SearchScreenProps) => {
     landedRef.current = false
   }, [runSearch])
 
-  // 换词落位规则（原型 L1442-1446）：结果回来后，song 空而 pl 有就翻到 pl。
-  // QA 2026-10-14 D-07：本判定依赖 tab，每次重跑都再 setTab('pl')，
-  // 用户手动切回空的 song tab 会被立刻抢回——落位只在每个搜索周期执行一次（landedRef），
+  // 换词落位规则（原型 app.js L2404-2408 双向：song 空而 pl 有 → 翻到 pl，
+  // pl 空而 song 有 → 落回 song；QA D02 补齐反向那一支）。
+  // QA 2026-10-14 D-07：本判定依赖 tab，每次重跑都再 setTab，
+  // 用户手动切回空的一类会被立刻抢回——落位只在每个搜索周期执行一次（landedRef），
   //  submit 时重置，换词照常落位。
   useEffect(() => {
     if (loading || !query || landedRef.current) return
     landedRef.current = true
     if (tab === 'song' && !songs.length && pls.length) setTab('pl')
+    else if (tab === 'pl' && !pls.length && songs.length) setTab('song')
   }, [loading, query, tab, songs.length, pls.length])
 
   // —— 结果视图模型（容器算好，面板纯展示）——

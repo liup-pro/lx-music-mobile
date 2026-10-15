@@ -43,7 +43,14 @@ export const MineHeader = memo(({ initial, name, sub, editLabel, onEditPress }: 
         </Text>
       </View>
       {editLabel != null && (
-        <PillButton icon="edit" label={editLabel} iconSize={MINE.headEditIcon} onPress={onEditPress} />
+        // 这一位是原型的 .mh-edit（不是 .pl-open-btn）：图标 14、左内衬 11、按压 .96 都归 edit 档（QA D85）
+        <PillButton
+          variant="edit"
+          icon="edit"
+          label={editLabel}
+          iconSize={MINE.headEditIcon}
+          onPress={onEditPress}
+        />
       )}
     </View>
   )

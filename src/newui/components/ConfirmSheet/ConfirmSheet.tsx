@@ -9,7 +9,7 @@ import { Sheet } from '../Sheet'
 export interface ConfirmSheetProps {
   /** 显隐（透传 Sheet：false 时播完退场动画后自动卸载） */
   visible: boolean
-  /** .sheet-title；不传回落原型 askConfirm 默认句「要执行这一步吗」（app.js L1400） */
+  /** .sheet-title；不传回落原型 askConfirm 默认句「要执行这一步吗」（app.js L1454，okLabel 默认「确定」同行） */
   title?: string
   /** .sheet-sub 正文（原型 body：一句说明删什么、能不能恢复） */
   body: string

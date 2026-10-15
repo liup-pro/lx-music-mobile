@@ -15,15 +15,15 @@ export interface NameSheetProps {
 }
 
 /**
- * 改昵称浮层（原型 #nameSheet，index.html L407-423；openNameSheet / saveNick，app.js L544-574）。
+ * 改昵称浮层（原型 #nameSheet，index.html L459-472；openNameSheet / saveNick，app.js L1174-1204）。
  * 阶段 7 备好的 useNickName.setNickName 在这里接上：保存后所有 useNickName 消费点
- * （我的页 .mh-art / 顶栏头像，原型 renderProfile 同步 #topAvatar 的行为，app.js L538-542）即时同源。
+ * （我的页 .mh-art / 顶栏头像，原型 renderProfile 同步 #topAvatar 的行为，app.js L1168-1172）即时同源。
  * 清洗规则（trim + 内部空白压一个 + slice 12）在 useNickName 的 sanitizeNick 一处实现，
- * 与原型 saveNick L559 一致；空值报错也在原型原句（L562）。
- * 与原型的差异（如实标注）：
- * - 原型 .sc-hint 说「不存服务器也不存本地、刷新回到野花」是演示稿免责句；
- *   真实侧昵称持久化在本机 AsyncStorage，hint 换成如实说法（const/nameSheet.ts）。
- * - chips（NICK_PICKS，app.js L535）是纯 UI 文案非内容数据，保留；品牌字「野花」已换「EchoIsle」。
+ * 与原型 saveNick L1189 一致；空值报错也是原型原句（L1192）。
+ * 与原型口径的两点如实标注：
+ * - .sc-hint 那句（index.html L472）逐字照抄——真实侧同样成立：昵称只落本机 AsyncStorage，
+ *   不上传任何服务器，换设备读不到时回落缺省字（const/nameSheet.ts 注释）。
+ * - chips（NICK_PICKS，app.js L1165）是纯 UI 文案非内容数据，保留；首枚即原型 BRAND（EchoIsle）。
  */
 export const NameSheet = ({ visible, onClose, bottomInset }: NameSheetProps) => {
   const theme = useTheme()
@@ -31,7 +31,7 @@ export const NameSheet = ({ visible, onClose, bottomInset }: NameSheetProps) => 
   const [draft, setDraft] = useState(nickName)
   const [err, setErr] = useState('')
 
-  // 每次打开回填当前昵称、清掉上次报错（原型 openNameSheet L545-546 打开即重置输入）
+  // 每次打开回填当前昵称、清掉上次报错（原型 openNameSheet app.js L1175-1176 打开即重置输入）
   useEffect(() => {
     if (visible) {
       setDraft(nickName)
@@ -39,7 +39,7 @@ export const NameSheet = ({ visible, onClose, bottomInset }: NameSheetProps) => 
     }
   }, [visible, nickName])
 
-  // 原型 saveNick（app.js L558-574）：清洗 → 空报错 → 与当前同名只关层 → 保存 + 关层 + toast
+  // 原型 saveNick（app.js L1188-1204）：清洗 → 空报错 → 与当前同名只关层 → 保存 + 关层 + toast
   const handleSave = useCallback((raw: string) => {
     const next = sanitizeNick(raw)
     if (!next) {
@@ -64,7 +64,7 @@ export const NameSheet = ({ visible, onClose, bottomInset }: NameSheetProps) => 
       onClose={onClose}
       bottomInset={bottomInset}
     >
-      {/* 打开即聚焦输入框（原型 openNameSheet L555；Sheet 仅在可见时挂载内容，autoFocus 时机等价）。
+      {/* 打开即聚焦输入框（原型 openNameSheet app.js L1175-1185：回填 + 清报错 + focus；Sheet 仅在可见时挂载内容，autoFocus 时机等价）。
           浮层滚动容器 keyboardShouldPersistTaps='handled' 由通用 Sheet 提供，不自造避让层。 */}
       <OpInputRow
         value={draft}
@@ -81,12 +81,12 @@ export const NameSheet = ({ visible, onClose, bottomInset }: NameSheetProps) => 
         onSubmitEditing={() => handleSave(draft)}
         style={styles.opRow}
       />
-      {/* .op-err（index.html L418；样式同 styles.css L704，与 SourceSheet 错误行同规格） */}
+      {/* .op-err（index.html L469；样式同 styles.css L773，与 SourceSheet 错误行同规格） */}
       {err.length > 0 && (
         <Text style={[styles.opErr, { color: theme.colors.dangerInk }]}>{err}</Text>
       )}
 
-      {/* 「换个快的」chips（index.html L419-420；原型 app.js L549-552 点 chip 即 saveNick(n)） */}
+      {/* 「换个快的」chips（index.html L470-471；原型 app.js L1179-1183 点 chip 即 saveNick(n)） */}
       <GroupLabel label={NEW_UI_SHEET_NAME.groupPicks} />
       <ChipFlow
         items={NEW_UI_NICK_PICKS.map(n => ({ key: n, label: n }))}
@@ -95,7 +95,7 @@ export const NameSheet = ({ visible, onClose, bottomInset }: NameSheetProps) => 
           handleSave(n)
         }}
       />
-      {/* .sc-hint（index.html L421，原型 sheet 底部灰字；差异见文件头注释） */}
+      {/* .sc-hint（index.html L472，原型 sheet 底部灰字；口径见文件头注释） */}
       <Text style={[styles.hint, { color: theme.colors.text3 }]}>
         {NEW_UI_SHEET_NAME.hint}
       </Text>
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   opRow: {
     marginTop: OP_BOX.marginTop,
   },
-  /** .op-err：margin-top 10 / 11.5 / 行高 1.65（styles.css L704） */
+  /** .op-err：margin-top 10 / 11.5 / 行高 1.65（styles.css L773） */
   opErr: {
     marginTop: OP_BOX.errMarginTop,
     fontSize: FONT_SIZE.captionLg,

@@ -1,7 +1,7 @@
 import { QUALITY_LABEL } from './quality'
 
 /**
- * 音源设置浮层（原型 #sourceSheet，index.html L374-387；交互 renderSheet，app.js L1282-1346）
+ * 音源设置浮层（原型 #sourceSheet，index.html L389-407；交互 renderSheet，app.js L2172-2259）
  * 的界面文案。toast / 状态标签逐条对应原型出处；音质整理由本项目的真实档位键（LX.Quality）。
  */
 
@@ -34,7 +34,16 @@ export const PLAY_QUALITY_CHOICES = [
 export const formatApiVersion = (version: string): string =>
   /^\d/.test(version) ? `v${version}` : version
 
-/** 「标准 128k / HQ 320k」式档位列表（原型 app.js L1292 map+join 同款） */
+/**
+ * 切源后等新音源「能力表」落定的等待上限（QA D49）。
+ * 原型（app.js L2194-2198）在切源那一刻就能同步判出「当前这首新音源够不够得着」，因为它的
+ * 音源能力表是本地 mock；真实侧这份表要等脚本初始化完才写进 global.lx.qualityList
+ * （core/init/userApi/index.ts L177），所以那句反馈要等 core 自己维护的 apiInitPromise settle。
+ * 到限还没 settle（脚本挂死 / 初始化失败）就按「判不到」处理：只报主句、不补半句也不暂停。
+ */
+export const NEW_UI_SOURCE_INIT_TIMEOUT_MS = 8000
+
+/** 「标准 128k / HQ 320k」式档位列表（原型 app.js L2182 map+join 同款） */
 export const formatQualityList = (qualities: readonly LX.Quality[]): string =>
   [...qualities].sort((a, b) => QUALITY_ORDER.indexOf(a) - QUALITY_ORDER.indexOf(b))
     .map(q => `${QUALITY_LABEL[q]} ${q}`)
@@ -42,29 +51,29 @@ export const formatQualityList = (qualities: readonly LX.Quality[]): string =>
 
 export const NEW_UI_SHEET_SOURCE = {
   title: '音源设置',
-  /** #sheetSub（app.js L1285-1286，原型 <br> 转真换行） */
+  /** #sheetSub（app.js L2175-2176，原型 <br> 转真换行） */
   sub: '音源只负责一件事：把歌曲变成能播的声音。\n搜索、歌单、榜单、歌词这些内容，都来自各个平台。',
   groupScripts: '已安装音源',
   groupPlatforms: '音乐平台',
   groupQuality: '音质',
   groupImport: '导入音源',
-  /** 生效中的音源一行说明：「能播 N 个平台 · 音质列表」（原型 app.js L1296） */
+  /** 生效中的音源一行说明：「能播 N 个平台 · 音质列表」（原型 app.js L2183-2186） */
   platformCount: (n: number): string => `能播 ${n} 个平台`,
   /** 本项目存储的脚本不含能力清单（utils/data.ts addUserApi L554-572 只解析脚本头注释），
    * 未生效的脚本只能等切过去加载后才知道覆盖 —— 如实说法 */
   metaFallback: '切过去后会加载它支持的平台',
-  /** 平台行 em（原型 app.js L2157） */
-  platformCovered: '这里的歌可以直接播',
-  /** 未接入行 em（原型 app.js L2157 同位）。
+  /** 平台行 em（原型 app.js L2216 逐字，QA D46） */
+  platformCovered: '这里的歌曲可直接播放',
+  /** 未接入行 em（原型 app.js L2216 同位，「未接入」逐字，QA D47）。
    * QA 2026-10-14 D-02：真实环境里当前音源名可为空串（没导入过音源），原型 mock 恒有值——
-   * 空名不再套模板渲染成「「」没有接QQ音乐」破句，改说没有音源的人话引导 */
+   * 空名不再套模板渲染成「「」未接入QQ音乐」破句，改说没有音源的人话引导 */
   platformUncovered: (name: string, label: string): string =>
-    name.length > 0 ? `「${name}」没有接${label}` : `还没有音源接${label} · 贴脚本链接就能听`,
-  /** 切内容平台成功 toast（页面内不回显平台，反馈只在这一句人话里；
+    name.length > 0 ? `「${name}」未接入${label}` : `还没有音源接${label} · 贴脚本链接就能听`,
+  /** 切内容平台成功 toast（原型 app.js L2226 逐字：受告知范围含排行榜，QA D48；
    * 未覆盖平台由容器拼上 platformSwitchedUncovered 补充半句） */
-  platformSwitched: (label: string): string => `首页和歌单以后就给你看${label}的`,
-  /** 选中的平台当前音源没接上时的补充半句（拼在 platformSwitched 之后，如实提醒） */
-  platformSwitchedUncovered: '（歌能看到，但暂时播不出声）',
+  platformSwitched: (label: string): string => `首页、歌单与排行榜内容已切换为${label}`,
+  /** 选中的平台当前音源没接上时的补充半句（原型 app.js L2226 尾括号原句） */
+  platformSwitchedUncovered: '（可浏览，暂不可播）',
   /** 当前内容平台行的状态标签（原型无对应物：新 UI 的平台选中标识） */
   platformActiveTag: '当前在看',
   unplayableTag: '不可播',
@@ -73,19 +82,29 @@ export const NEW_UI_SHEET_SOURCE = {
   stateIniting: '初始化中',
   stateFailed: '没就绪',
   stateIdle: '未启用',
-  /** 切源成功 toast（原型 app.js L1303） */
+  /** 切源成功 toast（原型 app.js L2194） */
   switched: (name: string, version: string): string =>
     `已切到「${name}」${version ? formatApiVersion(version) : ''}`.trim(),
-  /** 单档提示（原型 app.js L1344） */
+  /**
+   * 切源后「当前这首在新音源下取不到地址」时追加的半句（原型 app.js L2198
+   * `msg += ' · 当前这首不可播，已暂停'`，QA D49；连同暂停一并补上）
+   */
+  switchedUnplayable: ' · 当前这首不可播，已暂停',
+  /** 单档提示（原型 app.js L2255） */
   qualitySingleNote: (name: string, q: LX.Quality): string =>
     `${name} 在各平台只有 ${QUALITY_LABEL[q]} ${q}，没有更高档位可选`,
-  /** 档位 chip 标签一律是纯音质标识（原型 app.js L1385「标准 128k」同款）。
+  /** 档位 chip 标签一律是纯音质标识（原型 app.js L2239「标准 128k」同款）。
    * 音源没有的档只降显（Chip.disabled），标签不追加「按 X 播」这类字样
    * ——用户 2026-10-15：保持原来的音质标识就行 */
   qualityChip: (q: LX.Quality): string => `${QUALITY_LABEL[q]} ${q}`,
-  /** 点不支持档位时的说明（不可选态必须给反馈，不留死按钮） */
+  /** 点不支持档位时的说明（不可选态必须给反馈，不留死按钮；措辞按原型 app.js L2241 逐字，QA D50） */
   qualityPickUnsupported: (name: string, q: LX.Quality, fallback: LX.Quality): string =>
-    `「${name}」没有${QUALITY_LABEL[q]}这档，硬选也会自动降到${QUALITY_LABEL[fallback]}，这里就不帮你选了`,
+    `「${name}」没有${QUALITY_LABEL[q]}这一档 · 强行选择也会自动降到${QUALITY_LABEL[fallback]}`,
+  /**
+   * 有置灰档位时常驻的一行解释（原型 app.js L2248-2249 q-note 逐字，QA D51 恢复；
+   * 条件同原型：整档表里只要有一档不在当前音源表内就挂出这一句）
+   */
+  qualityDimNote: '置灰的档位是当前音源没有的 · 点击不会选中，播放时自动降到该档标注的音质。',
   /** 已存的选择落在不支持档位时的说明（切音源后旧选择很常见，如实回显降到哪档） */
   qualitySavedDowngradeNote: (q: LX.Quality, fallback: LX.Quality): string =>
     `你之前选的${QUALITY_LABEL[q]}这档现在的音源没有，听歌时会自动按${QUALITY_LABEL[fallback]}播，不用重选`,

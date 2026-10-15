@@ -26,11 +26,11 @@ export const NEW_UI_SEARCH_LABELS = {
 export const NEW_UI_SEARCH_HOT_LIMIT = 10
 
 /** 热搜拉取失败 / 为空时的说明（原型 mock 恒有词，真实数据需要一个如实的空态） */
-export const NEW_UI_SEARCH_HOT_EMPTY = '热搜这次没取回来，直接输关键词搜吧'
+export const NEW_UI_SEARCH_HOT_EMPTY = '热搜暂时载入失败 · 直接输入关键词搜索'
 
 /** .sc-hint：空输入态尾注 */
 export const NEW_UI_SEARCH_IDLE_HINT =
-  '搜的是各平台曲库里的歌和歌单 · 能不能播，按下播放那一刻才知道'
+  '搜索各平台曲库的歌曲与歌单 · 能否播放在点播放时确认'
 
 /** 结果尾注（原型按 tab 各一条） */
 export const newUiSearchSongHint = (total: number, playable: number): string =>
@@ -62,10 +62,10 @@ export const newUiSearchJumpLabel = (count: number, toPlaylist: boolean): string
   `看 ${count} ${toPlaylist ? '份歌单' : '首单曲'}`
 
 /** 搜索中（原型无此态：真实数据是异步的，需要如实的 loading） */
-export const NEW_UI_SEARCH_LOADING = '正在搜，先稍等一下…'
+export const NEW_UI_SEARCH_LOADING = '正在搜索…'
 
-/** 点不可播曲目的提示（与首页口径一致） */
-export const NEW_UI_SEARCH_UNPLAYABLE_TOAST = '这首歌所在的平台，当前音源放不出来'
+/** 点不可播曲目的提示（与首页口径一致：原型 app.js L458 同一句，两处共用本键） */
+export const NEW_UI_SEARCH_UNPLAYABLE_TOAST = '这首歌的来源平台未接入当前音源 · 换个音源试试'
 
 /** 歌单结果坐标不全（平台缺失 / 没有有效编号）时的提示：不进详情页，避免点开就炸（2026-10-12 清单第 6 条） */
 export const NEW_UI_SEARCH_PL_INVALID_TOAST = '这份歌单没带对得上的地址，先打不开 · 换一份试试'

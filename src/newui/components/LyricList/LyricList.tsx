@@ -157,10 +157,12 @@ const styles = StyleSheet.create({
   },
   /** .ln.on：放大、加粗、提亮 + 一层极淡的抬字柔光；原型当前行**没有任何背景块/色条**，
    *  分层全靠字号(17)/字重(800)/颜色(text vs text-3)/透明度三件事（styles.css L610-612）。
-   *  投影的颜色与强度按主题各一档（colors.lyricGlow），半径/偏移见 PLAYER.lyricGlow*——
-   *  2026-10-15 起半径由 CSS 原值 22 收到 6：大半径在 RN（Android）会涂成当前行身后的
-   *  可见暗脏块（正是清单「正在演播的歌词行的背景色（阴影）有点丑」那一条的来源），
-   *  这里复刻的是原型「看不见背景、只觉字浮起来一点」的实际观感，不是那串数字 */
+   *  投影的颜色与强度按主题各一档（colors.lyricGlow：深 rgba(0,0,0,.55) / 浅 rgba(21,22,28,.22)），
+   *  半径/偏移见 PLAYER.lyricGlow*，取原型原值 22 / 5（styles.css L612 / L1171）——
+   *  QA D77（2026-10-16 审计轮）把此前自降的 6 / 1 与浓度 .30 / .10 全部回到原型原值。
+   *  遗留风险照实记一句：RN（Android）的文字阴影按半径逐像素涂抹，22 大半径可能涂成当前行身后
+   *  的可见暗斑（清单「正在演播的歌词行的背景色（阴影）有点丑」那条的来源）；真机若确实脏，
+   *  改的是这条口径记录与 token 取值，不在组件里加特例 */
   lineActive: {
     fontSize: PLAYER.lyricActiveSize,
     fontWeight: FONT_WEIGHT.extraBold,

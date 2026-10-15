@@ -54,7 +54,7 @@ export const useHomeRanks = (
       })
       .catch(() => {
         if (!aliveRef.current) return
-        setError('这个榜暂时打不开 · 换一个试试')
+        setError('这张榜暂时打不开 · 换一张试试')
         setLoading(false)
       })
   }, [songLimit])
@@ -77,14 +77,15 @@ export const useHomeRanks = (
           if (next) {
             loadSongs(next)
           } else {
-            setError('这个平台现在没有能列出的榜单')
+            // 该平台目录里没有榜：原型 renderSongs 的「homeBoards() 为空」分支原句（app.js L404，QA D12）
+            setError('这个平台暂时没有可列出的榜单')
             setLoading(false)
           }
         }))
       .catch(() => {
         if (!aliveRef.current) return
-        // 目录取数与音源无关（内置 SDK 直连平台），如实说「平台暂时不稳」
-        setError('榜单目录没取到 · 网络或平台暂时不稳')
+        // 目录取数失败（网络或平台侧）：文案按原型 renderSongs 空态句逐字（app.js L410，QA D12）
+        setError('这个平台暂时没有可列出的榜单')
         setLoading(false)
       })
   }, [loadSongs, platform, tabLimit])
