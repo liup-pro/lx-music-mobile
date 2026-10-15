@@ -45,8 +45,15 @@ export interface SheetListProps<T> {
   data: readonly T[]
   renderItem: ListRenderItem<T>
   keyExtractor: (item: T, index: number) => string
-  /** 头部 cell 内、标题/副题之下的附加定长内容（如评论浮层 .cmt-total 总数行、三态提示）；随滚动进出、不回收 */
+  /** 头部 cell 内、标题/副题之下的附加定长内容（如评论浮层三态提示）；随滚动进出、不回收 */
   headerComponent?: ReactElement | null
+  /**
+   * 钉住区（可选；评论浮层钉住回归修复轮）：传了它，handle/标题/副题与本组件一起钉在滚动区上方，
+   * 只有下方列表滚——原型 #playerSheet 的 flex:none 组（handle/标题/副题/#psMeta 钉住、#psBody 独滚，
+   * styles.css L735-738；#psMeta 语义 = 评论浮层 .cmt-total「总数 + 热度排序」行，164dfa4 口径）。
+   * 不传（默认）= 与旧行为逐字一致：head 与 headerComponent 同进列表头部 cell、随内容滚。
+   */
+  pinnedComponent?: ReactElement | null
   /** 列表尾 cell（如分页状态行）；随滚动进出 */
   footerComponent?: ReactElement | null
 }
@@ -76,7 +83,8 @@ export interface SheetProps<T = unknown> {
   onEndReached?: () => void
   /**
    * 虚拟化主体（可选）：传了就把骨架自带的 ScrollView 换成 FlatList（评论这类「分页累加、
-   * 无上限」的大列表专用）。不传 = 与改造前逐像素一致的普通浮层，其余浮层零影响。
+   * 无上限」的大列表专用；配 pinnedComponent 可另开钉住区，见该字段注释）。
+   * 不传 = 与改造前逐像素一致的普通浮层，其余浮层零影响。
    */
   list?: SheetListProps<T>
 }
@@ -240,27 +248,45 @@ export function Sheet<T = unknown>({
             /* 虚拟化主体（评论这类分页累加大列表）：骨架自带滚动容器就地换成 FlatList，
                不是往 children 里嵌第二层滚动容器（嵌套抢手势的老口径不变）。
                刻意不启用 removeClippedSubviews——回收单元里的 SVG 封面（Art 内圈层）
-               在 Android 有整格变白的老毛病（PageListView 2026-10-16 同轮结论）；windowSize 回收已够用。 */
-            <FlatList
-              data={list.data as T[]}
-              renderItem={list.renderItem}
-              keyExtractor={list.keyExtractor}
-              ListHeaderComponent={<>{sheetHead}{list.headerComponent}</>}
-              ListFooterComponent={list.footerComponent}
-              style={styles.scroll}
-              contentContainerStyle={[
-                styles.scrollContent,
-                { paddingBottom: SHEET.paddingBottom + bottomInset },
-              ]}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              scrollEventThrottle={MOTION.scrollThrottle}
-              initialNumToRender={SHEET.listInitialNumToRender}
-              maxToRenderPerBatch={SHEET.listMaxToRenderPerBatch}
-              windowSize={SHEET.listWindowSize}
-              onEndReached={onEndReached ? handleListEndReached : undefined}
-              onEndReachedThreshold={listEndReachedThreshold}
-            />
+               在 Android 有整格变白的老毛病（PageListView 2026-10-16 同轮结论）；windowSize 回收已够用。
+               评论浮层钉住回归修复轮：pinnedComponent 传入时，handle/标题/副题与它一起摆到
+               FlatList 之外当钉住区（原型 #playerSheet 的 flex:none 组，styles.css L735-738），
+               对齐 164dfa4「标题、说明和总数不被顶出视野、只有列表滚」；不传则这一整段原样。 */
+            <>
+              {list.pinnedComponent != null && (
+                /* 钉住区。衬距拆账：.sheet-body 的 padding 8/20 只落一次（原型 #psBody 顶部无内衬），
+                   故 paddingTop + paddingX 归本区、滚动内容只留 paddingX（pinnedScrollContent）——
+                   未钉住时两者仍在列表头拼回原样，两态像素同一张版面。 */
+                <View style={styles.pinnedZone}>
+                  {sheetHead}
+                  {list.pinnedComponent}
+                </View>
+              )}
+              <FlatList
+                data={list.data as T[]}
+                renderItem={list.renderItem}
+                keyExtractor={list.keyExtractor}
+                ListHeaderComponent={
+                  list.pinnedComponent != null
+                    ? list.headerComponent
+                    : <>{sheetHead}{list.headerComponent}</>
+                }
+                ListFooterComponent={list.footerComponent}
+                style={styles.scroll}
+                contentContainerStyle={[
+                  list.pinnedComponent != null ? styles.pinnedScrollContent : styles.scrollContent,
+                  { paddingBottom: SHEET.paddingBottom + bottomInset },
+                ]}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                scrollEventThrottle={MOTION.scrollThrottle}
+                initialNumToRender={SHEET.listInitialNumToRender}
+                maxToRenderPerBatch={SHEET.listMaxToRenderPerBatch}
+                windowSize={SHEET.listWindowSize}
+                onEndReached={onEndReached ? handleListEndReached : undefined}
+                onEndReachedThreshold={listEndReachedThreshold}
+              />
+            </>
           ) : (
             <ScrollView
               style={styles.scroll}
@@ -341,6 +367,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: SHEET.paddingX,
     paddingTop: SHEET.paddingTop,
+  },
+  /** 钉住区（list 路径且传了 pinnedComponent 时渲染）：.sheet-body 的 padding 8/20 只落一次，
+   *  钉住后 paddingTop + paddingX 归本区，滚动内容改吃 pinnedScrollContent，两态像素一致 */
+  pinnedZone: {
+    paddingHorizontal: SHEET.paddingX,
+    paddingTop: SHEET.paddingTop,
+  },
+  /** 钉住模式下滚动内容的衬距：paddingTop 已归钉住区（原型 #psBody 顶部无内衬），横向照旧 */
+  pinnedScrollContent: {
+    paddingHorizontal: SHEET.paddingX,
   },
   /** .sheet-handle：margin 6 auto 14 */
   handle: {

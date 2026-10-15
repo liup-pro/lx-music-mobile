@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import LinearGradient from 'react-native-linear-gradient'
 import { Navigation } from 'react-native-navigation'
 
 import { MUSIC_TOGGLE_MODE_LIST } from '@/config/constant'
@@ -14,14 +13,16 @@ import { useSettingValue } from '@/store/setting/hook'
 
 import {
   DiscArt,
-  IconButton,
   LyricList,
   NewUiToastHost,
   PcButton,
+  PlayerBg,
+  PlayerMeta,
+  PlayerSource,
+  PlayerTop,
   PlayerToolButton,
-  QTag,
   SeekControl,
-  SrcBadge,
+  SeekTime,
   StageDots,
   pickArtPalette,
 } from '@/newui/components'
@@ -41,15 +42,13 @@ import {
 } from '@/newui/const'
 import {
   useApiSourceName,
-  useDesktopLyricToggle,
   useFavoriteToggle,
+  useLrcFloatToggle,
   useNewUiSystemBar,
   useSafeArea,
 } from '@/newui/hooks'
 import {
   FONT_SIZE,
-  FONT_WEIGHT,
-  LETTER_SPACING,
   PLATFORM_TINTS,
   PLAYER,
   type PlatformTintKey,
@@ -76,6 +75,8 @@ export interface PlayerScreenProps {
  * 2026-10-13（清单第 4 条）：均衡器为假能力（播放内核无频段增益通道），已整体移除。
  * 2026-10-12（原型同步轮 6）：主行改三颗居中（定时移出）、工具行四颗纯图标（状态只换图标）、
  * 舞台下方新增唱片/歌词指示点。
+ * 2026-10-15（拆件转正轮）：U50/U51/U55/U56/U58 五个原内联单元转正为独立组件
+ * （PlayerBg / PlayerTop / PlayerMeta / PlayerSource / SeekTime），渲染零变化、接线原样。
  */
 export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
   const theme = useTheme()
@@ -103,8 +104,12 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
   // —— 阶段 9b：入口的真接线（定时 / 评论 / LRC 浮窗）——
   // 休眠定时剩余秒数（到点行为由 core/player/timeoutExit 决定）
   const { time: timerTime } = useTimeoutExitTimeInfo()
-  // LRC 浮窗 = 系统级桌面歌词（core/desktopLyric），非本屏浮层
-  const { enabled: floatEnabled, toggle: toggleFloat } = useDesktopLyricToggle()
+  // LRC 浮窗 = App 内可拖动歌词气泡（原型 #lrcFloat，U61 轮）：气泡本体渲染在主屏
+  // （screens/Main/LrcFloatDock），本钮只是它的开关入口之一（另一个是气泡上的关闭钮）；
+  // 开关态经 hooks/useLrcFloat 共享模块回显（i-float ↔ i-float-on）。
+  // 系统桌面歌词（core/desktopLyric）另有开关链路（旧 useDesktopLyricToggle + 设置键
+  // desktopLyric.enable，代码保留未删，新 UI 暂无常驻入口），本钮不再控制它，两者互不影响
+  const { enabled: floatEnabled, toggle: toggleFloat } = useLrcFloatToggle()
   // 底部 sheets：一次只开一个（同原型 #sheet 单实例）
   const [openSheet, setOpenSheet] = useState<'timer' | 'comment' | null>(null)
   // 评论浮层取当前曲目的在线信息；本地曲目为 null（入口直接 toast）
@@ -190,31 +195,15 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
       ]}
     >
       {/* .player-bg：封面色渐变铺底（毛玻璃降级方案） */}
-      <LinearGradient
-        colors={[bgC1, bgC2]}
-        start={PLAYER.bgStart}
-        end={PLAYER.bgEnd}
-        style={[StyleSheet.absoluteFill, { opacity: PLAYER.bgOpacity }]}
-        pointerEvents="none"
-      />
+      <PlayerBg colors={[bgC1, bgC2]} />
 
       {/* .player-top：grid 34 / 1fr / 34（右侧留空位保持面包屑居中） */}
-      <View style={styles.top}>
-        <IconButton
-          name="chevron"
-          strong
-          onPress={handleClose}
-          iconStyle={styles.closeIcon}
-          accessibilityLabel="收起播放页"
-        />
-        <View style={styles.crumb}>
-          <Text style={[styles.crumbText, { color: theme.colors.text2 }]}>
-            {NEW_UI_PLAYER_CRUMB}
-          </Text>
-          <QTag label={qualityLabel} />
-        </View>
-        <View style={styles.topSlot} />
-      </View>
+      <PlayerTop
+        onClose={handleClose}
+        closeLabel="收起播放页"
+        crumbText={NEW_UI_PLAYER_CRUMB}
+        qualityLabel={qualityLabel}
+      />
 
       {/* .player-stage：唱片 ↔ 歌词（横滑切换：右滑进歌词、左滑回唱片） */}
       <View style={styles.stage}>
@@ -245,36 +234,24 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
       <StageDots lyricOn={lyricOn} />
 
       {/* .player-meta：曲名 / 歌手 + 收藏 */}
-      <View style={styles.meta}>
-        <View style={styles.info}>
-          <Text
-            numberOfLines={1}
-            style={[styles.title, { color: theme.colors.text }]}
-          >
-            {musicInfo.name || NEW_UI_PLAYER_NO_SONG}
-          </Text>
-          <Text numberOfLines={1} style={[styles.artist, { color: theme.colors.text2 }]}>
-            {musicInfo.album ? `${musicInfo.singer} — ${musicInfo.album}` : musicInfo.singer}
-          </Text>
-        </View>
-        <PcButton kind="fav" name="heart" active={loved} onPress={toggleFav} />
-      </View>
+      <PlayerMeta
+        title={musicInfo.name || NEW_UI_PLAYER_NO_SONG}
+        artist={musicInfo.album ? `${musicInfo.singer} — ${musicInfo.album}` : musicInfo.singer}
+        loved={loved}
+        onToggleFav={toggleFav}
+      />
 
       {/* .player-source：平台角标 + 音质 + 音源说明 */}
-      <View style={styles.sourceRow}>
-        {sourceMeta != null && <SrcBadge label={sourceMeta.short} tint={sourceTint} />}
-        <QTag label={qualityLabel} />
-        <Text style={[styles.sourceText, { color: theme.colors.text3 }]}>
-          {newUiPlayerApiSourceText(apiName)}
-        </Text>
-      </View>
+      <PlayerSource
+        sourceLabel={sourceMeta?.short}
+        sourceTint={sourceTint}
+        qualityLabel={qualityLabel}
+        text={newUiPlayerApiSourceText(apiName)}
+      />
 
       {/* .seek + .seek-time */}
       <SeekControl ratio={ratio} onCommit={handleSeekCommit} />
-      <View style={styles.seekTime}>
-        <Text style={[styles.timeText, { color: theme.colors.text3 }]}>{nowPlayTimeStr}</Text>
-        <Text style={[styles.timeText, { color: theme.colors.text3 }]}>{maxPlayTimeStr}</Text>
-      </View>
+      <SeekTime currentText={nowPlayTimeStr} durationText={maxPlayTimeStr} />
 
       {/* .player-controls：上一曲 / 播停 / 下一曲（原型 index.html L339-343：居中 gap 38 三颗制；
           「定时」已按改版挪进次级工具行，第 5 枚「均衡」钮早已随假能力移除） */}
@@ -351,30 +328,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  /** .player-top grid 34px 1fr 34px */
-  top: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  topSlot: {
-    width: PLAYER.topRightSlot,
-  },
-  closeIcon: {
-    transform: [{ rotate: '90deg' }],
-  },
-  /** .player-crumb：居中 gap 8 / 12px / text-2 / letter-spacing .4 */
-  crumb: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: PLAYER.crumbGap,
-  },
-  crumbText: {
-    fontSize: FONT_SIZE.small,
-    letterSpacing: LETTER_SPACING.wide,
-  },
   /** .player-stage flex:1 / place-items:center / padding 16px 0 */
   stage: {
     flex: 1,
@@ -387,48 +340,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.body,
     textAlign: 'center',
     paddingHorizontal: PLAYER.paddingX,
-  },
-  /** .player-meta gap 12 */
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: PLAYER.metaGap,
-  },
-  info: {
-    flex: 1,
-    minWidth: 0,
-  },
-  /** .player-info h3：21 / 900 / letter-spacing .3（字号令牌 FONT_SIZE.playerTitle） */
-  title: {
-    fontSize: FONT_SIZE.playerTitle,
-    fontWeight: FONT_WEIGHT.black,
-    letterSpacing: LETTER_SPACING.normal,
-  },
-  /** .player-artist：13 / text-2 / margin-top 5 */
-  artist: {
-    marginTop: PLAYER.artistMarginTop,
-    fontSize: FONT_SIZE.body,
-  },
-  /** .player-source：margin-top 10 / gap 7 / 11px / 可换行 */
-  sourceRow: {
-    marginTop: PLAYER.sourceMarginTop,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: PLAYER.sourceGap,
-  },
-  sourceText: {
-    fontSize: FONT_SIZE.caption,
-    letterSpacing: LETTER_SPACING.normal,
-  },
-  /** .seek-time：两端对齐 / 11px tabular */
-  seekTime: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  timeText: {
-    fontSize: FONT_SIZE.caption,
-    fontVariant: ['tabular-nums'],
   },
   /** .player-controls：居中 gap 38 / margin-top 18（styles.css L641，三颗制改版） */
   controls: {

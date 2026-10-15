@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { StyleSheet, Text, View, type ListRenderItem } from 'react-native'
+import { StyleSheet, View, type ListRenderItem } from 'react-native'
 
 import type { ListInfoItem } from '@/store/songlist/state'
 
@@ -22,6 +22,7 @@ import {
   RadioCard,
   RecentCard,
   Section,
+  SectionNote,
   SongRow,
 } from '@/newui/components'
 import {
@@ -54,7 +55,7 @@ import {
   useRecentPlays,
   useSingerPics,
 } from '@/newui/hooks'
-import { CARD_GRID, FONT_SIZE, PLATFORM_TINTS, RADIO_CARD, SONG_ROW, SPACING, useTheme, type PlatformTintKey } from '@/newui/theme'
+import { CARD_GRID, PLATFORM_TINTS, RADIO_CARD, SONG_ROW, type PlatformTintKey } from '@/newui/theme'
 import { clearNewUiRecentPlays, getSingerMidOfSong, getToday, playQueue, showNewUiToast, toSongDisplay } from '@/newui/utils'
 
 /** 上屏上限（原型刻意设计值，集中在 const/home 的 NEW_UI_HOME_LIMITS，含各处原型行号） */
@@ -120,6 +121,7 @@ const splitSingers = (singer: string): string[] =>
  * 各区块顺序、间距、视觉与原型 #page-home 一致；数据语义（取几条、上限、点谁播什么）一字未动。
  * **不加 removeClippedSubviews**——回收单元里的 SVG 封面在 Android 有整格变白的老毛病
  * （SearchResultPanel 2026-10-12 同款结论，PageListView 注释亦同）。
+ * 2026-10-15（拆件转正轮）：`.section-note` 原内联单元转正为独立组件 SectionNote，渲染零变化、文案常量原样。
  */
 export const HomePage = ({
   componentId,
@@ -130,7 +132,6 @@ export const HomePage = ({
   viewportTopInset = 0,
   viewportBottomInset = 0,
 }: NewUiPageProps) => {
-  const theme = useTheme()
   const banners = useHomeBanners()
   const recentPlays = useRecentPlays()
   const daily = useDailyRecommend()
@@ -471,11 +472,7 @@ export const HomePage = ({
           {/* 头像优先用平台官方歌手照（tx 曲目带 singerMid → utils/singerPic 探到图）；
               拿不到时才回落种子渐变 + 示意插画，此时才如实说明「平台未提供歌手照片」，
               有真图的排面不再挂这句（2026-10-15 方案 B）。原「更多」无落地页已撤下 */}
-          {artistsAllPlaceholder && (
-            <Text style={[styles.artistsNote, { color: theme.colors.text3 }]}>
-              {NEW_UI_HOME_ARTISTS_NOTE}
-            </Text>
-          )}
+          {artistsAllPlaceholder && <SectionNote text={NEW_UI_HOME_ARTISTS_NOTE} />}
           <HScroll>
             {artistCards.map(card => (
               <ArtistCard
@@ -538,11 +535,6 @@ const styles = StyleSheet.create({
   },
   rowGap: {
     marginTop: CARD_GRID.rowGap,
-  },
-  /** 热门歌手区块的一句话说明：紧贴标题下方（.section-head 之后、卡片行之前） */
-  artistsNote: {
-    marginBottom: SPACING.md,
-    fontSize: FONT_SIZE.caption,
   },
   /** .song-list：竖向排布，行间距 2px */
   songList: {

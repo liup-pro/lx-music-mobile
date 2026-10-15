@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 
 import { clearHistoryList, getSearchHistory, addHistoryWord } from '@/core/search/search'
@@ -11,7 +11,7 @@ import type { ListInfoItem } from '@/store/songlist/state'
 // 直连 entry 而非 '@/newui/navigation' 桶口：避免 navigation/index → register → screens → 本文件的循环引用
 import { pushNewUiSonglistDetail } from '@/newui/navigation/entry'
 
-import { Icon, NewUiToastHost } from '@/newui/components'
+import { NewUiToastHost, SearchTop } from '@/newui/components'
 import { MoreSheet } from '@/newui/screens/Main/sheets'
 import {
   NEW_UI_SEARCH_CANCEL,
@@ -26,8 +26,8 @@ import {
   useNowPlaying,
   useSafeArea,
 } from '@/newui/hooks'
-import { FONT_SIZE, FONT_WEIGHT, SEARCH, useTheme } from '@/newui/theme'
-import { normalizeSearchListInfoItem, playQueue, requestNewUiTab, showNewUiToast, toSongDisplay, withAlpha } from '@/newui/utils'
+import { SEARCH, useTheme } from '@/newui/theme'
+import { normalizeSearchListInfoItem, playQueue, requestNewUiTab, showNewUiToast, toSongDisplay } from '@/newui/utils'
 
 import { SearchIdlePanel } from './SearchIdlePanel'
 import {
@@ -48,6 +48,7 @@ export interface SearchScreenProps {
  * 数据全部走既有核心：core/search/music + core/search/songlist（'all' 合并搜索）、
  * core/search/search（历史）、core/hotSearch（热搜）；动作为既有 playQueue / pushNewUiSonglistDetail（阶段 9c 换线）。
  * 与原型差异：真实搜索是异步的，补 loading 态；结果按提交（回车 / 点词）触发，不做逐字本地过滤。
+ * 2026-10-15（拆件转正轮）：`.sc-top` 原内联单元转正为独立组件 SearchTop，渲染零变化、接线原样。
  */
 export const SearchScreen = ({ componentId }: SearchScreenProps) => {
   const theme = useTheme()
@@ -248,67 +249,21 @@ export const SearchScreen = ({ componentId }: SearchScreenProps) => {
       style={[styles.root, { backgroundColor: theme.colors.bg }]}
     >
       {/* .sc-top：状态栏留白 + 输入框（聚焦亮主色环）+ 清除 + 取消 */}
-      <View
-        style={[
-          styles.top,
-          { paddingTop: top + SEARCH.statusBarReserve },
-        ]}
-      >
-        <View
-          style={[
-            styles.box,
-            {
-              backgroundColor: focused
-                ? theme.colors.fill3
-                : theme.colors.fill2,
-              borderColor: focused
-                ? withAlpha(theme.colors.brand, SEARCH.focusRingAlpha)
-                : theme.colors.line,
-              borderWidth: focused ? SEARCH.focusRingWidth : 1,
-            },
-          ]}
-        >
-          <Icon name="search" size={SEARCH.boxIcon} color={theme.colors.text3} />
-          <TextInput
-            ref={inputRef}
-            style={[styles.input, { color: theme.colors.text }]}
-            placeholder={NEW_UI_SEARCH_INPUT_PLACEHOLDER}
-            placeholderTextColor={theme.colors.text3}
-            value={text}
-            onChangeText={handleChangeText}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            onSubmitEditing={() => { submit(text) }}
-            returnKeyType="search"
-            autoFocus
-            clearButtonMode="never"
-            selectionColor={theme.colors.brand}
-            accessibilityLabel={NEW_UI_SEARCH_INPUT_PLACEHOLDER}
-          />
-          {/* .sc-x：有输入才出现的清除圆点 */}
-          {text.length > 0 && (
-            <Pressable
-              onPress={handleClearText}
-              style={[styles.clear, { backgroundColor: theme.colors.fill4 }]}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="清空输入"
-            >
-              <Icon name="close" size={SEARCH.clearIcon} color={theme.colors.text2} />
-            </Pressable>
-          )}
-        </View>
-        <Pressable
-          onPress={handleCancel}
-          style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel={NEW_UI_SEARCH_CANCEL}
-        >
-          <Text style={[styles.cancelText, { color: theme.colors.text2 }]}>
-            {NEW_UI_SEARCH_CANCEL}
-          </Text>
-        </Pressable>
-      </View>
+      <SearchTop
+        ref={inputRef}
+        value={text}
+        focused={focused}
+        topInset={top}
+        placeholder={NEW_UI_SEARCH_INPUT_PLACEHOLDER}
+        cancelLabel={NEW_UI_SEARCH_CANCEL}
+        clearLabel="清空输入"
+        onChangeText={handleChangeText}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onSubmit={() => { submit(text) }}
+        onClear={handleClearText}
+        onCancel={handleCancel}
+      />
 
       {/* 结果模式：tabs 常驻在滚动区上方（替代原型 sticky，效果一致） */}
       {hasQuery && !loading && (
@@ -377,55 +332,6 @@ SearchScreen.displayName = 'NewUISearchScreen'
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-  },
-  /** .sc-top padding:54(状态栏)+14/12 gap:10（顶部内距由实测状态栏接管） */
-  top: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SEARCH.gap,
-    paddingHorizontal: SEARCH.paddingX,
-    paddingBottom: SEARCH.paddingBottom,
-  },
-  /** .sc-box 40 高 / 13 圆角 / 内距 11 / gap 9 / 1px line 描边 */
-  box: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SEARCH.boxGap,
-    height: SEARCH.boxHeight,
-    borderRadius: SEARCH.boxRadius,
-    paddingHorizontal: SEARCH.boxPaddingX,
-    borderWidth: 1,
-  },
-  /** .sc-input：14.5 / text（字号令牌 FONT_SIZE.title） */
-  input: {
-    flex: 1,
-    minWidth: 0,
-    padding: 0,
-    fontSize: FONT_SIZE.title,
-    fontWeight: FONT_WEIGHT.medium,
-  },
-  /** .sc-x 18×18 全圆 / 图标 10 */
-  clear: {
-    width: SEARCH.clearSize,
-    height: SEARCH.clearSize,
-    borderRadius: SEARCH.clearSize / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  /** .sc-cancel 13.5 / padding:6px 2px */
-  cancel: {
-    paddingVertical: SEARCH.cancelPaddingY,
-    paddingHorizontal: 2,
-  },
-  cancelText: {
-    fontSize: FONT_SIZE.bodyLg,
-    fontWeight: FONT_WEIGHT.semibold,
-  },
-  pressed: {
-    opacity: 0.7,
   },
   /** .sc-body padding:0 16 40 */
   body: {

@@ -263,7 +263,7 @@ export const LAYOUT = {
  * 不是系统 `elevation`，所以不会额外画出一圈阴影。
  * 数值照抄原型 styles.css 的 z-index 事实：
  * `.pl-bg` / `.player-bg` 0（L403 / L513）、`.pl-layer>*` / `.player-layer>*` 1（L404 / L514）、
- * `.topbar` 40（L87）、`.sheet` 80（L653）。
+ * `.topbar` 40（L87）、`.lrc-float` 75（L667）、`.sheet` 80（L653）。
  * 口径：**只有真出过问题的少数层用**——封面氛围底纹、吸顶顶栏、常驻悬浮迷你播放条、
  * 全屏底部浮层；其余兄弟节点仍按声明顺序，不给无关组件加 zIndex（Tab 栏不在这里：
  * 它在页面布局流里与内容几何互不重叠，加层叠数只会掩盖真实层级）。
@@ -281,6 +281,9 @@ export const Z_LAYER = {
   minibar: 45,
   /** 吸顶顶栏（原型 .topbar z-index:40）：恒在滚动内容之上，与滚动状态无关 */
   topbar: 40,
+  /** LRC 浮窗（原型 .lrc-float z-index:75，styles.css L667；U61 轮）：主屏内可拖动歌词气泡，
+   *  压过顶栏 / 迷你条 / Tab 栏与滚动内容，但让位于底部浮层（sheet 80）与提示胶囊（toast 90） */
+  lrcFloat: 75,
   /** 底部浮层（原型 .sheet z-index:80）：盖过顶栏、Tab 栏与列表内容 */
   sheet: 80,
   /** 提示胶囊（原型 .toast z-index:90，styles.css L797）：全站最高一层（硬件状态栏除外），压过浮层 */
@@ -547,6 +550,17 @@ export const GLASS = {
     end: { x: 0, y: 0 },
     /** 降级底同样用 glassPatch 原值：贴片本身已是 .74/.82 半透明，双层叠出约 .93 近实底，
      *  保证无模糊路径下胶囊在亮封面前仍可读（原型 toast 无实底档，此处是 RN 侧保险） */
+    fallbackBase: 'glassPatch',
+  },
+  /** LRC 浮窗（原型 .lrc-float：background var(--glass) + backdrop-filter blur(20px) saturate(180%)，
+   *  styles.css L666-673；U61 轮）——与 .minibar / .toast 同一 glassPatch 贴片家族，
+   *  模糊半径按本选择器 20px；降级底同走 glassPatch 原值（同 .toast 口径），
+   *  无模糊路径下气泡压在任意滚动内容上仍近实底可读 */
+  lrcFloat: {
+    intensity: 20,
+    tintBase: 'glassPatch',
+    start: { x: 0, y: 0 },
+    end: { x: 0, y: 0 },
     fallbackBase: 'glassPatch',
   },
 } as const satisfies Record<string, GlassLayerSpec>
@@ -1079,6 +1093,54 @@ export const PLAYER = {
   favPressScale: 0.93,
 } as const
 
+/* ================= LRC 浮窗（.lrc-float，styles.css L666-681 + app.js syncFloat / bindFloatDrag） ================= */
+
+// 播放页工具行「LRC 浮窗」钮控制的**App 内可拖动歌词气泡**（原型 #lrcFloat）。逐值提取自
+// styles.css L666-681（8 条规则，件：new_design/parts/player/lrc-float.*）；拖动边界 / 点按判定
+// 来自 app.js bindFloatDrag（L1907-1932），开关行为见 hooks/useLrcFloat 与 screens/Main/LrcFloatDock。
+export const LRC_FLOAT = {
+  /** left:16px / top:520px 初始位（原型 .screen 内绝对坐标；RN 按窗口坐标落同值） */
+  initialLeft: 16,
+  initialTop: 520,
+  /** max-width:236px */
+  maxWidth: 236,
+  /** padding:9px 10px 9px 12px */
+  paddingTop: 9,
+  paddingRight: 10,
+  paddingBottom: 9,
+  paddingLeft: 12,
+  /** border-radius:22px（与 RADIUS.card 同值但语义不同，就近定义，L611 先例） */
+  radius: 22,
+  /** gap:8px */
+  gap: 8,
+  /** .lf-line：12.5px / 700 / line-height 1.3 = 16.25 / max-width:160px
+   *  （字号与 FONT_SIZE.smallLg 同值但语义不同，就近定义） */
+  lineSize: 12.5,
+  lineHeight: 16.25,
+  lineMaxWidth: 160,
+  /** .lf-src：7px 圆点；box-shadow 0 0 9px var(--tint) 同色光晕（原型原值、无浓度衰减）——
+   *  RN 用 shadow* 近似表达，elevation 是 Android 兜底一档（同 SHADOW.glow 量级） */
+  srcDot: 7,
+  srcGlow: 9,
+  srcGlowElevation: 6,
+  /** .lf-close：19px 全圆 / 图标 12px / opacity .6；:active 归 scale(.85) + opacity 1 */
+  closeSize: 19,
+  closeIcon: 12,
+  closeOpacity: 0.6,
+  closePressScale: 0.85,
+  /** .lrc-float.drag：拖动态 transform:scale(1.05)（transition:none，即时生效）；
+   *  松手按基础 transition .28s var(--ease) 回 1（时长与 MOTION.toggle 同值但语义不同） */
+  dragScale: 1.05,
+  scaleDuration: 280,
+  /** 拖动边界（app.js L1920-1922 的 clamp）：left ∈ [8, 屏宽-宽-8]；top ∈ [56, 屏高-高-96] */
+  boundLeft: 8,
+  boundRight: 8,
+  boundTop: 56,
+  boundBottom: 96,
+  /** 点按 / 拖动判定（app.js L1922 / L1930）：全过程 |dx|+|dy| 的峰值 < 4px 即点按 → 打开播放页 */
+  tapSlop: 4,
+} as const
+
 /* ================= 迷你播放条（.minibar，styles.css L453-477） ================= */
 
 export const MINIBAR = {
@@ -1582,7 +1644,7 @@ export const MOTION = {
 // CSS box-shadow 含负 spread，RN 无法完全表达，取视觉近似；
 // 原型主张以「表面色 + 1px 描边 + 模糊」分层，阴影仅少量场景使用
 export const SHADOW: Record<
-  'card' | 'float' | 'knob' | 'chrome' | 'glow' | 'playerMain' | 'miniPrimary',
+  'card' | 'float' | 'knob' | 'chrome' | 'glow' | 'playerMain' | 'miniPrimary' | 'lrcFloat',
   ShadowSpec
 > = {
   /** --shadow 0 18px 44px -18px rgba(0,0,0,.75) */
@@ -1640,6 +1702,15 @@ export const SHADOW: Record<
     shadowOpacity: 0.55,
     shadowRadius: 12,
     elevation: 6,
+  },
+  /** .lrc-float 0 14px 32px -12px rgba(0,0,0,.85)（U61 轮；负 spread 无法表达，
+   *  同 .toast 口径降 opacity 近似：offsetY 14 / radius 32 / alpha .85 → .5 档） */
+  lrcFloat: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.5,
+    shadowRadius: 32,
+    elevation: 10,
   },
 }
 

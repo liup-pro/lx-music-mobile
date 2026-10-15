@@ -33,6 +33,7 @@ export {
   H_SCROLL,
   LAYOUT,
   LETTER_SPACING,
+  LRC_FLOAT,
   MINE,
   MINIBAR,
   MORE_SONG,

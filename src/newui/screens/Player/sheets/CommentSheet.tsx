@@ -35,6 +35,9 @@ export interface CommentSheetProps {
  * 原生 onEndReached + 本容器 isLoading/isEnd 挡重入；仍是唯一一层滚动容器，不嵌第二层）。
  * 2026-10-16 OOM 修复轮：热门歌评论翻页累加可到几千条，旧版在骨架 ScrollView 里 .map 全量直出、
  * 滚不回收把 Yoga 节点堆满 Java 堆——现在挂载视图数 = 屏内行数 + windowSize 余量，与总数解耦。
+ * 评论浮层钉住回归修复轮（对齐 164dfa4）：.cmt-total 从列表头部 cell 上移进 Sheet 钉住区
+ * （原型 #psMeta：总数 + 排序标签跟着标题一起钉住、不跟着列表滚，app.js L2075-2076）——
+ * 标题、说明、总数与排序标签不再被顶出视野，只有评论列表滚；三态提示仍在列表头 cell（原 #psBody 内挂载）。
  * 点赞是新 UI 里的本地状态（旧工程评论无点赞写接口，不造假接线）。
  * 评论项（含回复层级）渲染委托给同目录递归展示件 CommentNode，本容器只管数据与三态。
  */
@@ -146,7 +149,27 @@ export const CommentSheet = ({ visible, musicInfo, onClose, bottomInset }: Comme
   )
   const keyExtractor = useCallback((item: Comment) => String(item.id), [])
 
-  // 头部 cell：三态提示 +（就绪时的）.cmt-total 总数行；随滚动进出、不回收（定长小内容）
+  /**
+   * 钉住区内容：.cmt-total 总数行（原型 #psMeta —— app.js L2075-2076 原话「总数与排序口径跟着
+   * 标题一起钉住，不跟着评论列表滚」；钉住规则本体归 sheet chrome，styles.css L735-738）。
+   * 外层 Fragment 让钉住模式自挂载起恒开：三态/换歌切换不来回换结构，头部不在「随滚/钉住」间跳变；
+   * 无总数阶段槽内留空，sub 到状态行/首条的间距与旧版逐像素一致（衬距拆账在 Sheet.tsx pinnedZone）。
+   */
+  const pinnedTotal = (
+    <>
+      {phase === 'ready' && comments.length > 0 && (
+        /* .cmt-total：总数 + 排序说明（原型还有一枚「乐评人长评」标签，真实接口无此口径，不造假） */
+        <View style={styles.total}>
+          <Text style={[styles.totalNum, { color: theme.colors.text }]}>
+            {formatCount(total)}
+          </Text>
+          <QTag label={NEW_UI_SHEET_COMMENT.sortTag} />
+        </View>
+      )}
+    </>
+  )
+
+  // 头部 cell：三态提示（.cmt-total 已上移钉住区）；随滚动进出、不回收（定长小内容）
   const listHeader = (
     <View>
       {phase === 'loading' && (
@@ -163,15 +186,6 @@ export const CommentSheet = ({ visible, musicInfo, onClose, bottomInset }: Comme
         <Text style={[styles.state, { color: theme.colors.text3 }]}>
           {NEW_UI_SHEET_COMMENT.empty}
         </Text>
-      )}
-      {phase === 'ready' && comments.length > 0 && (
-        /* .cmt-total：总数 + 排序说明（原型还有一枚「乐评人长评」标签，真实接口无此口径，不造假） */
-        <View style={styles.total}>
-          <Text style={[styles.totalNum, { color: theme.colors.text }]}>
-            {formatCount(total)}
-          </Text>
-          <QTag label={NEW_UI_SHEET_COMMENT.sortTag} />
-        </View>
       )}
     </View>
   )
@@ -206,6 +220,7 @@ export const CommentSheet = ({ visible, musicInfo, onClose, bottomInset }: Comme
         renderItem,
         keyExtractor,
         headerComponent: listHeader,
+        pinnedComponent: pinnedTotal,
         footerComponent: listFooter,
       }}
     />

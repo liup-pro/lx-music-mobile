@@ -26,6 +26,7 @@ import {
   SettingPage,
 } from './pages'
 import { CatStickerBar } from './CatStickerBar'
+import { LrcFloatDock } from './LrcFloatDock'
 import { MinibarDock } from './MinibarDock'
 import { CreateListSheet, MoreSheet, NameSheet, PlIdSheet, PlTagsSheet, SourceSheet } from './sheets'
 import type { NewUiPageProps } from '../types'
@@ -282,6 +283,11 @@ export const MainScreen = ({ componentId }: MainScreenProps) => {
       <View style={styles.tabBarWrap}>
         <TabBar items={NEW_UI_TABS} activeKey={tabKey} bottomInset={bottom} onSelect={handleSelect} />
       </View>
+      {/* LRC 浮窗（原型 .lrc-float，U61 轮）：主屏内可拖动的歌词气泡。挂 Tab 栏之后、浮层之前——
+          自身带 z-index 75，压过顶栏(40)/迷你条(45)/Tab 栏与滚动内容，让位于浮层(80)与提示(90)；
+          播放页打开时随主屏被推入的整屏盖住（原型 syncFloat「进入播放页自动隐藏」等价物）；
+          显隐由 Dock 按「开关开 + 有在播曲目」直算，开关态与播放页浮窗钮共享（hooks/useLrcFloat） */}
+      <LrcFloatDock componentId={componentId} />
       {/* 音源设置浮层：根层最后子视图，盖过 Tab 栏（原型 .sheet z-index 80 > .tabbar 46） */}
       <SourceSheet
         visible={sourceSheetVisible}

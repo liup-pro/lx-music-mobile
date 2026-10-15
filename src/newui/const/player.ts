@@ -65,13 +65,28 @@ export const PLAYER_PLAY_MODE_META: Record<string, { icon: IconName, label: stri
  *  本实现是系统级桌面歌词悬浮窗（core/desktopLyric），不是原型的 App 内贴底胶囊；
  *  旧文案「进入播放页自动隐藏」全项目无实现，属假承诺，已整体删除（对应语义要么实现、
  *  要么不出现在文案里——本轮取后者，播放页本就有全屏歌词，浮窗只在 App 外有意义）。
- *  未播放任何曲目时窗口没有可见内容，开启必须先有在播曲目（见 useDesktopLyricToggle）。 */
+ *  未播放任何曲目时窗口没有可见内容，开启必须先有在播曲目（见 useDesktopLyricToggle）。
+ *  U61 轮补记：App 内歌词气泡已落地，「进入播放页自动隐藏」这句语义在气泡线上真实成立
+ *  （见下方 NEW_UI_PLAYER_LRC_FLOAT_TOAST）；本组系统桌面歌词文案与行为维持原样、未删改。 */
 export const NEW_UI_PLAYER_LRC_TOAST = {
   on: 'LRC 浮窗已开启 · 回到桌面查看',
   off: 'LRC 浮窗已关闭',
   noSong: '先在放一首歌 · 浮窗要显示它的歌词',
   needPermission: '开启歌词浮窗需要先在系统设置里允许悬浮窗权限',
 } as const
+
+/** 「LRC 浮窗」App 内气泡的开关反馈（U61 轮落地；原型 app.js toggleFloat L1900-1905）。
+ *  播放页工具行浮窗钮（#btnFloat）现控制主屏上可拖动的歌词气泡（原型 #lrcFloat，
+ *  组件 components/LrcFloat + 容器 screens/Main/LrcFloatDock），与上一组系统桌面歌词
+ *  不是同一条功能线（后者 = core/desktopLyric 系统悬浮窗，代码与设置键保留未删，新 UI 暂无常驻入口）。
+ *  开启 / 关闭两文案逐字取自原型 toast 原文（L1904），不许顺口语改写。 */
+export const NEW_UI_PLAYER_LRC_FLOAT_TOAST = {
+  on: 'LRC 浮窗已开启 · 可拖动，进入播放页时自动隐藏',
+  off: 'LRC 浮窗已关闭',
+} as const
+
+/** 气泡关闭钮 aria（原型 parts/player/lrc-float.html L13 `aria-label="关闭浮窗"`，逐字） */
+export const NEW_UI_PLAYER_LRC_FLOAT_CLOSE_ARIA = '关闭浮窗'
 
 /** 收藏开关反馈（原型「已收藏到「我喜欢」/ 已取消收藏」） */
 export const NEW_UI_PLAYER_FAV_TOAST = {

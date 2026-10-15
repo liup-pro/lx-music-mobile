@@ -1,10 +1,9 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
 
-import { PageHeader, SettingsGroup, SettingsRow } from '@/newui/components'
+import { PageHeader, SetHero, SettingsGroup, SettingsRow } from '@/newui/components'
 import { NEW_UI_APP_NAME, NEW_UI_APP_VERSION, NEW_UI_RECENT_CLEARED_TOAST, NEW_UI_SETTING_LABELS } from '@/newui/const'
 import { useRecentPlays } from '@/newui/hooks'
-import { SETTINGS, useTheme, useThemeMode, type ThemeMode } from '@/newui/theme'
+import { useThemeMode, type ThemeMode } from '@/newui/theme'
 import { clearNewUiRecentPlays, showNewUiToast } from '@/newui/utils'
 import { clearCache, getCacheSize } from '@/plugins/player/utils'
 import { sizeFormate } from '@/utils'
@@ -31,9 +30,9 @@ const L = NEW_UI_SETTING_LABELS
  *   把「真清除」动作注册上去，按「清除」由根层回调回来执行；清除逻辑本体一字未动
  * - 「清空播放记录」与首页/「我的」页同一份历史（useRecentPlays → utils/recentPlay，
  *   QA D-13 补行时不造第二份历史；原型 app.js L1329-1332 直接清空 + toast，无二次确认）
+ * 2026-10-15（拆件转正轮）：`.set-hero` 原内联单元转正为独立组件 SetHero，渲染零变化、接线原样。
  */
 export const SettingPage = memo(({ onOpenClearCacheConfirm, onRegisterClearCache }: NewUiPageProps) => {
-  const theme = useTheme()
   const { mode, setMode } = useThemeMode()
 
   // 右侧值恒定给一句人话状态：统计中 / 统计失败 / 真实大小 / 清除中
@@ -105,9 +104,7 @@ export const SettingPage = memo(({ onOpenClearCacheConfirm, onRegisterClearCache
     <>
       <PageHeader title={L.pageTitle} />
       {/* .set-hero > .sh-sub：一句页面说明，「只改这台设备」的口径延续原型 */}
-      <View style={styles.hero}>
-        <Text style={[styles.heroSub, { color: theme.colors.text3 }]}>{L.heroSub}</Text>
-      </View>
+      <SetHero text={L.heroSub} />
 
       {/* 外观：三档模式三行，选中档用 .set-row.on 图标底回显 + .st-r.hi「在用」
           （原型家族自带 on / hi 两把状态笔，故不引入 Chip 分段，视觉零自创） */}
@@ -175,17 +172,3 @@ export const SettingPage = memo(({ onOpenClearCacheConfirm, onRegisterClearCache
 })
 
 SettingPage.displayName = 'NewUISettingPage'
-
-const styles = StyleSheet.create({
-  /** .set-hero margin:8px 2px 2px */
-  hero: {
-    marginTop: SETTINGS.heroMarginTop,
-    marginHorizontal: SETTINGS.heroMarginX,
-    marginBottom: SETTINGS.heroMarginBottom,
-  },
-  /** .sh-sub 12px / text-3 / line-height 1.65 */
-  heroSub: {
-    fontSize: SETTINGS.heroSubSize,
-    lineHeight: SETTINGS.heroSubLineHeight,
-  },
-})

@@ -4,7 +4,6 @@ import {
   FlatList,
   Pressable,
   StyleSheet,
-  Text,
   View,
   type LayoutChangeEvent,
   type NativeScrollEvent,
@@ -41,11 +40,11 @@ import {
   CoverWash,
   EmptyTip,
   FootNote,
-  GhostButton,
-  IconButton,
   PagingEnd,
   PagingStatus,
   pickArtPalette,
+  PlActions,
+  PlTop,
   SongRow,
   NewUiToastHost,
 } from '@/newui/components'
@@ -77,13 +76,8 @@ import {
   useSafeArea,
 } from '@/newui/hooks'
 import {
-  BUTTON,
-  FONT_SIZE,
-  LETTER_SPACING,
   PL_LAYER,
-  RADIUS,
   SONG_ROW,
-  SPACING,
   Z_LAYER,
   useTheme,
 } from '@/newui/theme'
@@ -150,6 +144,8 @@ interface DetailHeaderInfo {
  * 按下先过 ConfirmSheet 二次确认（原型 #confirmSheet 同族共通件，QA D-09 起），确认后只走 @/core/list 的 removeUserList
  * 既有通道——落库 + mylistUpdated（「我的歌单」的卡由 useMyPlaylists 既有订阅自然少一张）
  * + 歌目记录一并清掉，成功 toast 后退出详情层回上一页；取消则一切不变。
+ * 2026-10-15（拆件转正轮）：`.pl-top` / `.pl-actions` 两个原内联单元转正为独立组件
+ * （PlTop / PlActions），渲染零变化、接线原样。
  */
 export const SonglistDetailScreen = ({
   componentId,
@@ -612,49 +608,29 @@ export const SonglistDetailScreen = ({
   const listHeader = (
     <View>
       {/* .pl-top：grid 34 / 1fr / 34，返回钮 = chevron 转 180°，图标底 .08 取 strong */}
-      <View style={styles.top}>
-        <IconButton
-          name="chevron"
-          strong
-          onPress={goBack}
-          iconStyle={styles.backIcon}
-          accessibilityLabel={NEW_UI_PLD_LABELS.back}
-        />
-        <Text style={[styles.crumb, { color: theme.colors.text2 }]} numberOfLines={1}>
-          {NEW_UI_PLD_CRUMB[kind]}
-        </Text>
-        {isLocal
-          // 「存进我的歌单」在本地歌单形态没有意义（它本来就在我的歌单里），这一位改放「删除本歌单」
-          //（2026-10-13 清单「我的」第 2 条后半）。同一颗 IconButton（缺省 34 见 BUTTON.iconSize），
-          // 配重与心钮完全一致，.pl-top 的 34/1fr/34 网格不受影响，面包屑仍居中；
-          // 破坏性动作与收藏一眼分开：trash 字形 + err 色（danger）+ 按下必过二次确认；
-          // 系统列表（试听 / 我的收藏等）删不掉，入口一律不出现，维持同尺寸空槽顶住配重，不放死按钮。
-          ? (canDeleteList
-            ? (
-              <IconButton
-                name="trash"
-                strong
-                danger
-                onPress={handleDeletePress}
-                accessibilityLabel={NEW_UI_PLD_LABELS.deleteList}
-              />
-            )
-            : <View style={styles.favSpacer} />)
-          : (
-            <IconButton
-              name={collected ? 'heartFill' : 'heart'}
-              strong
-              active={collected}
-              onPress={handleFavPress}
-              // 图标钮只有心形，语义全靠这句：榜单卡进来的收藏 = 存整榜（收单首在歌曲行 ⋯ 里）
-              accessibilityLabel={
-                isRank
-                  ? (collected ? NEW_UI_PLD_LABELS.unfavBoard : NEW_UI_PLD_LABELS.favBoard)
-                  : (collected ? NEW_UI_PLD_LABELS.unfav : NEW_UI_PLD_LABELS.fav)
-              }
-            />
-          )}
-      </View>
+      <PlTop
+        crumbText={NEW_UI_PLD_CRUMB[kind]}
+        backLabel={NEW_UI_PLD_LABELS.back}
+        onBack={goBack}
+        // 右上那一格（#plFavBtn）三分支语义见 PlTop 头注：local 形态「存进我的歌单」没有意义
+        //（它本来就在我的歌单里），2026-10-13 起可删的单子这一位改放「删除本歌单」
+        //（trash 字形 + err 色 + 按下必过二次确认），系统列表删不掉则维持同尺寸空槽顶住配重；
+        // 其余形态照旧收藏心钮——榜单卡进来的收藏 = 存整榜，语义全靠 accessibilityLabel 那一句
+        right={
+          isLocal
+            ? (canDeleteList
+              ? { kind: 'delete', onPress: handleDeletePress, label: NEW_UI_PLD_LABELS.deleteList }
+              : { kind: 'none' })
+            : {
+              kind: 'fav',
+              collected,
+              onPress: handleFavPress,
+              label: isRank
+                ? (collected ? NEW_UI_PLD_LABELS.unfavBoard : NEW_UI_PLD_LABELS.favBoard)
+                : (collected ? NEW_UI_PLD_LABELS.unfav : NEW_UI_PLD_LABELS.fav),
+            }
+        }
+      />
 
       <PlaylistHero
         artSeed={artSeed}
@@ -667,24 +643,13 @@ export const SonglistDetailScreen = ({
       />
 
       {/* .pl-actions：ghost 占 flex:1 + 42 方形随机钮（底色走 IconButton 缺省 glass .07） */}
-      <View style={styles.actions}>
-        <GhostButton
-          // 首批未在手时不跟虚报的「0 首」（D-05）；取回后如实标可播数
-          label={`${NEW_UI_PLD_LABELS.playAll}${tracksPending ? '' : ` ${playable.length} 首`}`}
-          icon="play"
-          fill={false}
-          style={styles.playAll}
-          onPress={handlePlayAll}
-        />
-        <IconButton
-          name="shuffle"
-          size={BUTTON.iconSizeLg}
-          iconSize={BUTTON.iconIconLg}
-          radius={RADIUS.control}
-          onPress={handleShuffle}
-          accessibilityLabel={NEW_UI_PLD_LABELS.shuffle}
-        />
-      </View>
+      <PlActions
+        // 首批未在手时不跟虚报的「0 首」（D-05）；取回后如实标可播数
+        playAllLabel={`${NEW_UI_PLD_LABELS.playAll}${tracksPending ? '' : ` ${playable.length} 首`}`}
+        onPlayAll={handlePlayAll}
+        shuffleLabel={NEW_UI_PLD_LABELS.shuffle}
+        onShuffle={handleShuffle}
+      />
     </View>
   )
 
@@ -809,44 +774,5 @@ const styles = StyleSheet.create({
   /** .song-list gap:2 的行距（模块级静态，供 renderItem 复用同一引用） */
   rowGap: {
     marginTop: SONG_ROW.listGap,
-  },
-  /** .pl-top grid 34/1fr/34 → row + 中部 flex:1 居中 */
-  top: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.s,
-  },
-  backIcon: {
-    transform: [{ rotate: '180deg' }],
-  },
-  /**
-   * local 形态里「不该出现删除入口」的那些单子（系统列表）占的同尺寸空槽
-   *（= IconButton 缺省边长，维持 .pl-top 34/1fr/34 配重；可删的单子这一位是 trash 钮，不走此样式）
-   */
-  favSpacer: {
-    width: BUTTON.iconSize,
-    height: BUTTON.iconSize,
-  },
-  /** .player-crumb 12px / text-2 / letter-spacing .4（详情顶排同款） */
-  crumb: {
-    flex: 1,
-    minWidth: 0,
-    textAlign: 'center',
-    fontSize: FONT_SIZE.small,
-    letterSpacing: LETTER_SPACING.wide,
-  },
-  /** .pl-actions gap:8 margin:18px 0 16px */
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: PL_LAYER.actionsGap,
-    marginTop: PL_LAYER.actionsMarginTop,
-    marginBottom: PL_LAYER.actionsMarginBottom,
-  },
-  /** .pl-actions .ghost-btn flex:1 */
-  playAll: {
-    flex: 1,
-    minWidth: 0,
   },
 })

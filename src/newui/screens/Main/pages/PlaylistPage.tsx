@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { StyleSheet, Text, View, type LayoutChangeEvent, type ListRenderItem } from 'react-native'
+import { StyleSheet, View, type LayoutChangeEvent, type ListRenderItem } from 'react-native'
 
 import type { ListInfoItem } from '@/store/songlist/state'
 
@@ -18,6 +18,7 @@ import {
   PagingStatus,
   PillButton,
   PlCard,
+  PlCount,
   Section,
 } from '@/newui/components'
 import {
@@ -45,11 +46,9 @@ import {
 } from '@/newui/hooks'
 import {
   CARD_GRID,
-  FONT_SIZE,
   PLATFORM_TINTS,
   RANK_PAGING,
   topbarHeight,
-  useTheme,
   type PlatformTintKey,
 } from '@/newui/theme'
 
@@ -83,6 +82,7 @@ interface PoolRow {
  * （见 MainScreen 对歌单页的分支）。**不加 removeClippedSubviews**——回收单元格里的 SVG
  * 封面在 Android 上有整格变白的老毛病（SearchResultPanel 同款结论）。
  * usePlaylistPool 的数据语义（每批 10 份、窗口推进、状态机）一字未动。
+ * 2026-10-15（拆件转正轮）：`.pl-count` 原内联单元转正为独立组件 PlCount，渲染零变化、文案常量原样。
  */
 export const PlaylistPage = ({
   componentId,
@@ -95,7 +95,6 @@ export const PlaylistPage = ({
   viewportTopInset = 0,
   viewportBottomInset = 0,
 }: NewUiPageProps) => {
-  const theme = useTheme()
   const cats = usePlaylistCategories()
   // 选中分类走共享模块（chip 行与「全部分类」浮层都可写）：切 Tab 页面重挂载后也从这里取回当前选择；
   // 切平台时该共享模块自行把选择复位回「全部」（各平台分类目录互不相通，见 hooks/playlistTagSelection）
@@ -271,9 +270,7 @@ export const PlaylistPage = ({
       <Section
         sub
         title={poolTitle}
-        right={countText ? (
-          <Text style={[styles.count, { color: theme.colors.text3 }]}>{countText}</Text>
-        ) : undefined}
+        right={countText ? <PlCount text={countText} /> : undefined}
       />
     </View>
   )
@@ -333,10 +330,6 @@ const styles = StyleSheet.create({
   /** 网格尾巴（状态行/终点行）与最后一行卡之间的行间隙（原型 grid gap:14） */
   tailGap: {
     marginTop: CARD_GRID.rowGap,
-  },
-  /** .pl-count：11px / text-3（styles.css L318） */
-  count: {
-    fontSize: FONT_SIZE.caption,
   },
 })
 
