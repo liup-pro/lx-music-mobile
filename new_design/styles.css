@@ -1,0 +1,1167 @@
+/* ============ tokens ============ */
+:root{
+  --bg:#08080c;
+  --bg-soft:#0e0f15;
+  --surface:#15171f;
+  --surface-2:#1c1f29;
+  --surface-3:#242836;
+  --line:rgba(255,255,255,.075);
+  --line-strong:rgba(255,255,255,.14);
+  /* —— 叠色层（主题反相）——
+     深底抬亮靠叠白，浅底同一语义必须改成叠黑，否则整片看不见；
+     这里只允许「同透明度、换墨色」，组件里一律引用 token，不再写死 rgba(255,255,255,…)。
+     --fill-1 行按下的瞬时底 / --fill-2 控件底（chip·图标按钮·输入框·次级按钮）
+     --fill-3 控件按压加重 / --fill-4 结构件底（进度轨·开关底·清除角标·拖拽条）
+     --hairline / --hairline-strong 两档 inset 描边
+     --card 分组容器底：深色是叠白，浅色换成实心白面（页面灰、卡片白，跟 iOS 分组列表一致）
+     --glass / --glass-ink 浮在封面图上的毛玻璃贴片（迷你条·浮窗·角标）及其文字 */
+  --fill-1:rgba(255,255,255,.06);
+  --fill-2:rgba(255,255,255,.07);
+  --fill-3:rgba(255,255,255,.12);
+  --fill-4:rgba(255,255,255,.17);
+  --hairline:rgba(255,255,255,.06);
+  --hairline-strong:rgba(255,255,255,.26);
+  --card:rgba(255,255,255,.045);
+  --glass:rgba(10,10,16,.74);
+  --glass-ink:#fff;
+  /* 报错色：深色下用亮珊瑚，浅底上这个亮度不够读，反相成深红 */
+  --danger-ink:#FF8B7E;
+  --text:#f3f4f8;
+  --text-2:#a2a8b8;
+  --text-3:#6b7182;
+  --brand:#ff5c8a;
+  --brand-2:#7a3bff;
+  --brand-3:#ffd36e;
+  --grad:linear-gradient(120deg,#ff5c8a 0%,#c04ce8 48%,#7a3bff 100%);
+  --grad-soft:linear-gradient(120deg,rgba(255,92,138,.22),rgba(122,59,255,.22));
+  --ok:#31c27c;
+  --r-s:12px; --r-m:18px; --r-l:24px; --r-xl:30px;
+  --shadow:0 18px 44px -18px rgba(0,0,0,.75);
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --safe-b:22px;
+  /* 手机是 0（内容铺满），Pad 横屏时让顶栏 / 滚动区 / 推入层给左侧导航让位 */
+  --nav-w:0px;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  background:
+    radial-gradient(900px 600px at 12% -10%,rgba(255,92,138,.18),transparent 60%),
+    radial-gradient(800px 620px at 92% 8%,rgba(122,59,255,.20),transparent 62%),
+    radial-gradient(700px 700px at 60% 110%,rgba(37,99,235,.16),transparent 60%),
+    #05060a;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  display:flex;align-items:center;justify-content:center;
+  min-height:100%;padding:28px 24px;
+}
+.sprite{position:absolute;width:0;height:0;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+h1,h2,h3,p{margin:0}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;background:rgba(255,255,255,.08);padding:1px 5px;border-radius:5px}
+.ic{width:22px;height:22px;display:block;flex:none}
+
+/* ============ stage ============ */
+.stage{display:flex;gap:44px;align-items:flex-start;justify-content:center;flex-wrap:wrap;width:100%;max-width:1180px}
+
+/* ============ phone ============ */
+.phone{
+  width:390px;height:844px;flex:none;position:relative;
+  border-radius:54px;padding:11px;
+  background:linear-gradient(160deg,#2a2d3a,#0d0f16 40%,#20222c);
+  box-shadow:0 60px 120px -40px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.06);
+}
+.screen{
+  position:relative;width:100%;height:100%;border-radius:44px;overflow:hidden;
+  background:
+    radial-gradient(520px 300px at 80% -6%,rgba(122,59,255,.28),transparent 70%),
+    radial-gradient(420px 260px at 6% 4%,rgba(255,92,138,.22),transparent 70%),
+    var(--bg);
+  display:block;
+}
+.island{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  width:112px;height:32px;border-radius:20px;background:#000;z-index:86;pointer-events:none;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+}
+
+/* ============ statusbar ============ */
+/* 状态栏是硬件层：推入页 / 浮层打开时也要一直在上面，所以 z-index 高于所有覆盖层 */
+.statusbar{
+  position:absolute;top:0;left:0;right:0;height:52px;z-index:86;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 30px 0;pointer-events:none;
+  font-weight:600;
+}
+.sb-time{font-size:15px;letter-spacing:.3px}
+.sb-right{display:flex;align-items:center;gap:6px}
+.sb-right svg{fill:currentColor;display:block}
+.sb-signal{width:18px;height:11px}
+.sb-batt{width:24px;height:11px}
+
+/* ============ top chrome ============ */
+.topbar{
+  position:absolute;top:0;left:var(--nav-w);right:0;z-index:40;
+  padding:54px 16px 10px;
+  background:linear-gradient(to bottom,color-mix(in srgb,var(--bg) 92%,transparent) 0%,color-mix(in srgb,var(--bg) 66%,transparent) 62%,transparent 100%);
+  -webkit-backdrop-filter:blur(22px) saturate(180%);
+  backdrop-filter:blur(22px) saturate(180%);
+  transition:box-shadow .3s var(--ease);
+}
+.topbar.pinned{box-shadow:0 12px 26px -18px rgba(0,0,0,.9)}
+.topbar-row{display:flex;align-items:center;gap:10px;height:46px}
+.avatar-btn{width:34px;height:34px;flex:none;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px var(--line-strong)}
+.avatar{
+  display:grid;place-items:center;width:100%;height:100%;
+  background:linear-gradient(135deg,var(--c1),var(--c2));
+  font-size:13px;font-weight:800;color:#fff;
+}
+.searchbar{
+  flex:1;height:38px;display:flex;align-items:center;gap:8px;
+  padding:0 14px;border-radius:19px;
+  background:var(--fill-2);
+  box-shadow:inset 0 0 0 1px var(--hairline);
+  color:var(--text-3);
+}
+.searchbar .ic{width:17px;height:17px}
+.searchbar .ph{font-size:13px;letter-spacing:.2px}
+.icon-btn{
+  width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:50%;
+  background:var(--fill-2);color:var(--text-2);position:relative;
+  box-shadow:inset 0 0 0 1px var(--hairline);transition:.2s var(--ease);
+}
+.icon-btn:active{transform:scale(.9)}
+.icon-btn .ic{width:18px;height:18px}
+/* 顶栏音源按钮上的点 = 「这一项还没配好，进来处理一下」，配好就整颗撤掉（见 app.js renderNav）。
+   所以它只有告警色一种状态，并且用琥珀色的呼吸，跟绿色「一切正常」的装饰点区分开 */
+.pulse-dot{
+  position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;
+  background:var(--brand-3);box-shadow:0 0 0 0 rgba(255,211,110,.6);animation:pulse 2.2s infinite;
+}
+.pulse-dot[hidden]{display:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,211,110,.5)}70%{box-shadow:0 0 0 7px rgba(255,211,110,0)}100%{box-shadow:0 0 0 0 rgba(255,211,110,0)}}
+
+/* source chips（首页筛选条已移除，.chip 仍供榜单 tabs / 音质 / 热搜复用） */
+.chip{
+  flex:none;height:28px;padding:0 11px;border-radius:14px;
+  font-size:12.5px;font-weight:600;letter-spacing:.2px;white-space:nowrap;
+  color:var(--text-2);background:var(--fill-2);
+  box-shadow:inset 0 0 0 1px var(--hairline);
+  display:flex;align-items:center;gap:6px;transition:.22s var(--ease);
+}
+.chip:active{transform:scale(.94)}
+.chip.on{color:#0a0a0f;background:var(--grad);box-shadow:none;font-weight:700}
+/* 当前音源没有的音质档：显灰但能点（点了给一句「会降到哪」），标签本身就把降到哪写清 */
+.chip.dim{color:var(--text-3);background:var(--fill-1);box-shadow:inset 0 0 0 1px var(--hairline);font-weight:500}
+
+/* ============ viewport ============ */
+.viewport{
+  position:absolute;top:0;right:0;bottom:0;left:var(--nav-w);overflow-y:auto;overflow-x:hidden;
+  padding:110px 0 168px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.viewport::-webkit-scrollbar{display:none}
+.page{padding:0 16px}
+.section{margin-top:26px}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;gap:12px}
+.section-title{font-size:19px;font-weight:800;letter-spacing:.2px}
+.section-more{display:flex;align-items:center;gap:1px;font-size:12.5px;color:var(--text-3)}
+.section-more[hidden]{display:none}
+.section-more .ic{width:13px;height:13px;opacity:.7}
+.section-more:active{color:var(--text-2)}
+
+/* ============ art primitive ============ */
+.art{
+  position:relative;overflow:hidden;border-radius:var(--r-s);isolation:isolate;
+  background:linear-gradient(135deg,var(--c1,#ff5c8a) 0%,var(--c2,#7a3bff) 100%);
+}
+.art-svg{position:absolute;inset:0;width:100%;height:100%;z-index:0;display:block}
+.art-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.art-scrim{
+  position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(to top,rgba(0,0,0,.34) 0%,rgba(0,0,0,.04) 46%,transparent 100%);
+}
+.art .ic-center{position:absolute;inset:0;z-index:3;display:grid;place-items:center;color:#fff}
+.art .ic-center .ic{width:46%;height:46%;filter:drop-shadow(0 3px 8px rgba(0,0,0,.35))}
+
+/* ============ 标签 ============ */
+.q-tag{
+  font-size:10.5px;font-weight:700;letter-spacing:.4px;padding:2.5px 7px;border-radius:7px;
+  background:var(--fill-2);color:var(--text-2);box-shadow:inset 0 0 0 1px var(--hairline);
+  white-space:nowrap;
+}
+
+/* ============ banner ============ */
+.banner-wrap{margin-top:14px;position:relative}
+.banner-track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:var(--r-l)}
+.banner-track::-webkit-scrollbar{display:none}
+.banner{
+  flex:none;width:100%;scroll-snap-align:center;position:relative;height:150px;border-radius:var(--r-l);
+  overflow:hidden;padding:16px;display:flex;flex-direction:column;justify-content:flex-end;
+  box-shadow:var(--shadow);
+}
+.banner .bgart{position:absolute;inset:0;z-index:0}
+.banner .veil{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.62),rgba(0,0,0,.05) 60%);z-index:1}
+.banner .b-tag{position:relative;z-index:2;align-self:flex-start;font-size:10.5px;font-weight:800;letter-spacing:1px;
+  padding:4px 9px;border-radius:8px;background:rgba(255,255,255,.18);color:#fff;backdrop-filter:blur(8px);margin-bottom:auto}
+/* 轮播压在固定那张暗色封面渐变上，与主题无关，所以文字锁白 */
+.banner h3{position:relative;z-index:2;font-size:22px;font-weight:900;letter-spacing:.5px;color:#fff}
+.banner p{position:relative;z-index:2;font-size:12.5px;color:rgba(255,255,255,.78);margin-top:3px}
+.banner-dots{display:flex;gap:5px;justify-content:center;margin-top:10px}
+.banner-dots i{width:5px;height:5px;border-radius:3px;background:rgba(255,255,255,.22);transition:.3s var(--ease)}
+.banner-dots i.on{width:16px;background:var(--brand)}
+
+/* ============ quick row ============ */
+.quick-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:22px}
+.quick{display:flex;flex-direction:column;align-items:center;gap:8px;transition:.2s var(--ease)}
+.quick:active{transform:scale(.92)}
+.quick .qa{width:60px;height:60px;border-radius:20px;box-shadow:0 10px 22px -12px rgba(0,0,0,.8),inset 0 0 0 1px rgba(255,255,255,.1)}
+.quick span{font-size:11.5px;color:var(--text-2);font-weight:600}
+
+/* ============ horizontal scroll ============ */
+.hscroll{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;margin:0 -16px;padding-left:16px;padding-right:16px;scroll-padding-inline:16px}
+.hscroll::-webkit-scrollbar{display:none}
+
+.recent-card{flex:none;width:112px;transition:.2s var(--ease)}
+.recent-card:active{transform:scale(.95)}
+.recent-card .art{width:112px;height:112px}
+.recent-card .rt{font-size:12.5px;font-weight:700;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recent-card .rs{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.play-badge{
+  position:absolute;z-index:3;right:8px;bottom:8px;width:24px;height:24px;border-radius:50%;
+  display:grid;place-items:center;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);color:#fff;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.play-badge .ic{width:11px;height:11px;margin-left:1px}
+
+/* ============ daily card ============ */
+.daily-card{
+  position:relative;overflow:hidden;border-radius:var(--r-l);height:98px;display:flex;align-items:center;gap:14px;
+  padding:0 16px 0 0;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);
+  width:100%;text-align:left;
+}
+.daily-card .dc-art{width:98px;height:98px;border-radius:0 var(--r-l) var(--r-l) 0;flex:none}
+.daily-card .dc-art .art{width:100%;height:100%;border-radius:0}
+.daily-card .dc-body{flex:1;min-width:0}
+.daily-card .dc-kicker{font-size:11px;letter-spacing:1.6px;color:var(--brand);font-weight:800}
+.daily-card h3{font-size:18px;font-weight:900;margin-top:4px}
+.daily-card p{font-size:12px;color:var(--text-3);margin-top:3px}
+.daily-card .dc-glow{position:absolute;inset:0;background:radial-gradient(180px 90px at 100% 120%,rgba(255,92,138,.3),transparent 70%);pointer-events:none}
+.daily-card .date{position:absolute;right:16px;top:16px;font-size:11px;font-weight:800;color:var(--text-2);
+  background:var(--fill-2);padding:4px 8px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--line)}
+
+/* ============ playlist grid ============ */
+.pl-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px}
+.pl-card{transition:.2s var(--ease)}
+.pl-card:active{transform:scale(.96)}
+.pl-card .art{width:100%;aspect-ratio:1/1}
+.pl-card .pt{font-size:13px;font-weight:700;margin-top:8px;line-height:1.35;min-height:2.7em;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pl-card .ps{font-size:11px;color:var(--text-3);margin-top:3px;display:flex;align-items:center;gap:5px}
+.pl-card .ps .src-dot{width:5px;height:5px;border-radius:50%;background:var(--tint)}
+
+/* ============ rank tabs ============ */
+.rank-tabs{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin:-2px 0 12px}
+.rank-tabs::-webkit-scrollbar{display:none}
+
+/* ============ song list ============ */
+.song-list{display:flex;flex-direction:column;gap:2px}
+/* 分页状态行：取下一批的进度如实写在列表尾巴上，取失败时这一行就是重试入口；
+   载入中带一枚转圈，滚动加载的过程感来自这里 */
+.pl-status{width:100%;padding:14px 6px;display:flex;align-items:center;justify-content:center;gap:7px;
+  font-size:12px;color:var(--text-3)}
+.pl-status:not([disabled]){color:var(--brand);font-weight:700}
+.pl-status .spin{width:13px;height:13px;border-radius:50%;box-sizing:border-box;
+  border:2px solid color-mix(in srgb,currentColor 28%,transparent);border-top-color:currentColor;
+  animation:spin .9s linear infinite}
+/* 落在两列网格里的状态行横跨整行：它是对整张网格说的，不属于某一格 */
+.pl-grid>.pl-status,.rank-grid>.pl-status{grid-column:1/-1}
+/* 列到头那一行「没有更多了」：滚到底能确认「就这些」，两侧细线把它收成一条句号横线 */
+.pl-end{display:flex;align-items:center;gap:10px;margin:20px 2px 6px;font-size:11.5px;
+  color:var(--text-3);letter-spacing:.4px}
+.pl-end::before,.pl-end::after{content:'';flex:1;height:1px;background:currentColor;opacity:.22}
+.pl-grid>.pl-end,.rank-grid>.pl-end{grid-column:1/-1;margin-top:10px}
+.song-row{
+  display:flex;align-items:center;gap:11px;padding:7px 8px 7px 4px;border-radius:14px;width:100%;text-align:left;
+  transition:background .2s var(--ease);position:relative;
+}
+.song-row:active{background:var(--fill-1)}
+.song-row.playing{background:var(--grad-soft);box-shadow:inset 0 0 0 1px var(--line)}
+.song-row .rank{width:22px;flex:none;text-align:center;font-size:14px;font-weight:900;font-style:italic;color:var(--text-3);
+  font-family:ui-monospace,monospace}
+.song-row .rank.top{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.song-row .art{width:46px;height:46px;flex:none;border-radius:10px}
+.song-row .sr-body{flex:1;min-width:0}
+.sr-title{font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.sr-title .eq{display:inline-flex;align-items:flex-end;gap:1.5px;height:11px}
+.sr-title .eq i{width:2px;background:var(--brand);border-radius:1px;animation:eq 1s infinite ease-in-out}
+.sr-title .eq i:nth-child(2){animation-delay:.2s}.sr-title .eq i:nth-child(3){animation-delay:.4s}
+@keyframes eq{0%,100%{height:3px}50%{height:11px}}
+.sr-sub{font-size:11.5px;color:var(--text-3);margin-top:3px;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.sr-sub .sep{width:1px;height:9px;background:var(--line-strong);flex:none}
+/* 第二行宽度不够时按「专辑 → 歌手」的顺序让步，两枚角标不参与压缩 */
+.sr-sub>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.sr-sub .src-badge,.sr-sub .q-tag{flex:none}
+.sr-sub .sr-artist{flex:0 1 auto}
+.sr-sub .sr-album{flex:0 100 auto}
+.src-badge{
+  font-size:9.5px;font-weight:800;letter-spacing:.2px;padding:2px 5px;border-radius:5px;flex:none;
+  color:var(--tint);background:color-mix(in srgb,var(--tint) 16%,transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tint) 34%,transparent);
+}
+.sr-right{display:flex;align-items:center;gap:8px;flex:none;color:var(--text-3)}
+.sr-dur{font-size:11.5px;font-variant-numeric:tabular-nums}
+.sr-right .ic{width:16px;height:16px}
+.sr-right button{display:grid;place-items:center;padding:4px;color:var(--text-3)}
+.sr-right button:active{color:var(--text)}
+
+.ghost-btn{
+  width:100%;height:42px;border-radius:14px;margin-top:12px;font-size:13.5px;font-weight:700;
+  background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--line);color:var(--text-2);
+  display:flex;align-items:center;justify-content:center;gap:7px;transition:.2s var(--ease);
+}
+.ghost-btn:active{transform:scale(.98);background:var(--fill-3)}
+.ghost-btn .ic{width:15px;height:15px}
+
+/* ============ artists ============ */
+.artist-card{flex:none;width:76px;display:flex;flex-direction:column;align-items:center;gap:8px;transition:.2s var(--ease)}
+.artist-card:active{transform:scale(.93)}
+.artist-card .art{width:68px;height:68px;border-radius:50%}
+.artist-card span{font-size:11.5px;color:var(--text-2);font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ============ radio ============ */
+.radio-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.radio-card{
+  position:relative;overflow:hidden;height:108px;border-radius:var(--r-m);padding:16px;display:flex;flex-direction:column;justify-content:flex-end;
+  box-shadow:inset 0 0 0 1px var(--line);text-align:left;
+}
+.radio-card .bgart{position:absolute;inset:0;opacity:.5}
+/* 卡片是半透明封面压在页面底色上，底色跟着主题走，所以图标也必须跟着主题反相 */
+.radio-card .ic-top{position:absolute;top:16px;left:16px;width:20px;height:20px;color:var(--text);opacity:.85;z-index:2}
+.radio-card h4{position:relative;z-index:2;font-size:15px;font-weight:800;margin:30px 0 0}
+.radio-card p{position:relative;z-index:2;font-size:11px;color:var(--text-2);margin:5px 0 0}
+.wip-tag{position:absolute;top:12px;right:12px;z-index:2;font-size:9.5px;font-weight:800;letter-spacing:.4px;
+  padding:3px 7px;border-radius:999px;color:var(--glass-ink);background:var(--glass);box-shadow:inset 0 0 0 1px var(--line);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+
+/* ============ foot ============ */
+.foot-note{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:32px;font-size:11px;color:var(--text-3);text-align:center}
+.foot-mark{width:14px;height:14px;border-radius:50%;background:var(--grad);flex:none;opacity:.6}
+
+/* ============ 三个 Tab 的公共页头 ============ */
+.page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px}
+.page-title{font-size:24px;font-weight:900;letter-spacing:.4px}
+/* 用 ID 打开别处分享的歌单：图标 + 文字，比裸图标好认 */
+.pl-open-btn{flex:none;display:flex;align-items:center;gap:6px;height:32px;padding:0 13px;border-radius:16px;
+  font-size:12.5px;font-weight:700;color:var(--text-2);background:var(--fill-2);
+  box-shadow:inset 0 0 0 1px var(--line);transition:.2s var(--ease)}
+.pl-open-btn:active{transform:scale(.95);background:var(--fill-3)}
+.pl-open-btn .ic{width:15px;height:15px}
+.section-sub{font-size:16px;font-weight:800;letter-spacing:.2px}
+/* 区块标题下、卡片行上的那句说明：只交代能力边界，不当标题抢层级 */
+.section-note{margin:0 0 10px;font-size:11px;line-height:1.6;color:var(--text-3)}
+.pl-count{font-size:11px;color:var(--text-3);white-space:nowrap}
+.empty-tip{padding:22px 0 6px;text-align:center;font-size:12.5px;color:var(--text-3);line-height:1.7}
+
+/* 吸顶的分类切换条：贴住顶栏下沿（滚动容器上内边距 = 顶栏高度，sticky 基准是内容盒） */
+.cat-row{
+  position:sticky;top:0;z-index:30;
+  display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;
+  margin:14px -16px 0;padding:3px 16px 8px;margin-bottom:14px;
+  background:linear-gradient(to bottom,color-mix(in srgb,var(--bg) 94%,transparent),color-mix(in srgb,var(--bg) 70%,transparent));
+  -webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%);
+}
+.cat-row::-webkit-scrollbar{display:none}
+
+/* ============ 歌单页 ============ */
+.my-pl-row{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px}
+.my-pl-row::-webkit-scrollbar{display:none}
+.my-pl{flex:none;width:120px;text-align:left;transition:.2s var(--ease)}
+.my-pl:active{transform:scale(.95)}
+.my-pl .art{width:120px;height:120px;border-radius:16px}
+.my-pl .mp-n{font-size:12.5px;font-weight:700;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.my-pl .mp-s{font-size:11px;color:var(--text-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ============ 排行榜页：2 列榜单卡片 ============ */
+.art.chart-art{background:var(--rk-bg,#0B1220)}
+.rank-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;margin-top:18px}
+/* 榜单按平台分段：整平台全列以后一屏放不下四十五张卡，
+   分段标题让中途接着往下滚的人也知道自己正站在哪家的曲库里 */
+.rank-group{grid-column:1/-1;display:flex;align-items:baseline;gap:8px;margin:12px 0 -4px}
+.rank-group b{font-size:13.5px;font-weight:800;color:var(--text)}
+.rank-group span{font-size:10.5px;color:var(--text-3)}
+.rank-group:first-child{margin-top:0}
+/* 封面 = 平色深底 + 单色符号：底色（--rk-bg）随榜名不同，由 app.js 按「强调色压暗」注入；
+   黑胶中心孔取同一个变量，正好透出该榜的深底 */
+.rk-card{position:relative;overflow:hidden;aspect-ratio:1;border-radius:var(--r-m);text-align:left;
+  background:var(--rk-bg,#0B1220);transition:.2s var(--ease);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 18px 34px -24px rgba(0,0,0,.95)}
+.rk-card:active{transform:scale(.96)}
+/* 徽标：一枚单色符号居中，颜色跟榜名走（--accent 由 app.js 注入，同名榜跨平台同色） */
+.rk-emblem{position:absolute;inset:0;width:100%;height:100%;z-index:1;color:var(--accent,#F97316)}
+/* 卡上只留两行真数据：榜名 + 平台全称。原来左上角那枚「每小时更新」角标是编的，已撤 */
+.rk-name{position:absolute;z-index:3;left:13px;right:13px;bottom:30px;
+  font-size:17px;font-weight:900;line-height:1.25;letter-spacing:.3px;color:#fff;
+  text-shadow:0 2px 14px rgba(0,0,0,.5)}
+.rk-sub{position:absolute;z-index:3;left:13px;right:13px;bottom:12px;font-size:10.5px;font-weight:700;
+  letter-spacing:.2px;color:rgba(255,255,255,.76)}
+
+/* ============ 我的页 ============ */
+.mine-head{display:flex;align-items:center;gap:13px;margin-top:8px}
+.mh-art{width:58px;height:58px;flex:none;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(150deg,var(--brand),var(--brand-2));color:#12060c;
+  box-shadow:0 12px 26px -14px rgba(255,92,138,.9),inset 0 0 0 1.5px rgba(255,255,255,.22)}
+.mh-art b{font-size:26px;font-weight:900;line-height:1;letter-spacing:.5px}
+.mh-body{flex:1;min-width:0}
+.mh-name{font-size:20px;font-weight:900;letter-spacing:.3px}
+.mh-sub{font-size:11.5px;color:var(--text-3);margin-top:3px;font-variant-numeric:tabular-nums}
+.mh-edit{flex:none;display:flex;align-items:center;gap:6px;height:32px;padding:0 13px 0 11px;border-radius:16px;
+  font-size:12.5px;font-weight:700;color:var(--text-2);background:var(--fill-2);
+  box-shadow:inset 0 0 0 1px var(--line);transition:.2s var(--ease)}
+.mh-edit .ic{width:14px;height:14px}
+.mh-edit:active{transform:scale(.96);background:var(--fill-3)}
+.stat-row{display:flex;gap:8px;margin-top:18px}
+.stat{flex:1;padding:11px 4px;border-radius:16px;text-align:center;
+  background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.stat b{display:block;font-size:17px;font-weight:900;font-variant-numeric:tabular-nums}
+.stat span{display:block;font-size:10.5px;color:var(--text-3);margin-top:3px;letter-spacing:.4px}
+
+.fav-card{position:relative;overflow:hidden;width:100%;display:flex;align-items:center;gap:13px;text-align:left;
+  margin-top:20px;padding:14px;border-radius:22px;
+  background:linear-gradient(120deg,rgba(255,92,138,.26),rgba(122,59,255,.24));
+  box-shadow:inset 0 0 0 1px var(--line-strong)}
+.fav-card:active{transform:scale(.99)}
+.fav-card .fc-art{width:62px;height:62px;flex:none;border-radius:17px;display:grid;place-items:center;
+  background:var(--grad);color:#0a0a0f;box-shadow:0 12px 24px -12px rgba(255,92,138,.9)}
+.fav-card .fc-art .ic{width:25px;height:25px}
+.fav-card .fc-body{flex:1;min-width:0}
+.fav-card h3{font-size:16px;font-weight:900}
+.fav-card p{font-size:11.5px;color:var(--text-2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fav-card .fc-go{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(0,0,0,.3);color:#fff}
+.fav-card .fc-go .ic{width:15px;height:15px}
+
+.song-list.compact .song-row{padding:5px 6px 5px 3px}
+.song-list.compact .art{width:40px;height:40px}
+.song-list.compact .sr-title{font-size:13.5px}
+.song-row.off{opacity:.45}
+
+/* ============ 歌单详情（右推浮层） ============ */
+.pl-layer{
+  position:absolute;top:0;right:0;bottom:0;left:var(--nav-w);z-index:66;display:flex;flex-direction:column;padding:58px 16px 34px;
+  overflow-y:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  background:var(--bg);
+  transform:translateX(100%);visibility:hidden;
+  transition:transform .44s var(--ease),visibility 0s linear .48s;
+}
+.pl-layer::-webkit-scrollbar{display:none}
+.pl-layer.show{transform:translateX(0);visibility:visible;transition-delay:0s}
+/* 选择器必须带 .pl-layer> 一级：下一行 .pl-layer>* 同特异性且更靠后，
+   不带父级选择时会把 .pl-bg 的 absolute 压回流内——56% 高的雾层会作为
+   首个 flex 子项把整页内容顶下去，窗口越高压得越多 */
+.pl-layer>.pl-bg{position:absolute;inset:0;height:56%;z-index:0;filter:blur(64px) saturate(150%);opacity:.42;transform:scale(1.5)}
+.pl-layer>*{position:relative;z-index:1}
+.pl-top{display:grid;grid-template-columns:34px 1fr 34px;align-items:center}
+.pl-top .icon-btn:first-child .ic{transform:rotate(180deg)}
+#plFavBtn.on{color:var(--brand)}
+/* 本地歌单这一位是「删除本歌单」，用报错色与收藏一眼分开 */
+#plFavBtn.err{color:var(--danger-ink)}
+.pl-hero{display:flex;gap:14px;margin:22px 0 2px;min-height:124px}
+.pl-hero .art{width:124px;height:124px;flex:none;border-radius:20px;box-shadow:0 20px 40px -20px rgba(0,0,0,.95)}
+.pl-hero .ph-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;gap:6px}
+.pl-hero h3{font-size:18px;font-weight:900;line-height:1.35}
+.pl-hero .ph-sub{font-size:11.5px;color:var(--text-2);line-height:1.5}
+.pl-hero .ph-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10.5px;color:var(--text-3)}
+.pl-hero .ph-meta .sep{width:1px;height:9px;background:var(--line-strong);flex:none}
+.pl-layer .empty-tip{padding:34px 0}
+.pl-actions{display:flex;gap:8px;margin:18px 0 16px}
+.pl-actions .ghost-btn{margin-top:0;flex:1}
+.pl-actions .icon-btn{width:42px;height:42px;flex:none;border-radius:14px}
+.pl-actions .icon-btn .ic{width:19px;height:19px}
+.pl-actions .icon-btn.on{color:var(--brand);background:rgba(255,92,138,.16)}
+
+/* ============ 设定页（右推层） ============ */
+.set-hero{margin:8px 2px 2px}
+.set-hero .sh-sub{font-size:12px;color:var(--text-3);line-height:1.65}
+.set-group{margin-top:26px}
+.set-group .sg-label{font-size:10.5px;font-weight:800;letter-spacing:1.3px;color:var(--text-3);margin:0 0 9px 3px}
+.set-list{display:flex;flex-direction:column;border-radius:18px;overflow:hidden;
+  background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.set-row{display:flex;align-items:center;gap:11px;padding:13px 14px;width:100%;text-align:left;
+  border-top:1px solid var(--line);transition:.18s var(--ease)}
+.set-row:first-child{border-top:0}
+.set-row:active{background:var(--fill-1)}
+.set-ic{width:28px;height:28px;flex:none;border-radius:9px;display:grid;place-items:center;
+  background:var(--fill-2);color:var(--text-2)}
+.set-ic .ic{width:15px;height:15px}
+.set-row.on .set-ic{background:var(--grad-soft);color:var(--brand)}
+.st-l{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.st-l b{font-size:14px;font-weight:700;letter-spacing:.1px}
+.st-l em{font-size:11px;font-style:normal;color:var(--text-3);line-height:1.45;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-r{flex:none;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--text-3)}
+.st-r .ic{width:14px;height:14px;opacity:.5}
+.st-r.hi{color:var(--brand)}
+/* 纯展示行（关于组）：不可点，所以不给按压底色、也不给箭头 */
+.set-row.info{cursor:default}
+.set-row.info:active{background:transparent}
+
+/* ============ 二次确认浮层 ============ */
+.cf-actions{display:flex;gap:10px;margin-top:20px}
+.cf-btn{flex:1;height:44px;border-radius:15px;font-size:14px;font-weight:800;transition:.2s var(--ease);
+  background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--line);color:var(--text-2)}
+.cf-btn:active{transform:scale(.98)}
+.cf-btn.go{color:#fff;background:var(--grad);box-shadow:none}
+
+/* ============ 单曲操作面板 ============ */
+.more-song{display:flex;align-items:center;gap:11px;padding-bottom:13px;margin-bottom:13px;border-bottom:1px solid var(--line)}
+.more-song .art{width:44px;height:44px;flex:none;border-radius:11px}
+.more-song .ms-body{flex:1;min-width:0}
+.more-song .ms-t{font-size:14.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.more-song .ms-s{font-size:11.5px;color:var(--text-3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ============ minibar ============ */
+.minibar{
+  position:absolute;left:calc(var(--nav-w) + 12px);right:12px;bottom:calc(var(--safe-b) + 66px);z-index:45;
+  height:58px;border-radius:20px;overflow:hidden;
+  background:var(--glass);
+  -webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%);
+  box-shadow:0 -2px 40px -10px rgba(0,0,0,.7),inset 0 0 0 1px var(--line);
+  transform:translateY(120%);opacity:0;visibility:hidden;
+  transition:transform .42s var(--ease),opacity .3s var(--ease),visibility 0s linear .45s;
+}
+.minibar.show{transform:translateY(0);opacity:1;visibility:visible;
+  transition:transform .42s var(--ease),opacity .3s var(--ease),visibility 0s linear 0s}
+.mini-progress{position:absolute;top:0;left:0;right:0;height:2px;background:var(--fill-2)}
+.mini-progress i{display:block;height:100%;width:0;background:var(--grad);transition:width .3s linear}
+.mini-main{display:flex;align-items:center;gap:11px;height:100%;padding:0 12px}
+.mini-art{width:42px;height:42px;flex:none;border-radius:11px;overflow:hidden}
+.mini-art .art{width:100%;height:100%;border-radius:0}
+.mini-meta{flex:1;min-width:0}
+.mini-title{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-sub{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;display:flex;gap:6px;align-items:center}
+.mini-act{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;color:var(--text-2);flex:none}
+.mini-act .ic{width:19px;height:19px}
+.mini-act.primary{background:var(--grad);color:#0a0a0f;box-shadow:0 6px 16px -6px rgba(255,92,138,.8)}
+.mini-act.primary .ic{width:17px;height:17px}
+.mini-act:active{transform:scale(.9)}
+
+/* ============ tabbar ============ */
+.tabbar{
+  position:absolute;left:0;right:0;bottom:0;z-index:46;height:calc(var(--safe-b) + 60px);
+  display:flex;align-items:flex-start;padding-top:8px;
+  background:linear-gradient(to top,color-mix(in srgb,var(--bg) 96%,transparent),color-mix(in srgb,var(--bg) 62%,transparent));
+  -webkit-backdrop-filter:blur(26px) saturate(180%);backdrop-filter:blur(26px) saturate(180%);
+  box-shadow:inset 0 1px 0 var(--hairline);
+}
+.tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-3);
+  position:relative;transition:color .25s var(--ease),transform .2s var(--ease);
+}
+.tab .ic{width:23px;height:23px}
+.tab span{font-size:10.5px;font-weight:600;letter-spacing:.4px}
+.tab:active{transform:scale(.92)}
+.tab.is-active{color:var(--text)}
+.tab.is-active .ic{filter:drop-shadow(0 4px 10px rgba(255,92,138,.55))}
+.tab.is-active::before{
+  content:'';position:absolute;top:-8px;width:22px;height:3px;border-radius:2px;background:var(--grad);
+  box-shadow:0 0 12px rgba(255,92,138,.8);
+}
+
+/* 侧栏专属元素：手机竖屏一律不出现，Pad 横屏才亮 */
+.nav-brand,.nav-sep,.nav-label,.nav-foot{display:none}
+
+/* ============ player layer ============ */
+.player-layer{
+  position:absolute;top:0;right:0;bottom:0;left:var(--nav-w);z-index:70;display:flex;flex-direction:column;padding:56px 22px 32px;
+  background:var(--bg);
+  transform:translateY(100%);opacity:0;visibility:hidden;
+  transition:transform .46s var(--ease),opacity .3s var(--ease),visibility 0s linear .5s;
+}
+.player-layer.show{transform:translateY(0);opacity:1;visibility:visible;
+  transition:transform .46s var(--ease),opacity .3s var(--ease),visibility 0s linear 0s}
+/* 同 .pl-bg：不带父级选择器就会被下一行压回流内，雾层一直是 0 高、根本画不出来 */
+.player-layer>.player-bg{position:absolute;inset:0;z-index:0;filter:blur(70px) saturate(150%);opacity:.45;transform:scale(1.4)}
+.player-layer>*{position:relative;z-index:1}
+.player-top{display:grid;grid-template-columns:34px 1fr 34px;align-items:center}
+#playerClose .ic{transform:rotate(90deg)}
+.player-crumb{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:var(--text-2);letter-spacing:.4px}
+
+/* —— 舞台：唱片 ↔ 歌词 —— */
+.player-stage{position:relative;flex:1;min-height:0;display:grid;place-items:center;padding:16px 0}
+.disc-wrap{display:grid;place-items:center}
+.player-layer.lyric-on .disc-wrap{display:none}
+.disc{
+  width:206px;height:206px;border-radius:50%;overflow:hidden;position:relative;
+  box-shadow:0 30px 60px -22px rgba(0,0,0,.9),inset 0 0 0 8px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.1);
+  animation:spin 22s linear infinite;
+}
+.disc.spin-paused{animation-play-state:paused}
+.disc .art{width:100%;height:100%;border-radius:50%}
+.disc::after{content:'';position:absolute;inset:38%;border-radius:50%;background:rgba(0,0,0,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lyric-wrap{position:absolute;inset:0}
+.lyric-wrap::before,.lyric-wrap::after{content:'';position:absolute;left:0;right:0;height:48px;z-index:2;pointer-events:none}
+.lyric-wrap::before{top:0;background:linear-gradient(to bottom,color-mix(in srgb,var(--bg) 80%,transparent),transparent)}
+.lyric-wrap::after{bottom:0;background:linear-gradient(to top,color-mix(in srgb,var(--bg) 80%,transparent),transparent)}
+.lyric-scroll{position:relative;height:100%;max-height:100%;overflow-y:auto;scrollbar-width:none;padding:0 6px;text-align:center}
+.lyric-scroll::-webkit-scrollbar{display:none}
+.ln{display:block;font-size:13.5px;line-height:26px;color:var(--text-3);opacity:.75;
+  transition:color .3s var(--ease),font-size .3s var(--ease),opacity .3s var(--ease)}
+.ln.on{color:var(--text);font-size:17px;font-weight:800;opacity:1;text-shadow:0 5px 22px rgba(0,0,0,.55)}
+.ln-note{margin-top:14px;font-size:10.5px;line-height:1.6;color:var(--text-3);opacity:.8}
+/* 这首歌没有歌词 / 歌词还在取：舞台正中一句人话，不放空壳滚动 */
+.ln-empty{position:absolute;inset:0;display:grid;place-items:center;padding:0 12px;
+  font-size:13px;line-height:1.7;color:var(--text-3);text-align:center}
+
+/* —— 曲目信息 + 收藏 —— */
+.player-meta{display:flex;align-items:center;gap:12px}
+.player-info{flex:1;min-width:0}
+.player-info h3{font-size:21px;font-weight:900;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player-artist{font-size:13px;color:var(--text-2);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc.fav{width:40px;height:40px;flex:none;color:var(--text-2)}
+.pc.fav .ic{width:24px;height:24px}
+.pc.fav.on{color:var(--brand)}
+.pc.fav.on .ic{animation:pop .42s var(--ease)}
+@keyframes pop{45%{transform:scale(1.3)}}
+.player-source{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap;font-size:11px;color:var(--text-3)}
+.player-source .ps-from{letter-spacing:.3px}
+
+/* —— 进度条 —— */
+.seek{height:5px;border-radius:3px;background:var(--fill-4);position:relative;margin:24px 0 8px;
+  touch-action:none;cursor:pointer}
+.seek::before{content:'';position:absolute;inset:-14px -3px}
+.seek i{display:block;height:100%;border-radius:3px;background:var(--grad);width:0;transition:width .3s linear}
+.seek em{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;background:var(--text);transform:translate(-50%,-50%);
+  left:0;transition:left .3s linear;box-shadow:0 0 10px rgba(255,92,138,.9)}
+.seek.drag i,.seek.drag em{transition:none}
+.seek.drag em{transform:translate(-50%,-50%) scale(1.4)}
+.seek-time{display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums}
+
+/* 舞台下方两枚指示点：左右滑切换唱片与歌词，是这一处手势唯一的可见提示。
+   用 currentColor + 透明度上色，浅色主题下不用另写一套底色 */
+.stage-dots{display:flex;justify-content:center;align-items:center;gap:6px;margin:-4px 0 2px;color:var(--text)}
+.stage-dots i{width:5px;height:5px;border-radius:999px;background:currentColor;opacity:.28;
+  transition:width .25s var(--ease),opacity .25s var(--ease)}
+.player-layer:not(.lyric-on) .stage-dots i:first-child{width:16px;opacity:1}
+.player-layer.lyric-on .stage-dots i:last-child{width:16px;opacity:1}
+
+/* —— 主控制行 —— */
+.player-controls{display:flex;align-items:center;justify-content:center;gap:38px;margin-top:18px}
+.pc{width:46px;height:46px;display:grid;place-items:center;border-radius:50%;color:var(--text-2)}
+.pc.ghost .ic{width:27px;height:27px;color:var(--text)}
+.pc.main{width:64px;height:64px;background:var(--grad);color:#0a0a0f;box-shadow:0 14px 34px -12px rgba(255,92,138,.85)}
+.pc.main .ic{width:27px;height:27px}
+.pc:active{transform:scale(.93)}
+
+/* —— 次级工具行：纯图标，无选中底色，状态只由图标本身表达 —— */
+.player-tools{display:flex;align-items:center;justify-content:space-between;gap:2px;margin-top:14px}
+.pt-btn{flex:1;min-width:0;display:grid;place-items:center;padding:9px 2px;color:var(--text-2);
+  transition:color .25s var(--ease)}
+.pt-btn .ic{width:21px;height:21px}
+.pt-btn:active{transform:scale(.94)}
+
+/* —— LRC 浮窗 —— */
+.lrc-float{
+  position:absolute;left:16px;top:520px;z-index:75;display:flex;align-items:center;gap:8px;max-width:236px;
+  padding:9px 10px 9px 12px;border-radius:22px;touch-action:none;cursor:grab;
+  background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);
+  box-shadow:0 14px 32px -12px rgba(0,0,0,.85),inset 0 0 0 1px var(--line-strong);
+  color:var(--glass-ink);font-size:12.5px;font-weight:700;line-height:1.3;
+  transition:opacity .28s var(--ease),transform .28s var(--ease);
+}
+.lrc-float[hidden]{display:none}
+.lrc-float.drag{cursor:grabbing;transform:scale(1.05);transition:none}
+.lrc-float .lf-src{width:7px;height:7px;border-radius:50%;flex:none;background:var(--tint,var(--brand));
+  box-shadow:0 0 9px var(--tint,var(--brand))}
+.lrc-float .lf-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.lrc-float .lf-close{width:19px;height:19px;flex:none;display:grid;place-items:center;border-radius:50%;color:var(--glass-ink);opacity:.6}
+.lrc-float .lf-close .ic{width:12px;height:12px}
+.lrc-float .lf-close:active{transform:scale(.85);color:var(--glass-ink);opacity:1}
+
+/* ============ 播放页子面板 ============ */
+.sw-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 16px;
+  padding:12px 14px;border-radius:14px;background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--line)}
+.sw-row b{font-size:13.5px;font-weight:800}
+.sw-row em{display:block;font-size:11px;font-style:normal;color:var(--text-3);margin-top:3px}
+.toggle{width:46px;height:27px;border-radius:14px;background:var(--fill-4);position:relative;flex:none;
+  transition:background .28s var(--ease)}
+.toggle i{position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;
+  transition:transform .28s var(--ease);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.toggle.on{background:var(--brand)}
+.toggle.on i{transform:translateX(19px)}
+.cmt-total{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
+.cmt-total b{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums}
+.cmt-item{display:flex;gap:11px;padding:13px 0;border-top:1px solid var(--line)}
+.cmt-item .art{width:34px;height:34px;border-radius:50%;flex:none}
+.cmt-body{flex:1;min-width:0}
+.cmt-line{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.cmt-name{font-size:11.5px;font-weight:700;color:var(--text-3)}
+.cmt-like{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--text-3);flex:none}
+.cmt-like .ic{width:13px;height:13px}
+.cmt-text{font-size:13px;line-height:1.55;margin-top:4px}
+.cmt-reply{margin-top:7px;padding:8px 10px;border-radius:10px;background:var(--fill-2);
+  font-size:11.5px;line-height:1.55;color:var(--text-2)}
+.cmt-reply b{color:var(--brand);font-weight:700}
+/* 回复里还有回复：逐层缩进 + 一条线程竖线，第 2 级起的「回复 @某人」前缀走浅色 */
+.cmt-reply .cmt-reply{margin:7px 0 0;border-radius:0 10px 10px 0;
+  background:var(--fill-1);border-left:2px solid var(--line-strong);padding-left:9px}
+.cmt-to{font-style:normal;font-weight:400;color:var(--text-3)}
+.mini-act.on{color:var(--brand)}
+.cmt-like.on{color:var(--brand)}
+#psBody>.q-chips{margin-top:14px}
+
+
+/* ============ sheets ============ */
+.sheet{position:absolute;inset:0;z-index:80;display:flex;align-items:flex-end;
+  visibility:hidden;transition:visibility 0s linear .42s}
+.sheet.show{visibility:visible;transition-delay:0s}
+.sheet-mask{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);opacity:0;transition:opacity .3s var(--ease)}
+.sheet-body{
+  position:relative;width:100%;border-radius:28px 28px 40px 40px;padding:8px 20px 30px;
+  background:linear-gradient(to bottom,var(--surface-2),var(--surface));
+  box-shadow:inset 0 1px 0 var(--line-strong),0 -20px 60px -20px rgba(0,0,0,.9);
+  transform:translateY(100%);transition:transform .4s var(--ease);
+  max-height:78%;overflow-y:auto;scrollbar-width:none;
+}
+.sheet-body::-webkit-scrollbar{display:none}
+.sheet.show .sheet-mask{opacity:1}
+.sheet.show .sheet-body{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--fill-4);margin:6px auto 14px}
+.sheet-title{font-size:20px;font-weight:900}
+.sheet-sub{font-size:12.5px;color:var(--text-3);margin-top:5px;line-height:1.6}
+.group-label{font-size:10.5px;font-weight:800;letter-spacing:1.3px;color:var(--text-3);margin:20px 0 9px}
+.opt-list{display:flex;flex-direction:column;gap:7px}
+.opt-row{
+  display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:15px;width:100%;text-align:left;
+  background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--line);transition:.2s var(--ease);
+}
+.opt-row:active{transform:scale(.99)}
+.opt-row.on{background:var(--grad-soft);box-shadow:inset 0 0 0 1px rgba(255,92,138,.34)}
+.opt-row.off{opacity:.42}
+.radio{width:18px;height:18px;border-radius:50%;flex:none;position:relative;
+  box-shadow:inset 0 0 0 1.6px var(--hairline-strong)}
+.opt-row.on .radio{box-shadow:inset 0 0 0 6px var(--brand),inset 0 0 0 1.6px var(--hairline-strong)}
+.or-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.or-body b{font-size:14px;font-weight:700;display:flex;align-items:baseline;gap:6px}
+.or-body b small{font-size:10.5px;font-weight:600;color:var(--text-3);font-family:ui-monospace,monospace}
+.or-body em{font-size:11px;color:var(--text-3);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.or-state{font-size:10.5px;font-weight:800;color:var(--tone,var(--text-3));flex:none;display:flex;align-items:center;gap:5px}
+.or-state::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--tone,var(--text-3));box-shadow:0 0 7px var(--tone,var(--text-3))}
+.opt-ic{width:30px;height:30px;flex:none;border-radius:10px;display:grid;place-items:center;
+  background:var(--fill-2);color:var(--text-2);box-shadow:inset 0 0 0 1px var(--line)}
+.opt-ic .ic{width:16px;height:16px}
+.q-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.q-note{font-size:11px;color:var(--text-3);width:100%;line-height:1.6}
+/* ============ 打开歌单（贴链接 / 填 ID） ============ */
+.op-box{display:flex;align-items:center;gap:9px;margin-top:16px}
+.op-input{flex:1;min-width:0;height:42px;padding:0 14px;border:0;outline:none;border-radius:13px;
+  background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--line);
+  font-family:inherit;font-size:13.5px;color:var(--text);transition:.2s var(--ease)}
+.op-input:focus{background:var(--fill-3);box-shadow:inset 0 0 0 1.5px rgba(255,92,138,.5)}
+.op-input::placeholder{color:var(--text-3)}
+.op-go{flex:none;height:42px;padding:0 18px;border-radius:13px;font-size:13.5px;font-weight:800;color:#fff;
+  background:linear-gradient(120deg,var(--brand),var(--brand-2));
+  box-shadow:0 14px 28px -16px rgba(255,92,138,.95);transition:.16s var(--ease)}
+.op-go:active{transform:scale(.955)}
+.op-err{margin-top:10px;font-size:11.5px;font-weight:600;line-height:1.65;color:var(--danger-ink)}
+.op-err[hidden]{display:none}
+#plIdSamples .chip b{font-family:ui-monospace,SFMono-Regular,monospace;font-weight:700;font-size:11.5px}
+/* ============ 搜索页 ============ */
+.search-layer{padding:0;overflow:hidden}
+.sc-top{flex:none;display:flex;align-items:center;gap:10px;padding:54px 14px 12px;
+  background:linear-gradient(to bottom,var(--bg) 74%,transparent)}
+.sc-box{flex:1;min-width:0;display:flex;align-items:center;gap:9px;height:40px;border-radius:13px;padding:0 11px;
+  background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--line);transition:.2s var(--ease)}
+.sc-box:focus-within{background:var(--fill-3);box-shadow:inset 0 0 0 1.5px rgba(255,92,138,.5)}
+.sc-box>.ic{width:16px;height:16px;flex:none;color:var(--text-3)}
+.sc-input{flex:1;min-width:0;border:0;outline:none;background:none;font-family:inherit;font-size:14.5px;color:var(--text)}
+.sc-input::placeholder{color:var(--text-3)}
+.sc-x{width:18px;height:18px;flex:none;display:grid;place-items:center;border-radius:50%;
+  background:var(--fill-4);color:var(--text-2)}
+.sc-x[hidden]{display:none}
+.sc-x .ic{width:10px;height:10px}
+.sc-cancel{flex:none;font-size:13.5px;font-weight:650;color:var(--text-2);padding:6px 2px}
+.sc-body{flex:1;overflow-y:auto;scrollbar-width:none;padding:0 16px 40px}
+.sc-body::-webkit-scrollbar{display:none}
+.sc-tabs{position:sticky;top:0;z-index:5;display:flex;gap:22px;margin:0 -16px;padding:6px 16px 9px;
+  background:linear-gradient(to bottom,var(--bg) 76%,transparent)}
+.sc-tabs button{position:relative;font-size:14.5px;font-weight:750;color:var(--text-3)}
+.sc-tabs button.on{color:var(--text)}
+.sc-tabs button.on::after{content:'';position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);
+  width:17px;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+.sc-tabs em{font-style:normal;font-size:11px;font-weight:600;margin-left:5px;opacity:.65}
+.sc-label{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--text-3);font-weight:600;margin:18px 0 10px}
+.sc-label b{color:var(--text-2);font-weight:700}
+.sc-clear{font-size:11.5px;color:var(--text-3);display:flex;align-items:center;gap:1px}
+.sc-clear .ic{width:13px;height:13px}
+.hot-words{display:flex;flex-wrap:wrap;gap:8px}
+.hot-words .chip{font-weight:500}
+.sc-empty{padding:46px 0;text-align:center;font-size:12.5px;color:var(--text-3);line-height:1.9}
+.sc-empty b{display:block;font-size:14px;color:var(--text-2);font-weight:750;margin-bottom:4px}
+.sc-hint{font-size:11px;color:var(--text-3);margin-top:16px;line-height:1.7}
+
+/* ============ toast ============ */
+.toast{
+  position:absolute;left:50%;bottom:190px;transform:translate(-50%,14px);z-index:90;
+  padding:10px 16px;border-radius:14px;font-size:12.5px;font-weight:600;max-width:78%;text-align:center;
+  background:var(--glass);backdrop-filter:blur(18px);color:var(--glass-ink);
+  box-shadow:0 16px 40px -12px rgba(0,0,0,.8),inset 0 0 0 1px var(--line-strong);
+  opacity:0;transition:opacity .32s var(--ease),transform .32s var(--ease);pointer-events:none;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ============ notes panel ============ */
+.notes{width:392px;flex:none;max-height:844px;overflow-y:auto;scrollbar-width:none;padding:6px 4px 40px}
+.notes::-webkit-scrollbar{display:none}
+.notes h1{font-size:24px;font-weight:900;letter-spacing:.3px}
+.notes-lede{font-size:13px;color:var(--text-2);line-height:1.75;margin-top:10px}
+.notes h2{font-size:12px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--brand);margin:26px 0 10px}
+.notes table.spec{width:100%;border-collapse:collapse;font-size:12px}
+.notes table.spec th{text-align:left;color:var(--text-3);font-weight:600;font-size:10.5px;letter-spacing:.6px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.notes table.spec td{padding:9px 10px 9px 0;border-bottom:1px solid rgba(255,255,255,.05);color:var(--text-2);line-height:1.6;vertical-align:top}
+.notes table.spec td:first-child{width:47%;color:var(--text)}
+.notes .notes-body{font-size:12.5px;color:var(--text-2);line-height:1.8}
+.notes .notes-body em{color:var(--brand-3);font-style:normal;font-weight:700}
+.notes ul.notes-list{margin:0;padding-left:16px;font-size:12.5px;color:var(--text-2);line-height:1.9}
+.notes ul.notes-list li::marker{color:var(--brand)}
+.swatches{display:flex;gap:7px;flex-wrap:wrap}
+.sw{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--text-3);font-family:ui-monospace,monospace}
+.sw i{width:22px;height:22px;border-radius:7px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+
+@media (max-width:860px){
+  .notes{display:none}
+  body{padding:0}
+  /* 裸机模式下整屏就是手机。切换条改成贴顶窄条，手机给它让出高度，
+     否则切换开关会被推出可视区，看上去就像「没有横竖屏切换」这个功能 */
+  .viewer-bar{margin-bottom:0;padding:7px 0 6px;gap:8px}
+  .vb-label,.vb-note{display:none}
+  .vb-btn{height:28px;padding:0 13px;font-size:11.5px}
+  .phone{width:100vw;height:calc(100vh - 42px);max-width:none;border-radius:0;padding:0;box-shadow:none;background:none}
+  .screen{border-radius:0}
+  .island{display:none}
+}
+
+/* ============ 查看器：设备外形切换 ============
+ * 这一条不属于 App，是看原型的人用的开关。它必须一直看得见：
+ * 一旦跟着页面滚走，就等于「没有横竖屏切换」这个功能不存在 */
+.viewer-bar{width:100%;display:flex;align-items:center;justify-content:center;gap:14px;
+  position:sticky;top:0;z-index:92;margin:0 0 22px;padding:12px 0 10px;
+  background:rgba(8,8,12,.72);-webkit-backdrop-filter:blur(16px) saturate(170%);backdrop-filter:blur(16px) saturate(170%);
+  box-shadow:inset 0 -1px 0 var(--line)}
+.vb-label{font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3)}
+.vb-seg{display:flex;gap:3px;padding:3px;border-radius:14px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px var(--line)}
+.vb-btn{height:31px;padding:0 15px;border-radius:11px;font-size:12.5px;font-weight:700;color:var(--text-3);transition:.2s var(--ease)}
+.vb-btn.is-on{color:#0a0a0f;background:var(--grad);box-shadow:0 8px 20px -10px rgba(255,92,138,.8)}
+.vb-note{font-size:11.5px;color:var(--text-3);font-family:ui-monospace,SFMono-Regular,monospace}
+body.pad .stage{max-width:1240px}
+body.pad .notes{width:min(100%,900px);max-height:none}
+@media (max-width:860px){body.pad .stage{max-width:100%}}
+
+/* ============ Pad · 横屏 ============
+   同一套 DOM，靠 .pad 类把「底部 Tab」翻成「左侧导航」，内容区整体右移 --nav-w。
+   手机竖屏不受影响：--nav-w 默认 0px，所有 left 计算式退化成原值。 */
+.phone.pad{
+  --nav-w:236px;--safe-b:0px;
+  width:1180px;height:820px;border-radius:34px;padding:12px;
+  background:linear-gradient(160deg,#2a2d3a,#0d0f16 40%,#20222c);
+}
+.phone.pad .screen{border-radius:24px}
+.pad .island{display:none}
+.pad .statusbar{height:32px;padding:8px 26px 0}
+.pad .sb-time{font-size:13.5px}
+
+/* —— 侧栏导航 —— */
+.pad .tabbar{
+  top:0;bottom:0;left:0;right:auto;width:var(--nav-w);height:auto;
+  flex-direction:column;align-items:stretch;gap:2px;padding:32px 14px 16px;
+  background:linear-gradient(to bottom,var(--bg-soft),var(--bg));
+  -webkit-backdrop-filter:none;backdrop-filter:none;
+  box-shadow:inset -1px 0 0 var(--hairline);
+}
+.pad .nav-brand{display:flex;align-items:center;gap:11px;padding:0 6px 4px}
+.pad .nb-mark{width:34px;height:34px;flex:none;border-radius:11px;display:grid;place-items:center;
+  background:var(--grad);color:#0b0b11;box-shadow:0 10px 22px -12px rgba(255,92,138,.9)}
+.pad .nb-mark .ic{width:19px;height:19px}
+.pad .nb-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pad .nb-text b{font-size:15px;font-weight:900;letter-spacing:.3px}
+.pad .nb-text em{font-size:10.5px;font-style:normal;color:var(--text-3);letter-spacing:.3px}
+.pad .nav-sep{display:block;height:1px;background:var(--line);margin:16px 6px 8px}
+.pad .nav-label{display:block;font-size:10px;font-weight:800;letter-spacing:1.4px;color:var(--text-3);padding:0 8px 6px}
+.pad .tab{
+  flex:none;flex-direction:row;align-items:center;gap:13px;height:42px;padding:0 13px;
+  border-radius:13px;color:var(--text-2);transition:.2s var(--ease);
+}
+.pad .tab .ic{width:20px;height:20px;filter:none}
+.pad .tab span{font-size:13.5px;font-weight:650;letter-spacing:.2px}
+.pad .tab:active{transform:scale(.98)}
+.pad .tab.is-active{color:var(--text);background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--hairline)}
+.pad .tab.is-active .ic{color:var(--brand)}
+.pad .tab.is-active::before{top:50%;left:-6px;transform:translateY(-50%);width:3px;height:19px;border-radius:2px}
+.pad .nav-foot{
+  display:flex;align-items:center;gap:10px;margin-top:auto;padding:12px;border-radius:14px;text-align:left;
+  background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--line);transition:.2s var(--ease);
+}
+.pad .nav-foot:active{transform:scale(.98);background:var(--fill-3)}
+.pad .nf-dot{width:8px;height:8px;flex:none;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.pad .nf-dot.warn{background:var(--brand-3);box-shadow:0 0 10px var(--brand-3)}
+.pad .nf-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pad .nf-text b{font-size:12px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pad .nf-text em{font-size:10px;font-style:normal;color:var(--text-3);letter-spacing:.3px}
+.pad .nav-foot .ic{width:14px;height:14px;color:var(--text-3)}
+
+/* —— 内容区留白与页头 —— */
+.pad .topbar{padding:36px 30px 12px}
+.pad .viewport{padding:94px 0 132px}
+.pad .page{padding:0 30px}
+.pad .page-title{font-size:28px}
+.pad .section{margin-top:34px}
+.pad .section-title{font-size:21px}
+.pad .cat-row{margin:14px -30px 0;padding:3px 30px 8px}
+.pad .hscroll{margin:0 -30px;padding-left:30px;padding-right:30px;scroll-padding-inline:30px}
+.pad .chip{height:32px;padding:0 14px;font-size:13px}
+
+/* —— 首页栅格增列 —— */
+.pad .banner{height:216px;border-radius:var(--r-xl)}
+.pad .banner-track{gap:18px}
+.pad .quick-row{gap:16px;max-width:760px}
+.pad .quick .qa{width:68px;height:68px;border-radius:22px}
+.pad .quick span{font-size:12.5px}
+.pad .recent-card{width:150px}
+.pad .recent-card .art{width:150px;height:150px}
+.pad .artist-card{width:104px}
+.pad .artist-card .art{width:94px;height:94px}
+.pad .artist-card span{font-size:12.5px}
+.pad .pl-grid{grid-template-columns:repeat(4,1fr);gap:20px 18px}
+.pad .rank-grid{grid-template-columns:repeat(4,1fr);gap:20px 18px}
+.pad .radio-grid{grid-template-columns:repeat(3,1fr);gap:16px}
+.pad .radio-card{height:124px;padding:18px}
+.pad .rk-name{font-size:16.5px}
+.pad .song-row{gap:14px;padding:9px 12px 9px 6px}
+.pad .song-row .art{width:52px;height:52px}
+.pad .sr-title{font-size:15px}
+.pad .stat-row{max-width:620px}
+.pad .fav-card{max-width:620px}
+
+/* —— 迷你条 → 常驻播放条 —— */
+.pad .minibar{left:calc(var(--nav-w) + 22px);right:22px;bottom:20px;height:66px;border-radius:22px}
+.pad .mini-main{padding:0 16px;gap:14px}
+.pad .mini-art{width:46px;height:46px}
+.pad .mini-title{font-size:14px}
+.pad .mini-sub{font-size:11.5px}
+
+/* —— 歌单详情：左信息右曲目（iPad 主从布局） —— */
+.pad #plLayer{
+  display:grid;grid-template-columns:318px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;
+  column-gap:42px;padding:32px 30px 26px;overflow:hidden;
+}
+.pad #plLayer .pl-top{grid-column:1/-1;grid-row:1}
+.pad #plLayer .pl-hero{grid-column:1;grid-row:2;flex-direction:column;align-items:flex-start;gap:18px;margin:24px 0 0;min-height:0;align-self:start}
+.pad #plLayer .pl-hero .art{width:100%;height:auto;aspect-ratio:1;border-radius:24px}
+.pad #plLayer .pl-hero .ph-body{flex:none;align-self:stretch;width:100%;gap:8px}
+.pad #plLayer h3{font-size:21px}
+.pad #plLayer .pl-actions{grid-column:1;grid-row:3;margin:22px 0 0}
+.pad #plLayer .foot-note{grid-column:1;grid-row:4;margin-top:24px;justify-content:flex-start;text-align:left}
+.pad #plLayer #plTracks{grid-column:2;grid-row:2;align-self:start;min-height:0;max-height:100%;overflow-y:auto;scrollbar-width:none;padding:6px 6px 10px}
+.pad #plLayer #plTracks::-webkit-scrollbar{display:none}
+
+/* —— 设定页：分组两列 —— */
+.pad #page-setting #setBody{display:grid;grid-template-columns:1fr 1fr;gap:0 34px;align-items:start}
+.pad #page-setting .set-group{margin-top:22px}
+.pad #page-setting .sh-sub{font-size:12.5px}
+
+/* —— 搜索页：宽屏增列 —— */
+.pad .sc-top{padding:36px 24px 12px}
+.pad .sc-body{padding:0 30px 40px}
+.pad .sc-tabs{margin:0 -30px;padding:8px 30px 10px;gap:30px}
+.pad .sc-tabs button{font-size:15.5px}
+.pad .sc-empty{padding:64px 0}
+
+/* —— 播放页：封面与歌词并排 —— */
+.pad .player-layer{padding:32px 34px 24px}
+.pad .disc{width:268px;height:268px}
+.pad .player-layer.lyric-on .player-stage{grid-template-columns:minmax(0,1fr) 372px;column-gap:40px;align-items:center}
+.pad .player-layer.lyric-on .disc-wrap{display:grid}
+.pad .player-layer.lyric-on .disc{width:236px;height:236px}
+.pad .lyric-wrap{
+  position:relative;inset:auto;height:100%;padding:12px 0;overflow:hidden;border-radius:22px;
+  background:var(--card);box-shadow:inset 0 0 0 1px var(--line);
+}
+.pad .lyric-wrap::before{left:8px;right:8px;height:56px}
+.pad .lyric-wrap::after{left:8px;right:8px;height:56px}
+.pad .lyric-scroll{text-align:left;padding:0 26px}
+.pad .ln{font-size:14.5px;line-height:30px}
+.pad .ln.on{font-size:19px}
+.pad .player-info h3{font-size:24px}
+.pad .player-artist{font-size:13.5px}
+/* 主传输行现在是居中的一簇，工具行是四颗等宽图标：Pad 上都要跟着居中，
+   否则 660 的上限会把它们贴到左边界，与整屏居中的封面对不上 */
+.pad .player-controls,.pad .player-tools{max-width:660px;margin-left:auto;margin-right:auto}
+.pad .player-tools{max-width:520px}
+.pad .pc.main{width:70px;height:70px}
+
+/* —— 底部面板 → 居中模态卡 —— */
+.pad .sheet{align-items:center;justify-content:center}
+.pad .sheet-body{
+  width:660px;max-width:calc(100% - 96px);max-height:74%;border-radius:26px;padding:22px 26px 24px;
+  box-shadow:0 46px 96px -34px rgba(0,0,0,.95),inset 0 0 0 1px var(--line-strong);
+  transform:translateY(18px) scale(.97);opacity:0;
+  transition:transform .34s var(--ease),opacity .26s var(--ease);
+}
+.pad .sheet.show .sheet-body{transform:none;opacity:1}
+.pad .sheet-handle{display:none}
+.pad .sheet-title{font-size:21px}
+.pad .opt-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* —— 其它覆盖层 —— */
+.pad .toast{left:calc(50% + var(--nav-w) / 2);bottom:112px}
+.pad .lrc-float{left:calc(var(--nav-w) + 26px);top:590px;max-width:320px}
+.pad .lrc-float .lf-line{max-width:220px}
+
+/* ============ 手机 · 横屏（844 × 390） ============
+   这是查看器档位，不是 App 功能：RN 侧当前固定竖屏，本档只用来在宽窗口里
+   把每页排布看得更清楚。换向不是把竖屏拉宽——底栏保留但压扁，播放页与
+   详情层改成左右两栏，好让 390pt 的高度装得下「封面·进度·控制·工具」四排。
+   与 Pad 同一套路子：只加覆盖层，竖屏的规则一行都不动。 */
+.phone.land{--safe-b:0px;width:844px;height:390px;border-radius:46px;padding:11px}
+.land .screen{border-radius:35px}
+.land .island{display:none}
+.land .statusbar{height:26px;padding:4px 24px 0}
+.land .sb-time{font-size:12.5px}
+
+/* 顶栏 / 内容区 / 底栏一起压扁，把竖向预算还给内容 */
+.land .topbar{padding:30px 22px 8px}
+.land .viewport{padding:74px 0 122px}
+.land .page{padding:0 22px}
+.land .page-title{font-size:21px}
+.land .section{margin-top:20px}
+.land .section-title{font-size:16px}
+.land .tabbar{height:50px;padding-top:5px}
+.land .tab{gap:2px}
+.land .tab .ic{width:19px;height:19px}
+.land .tab span{font-size:10px}
+.land .minibar{bottom:58px;height:50px;border-radius:17px}
+.land .mini-art{width:36px;height:36px;border-radius:9px}
+.land .mini-title{font-size:12.5px}
+.land .mini-sub{font-size:10.5px;margin-top:1px}
+.land .mini-act{width:31px;height:31px}
+
+/* 首页与列表页：横向铺得开，卡片增列、封面缩短 */
+.land .banner{height:126px;border-radius:var(--r-l);padding:14px}
+.land .pl-grid,.land .rank-grid{grid-template-columns:repeat(4,1fr);gap:14px 12px}
+.land .radio-grid{grid-template-columns:repeat(3,1fr);gap:12px}
+.land .radio-card{height:96px;padding:13px}
+.land .recent-card{width:106px}
+.land .recent-card .art{width:106px;height:106px}
+.land .artist-card{width:66px}
+.land .artist-card .art{width:58px;height:58px}
+.land .rk-name{font-size:14px;bottom:28px}
+.land .rk-sub{font-size:9.5px;bottom:10px}
+.land .daily-card{height:84px}
+.land .daily-card .dc-art{width:84px;height:84px}
+.land .song-row{padding:6px 8px 6px 3px}
+.land .song-row .art{width:42px;height:42px}
+.land .sr-title{font-size:13.5px}
+.land #page-setting #setBody{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;align-items:start}
+
+/* —— 播放页：左唱片 / 右控制两栏 —— */
+.land .player-layer{display:grid;
+  grid-template-columns:minmax(0,236px) minmax(0,1fr);
+  grid-template-rows:auto auto auto auto auto auto auto;
+  align-content:center;column-gap:26px;padding:26px 26px 12px}
+.land .player-top{grid-area:1/1/2/3}
+.land .player-stage{grid-area:2/1/7/2;align-self:center;padding:0;min-height:0}
+.land .player-meta{grid-area:2/2/3/3;align-self:end}
+.land .player-source{grid-area:3/2/4/3;margin-top:6px}
+.land .seek{grid-area:4/2/5/3;margin:16px 0 6px}
+.land .seek-time{grid-area:5/2/6/3}
+.land .player-controls{grid-area:6/2/7/3;margin-top:12px}
+.land .player-tools{grid-area:7/2/8/3;align-self:start;margin-top:10px}
+.land .disc{width:186px;height:186px}
+.land .pc.main{width:54px;height:54px}
+.land .pc.main .ic{width:23px;height:23px}
+.land .pc{width:42px;height:42px}
+.land .player-info h3{font-size:19px}
+.land .pt-btn{padding:7px 2px}
+/* 横屏/Pad 的歌词态是「唱片与歌词同屏」，不存在翻页，所以那两枚滑动指示点只在手机上出现 */
+.land .stage-dots,.pad .stage-dots{display:none}
+/* 歌词态：左栏同时留唱片与歌词，跟 Pad 一个思路，只是尺寸收紧 */
+.land .player-layer.lyric-on .player-stage{display:grid;grid-template-columns:132px minmax(0,1fr);column-gap:16px;align-items:center}
+.land .player-layer.lyric-on .disc-wrap{display:grid}
+.land .player-layer.lyric-on .disc{width:130px;height:130px}
+.land .player-layer.lyric-on .lyric-wrap{position:relative;inset:auto;height:100%;padding:8px 0;overflow:hidden;
+  border-radius:18px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.land .player-layer.lyric-on .lyric-scroll{text-align:left;padding:0 16px}
+.land .lyric-wrap::before,.land .lyric-wrap::after{height:34px}
+.land .ln{font-size:12.5px;line-height:24px}
+.land .ln.on{font-size:16px}
+
+/* —— 详情层：左信息 / 右曲目 —— */
+.land .pl-layer{padding:34px 22px 18px}
+.land #plLayer{display:grid;grid-template-columns:228px minmax(0,1fr);
+  grid-template-rows:auto minmax(0,1fr) auto auto;column-gap:24px;overflow:hidden}
+.land #plLayer .pl-top{grid-column:1/-1;grid-row:1}
+.land #plLayer .pl-hero{grid-column:1;grid-row:2;flex-direction:column;align-items:flex-start;gap:12px;margin:14px 0 0;min-height:0;align-self:start}
+.land #plLayer .pl-hero .art{width:100%;height:auto;aspect-ratio:1;border-radius:18px}
+.land #plLayer .pl-hero .ph-body{flex:none;align-self:stretch;width:100%;gap:4px}
+.land #plLayer h3{font-size:18px}
+.land #plLayer .pl-actions{grid-column:1;grid-row:3;margin:14px 0 0}
+.land #plLayer .foot-note{grid-column:1;grid-row:4;margin-top:12px;justify-content:flex-start;text-align:left}
+.land #plLayer #plTracks{grid-column:2;grid-row:2/span 3;align-self:stretch;min-height:0;overflow-y:auto;
+  scrollbar-width:none;padding:6px 6px 10px}
+.land #plLayer #plTracks::-webkit-scrollbar{display:none}
+
+/* —— 浮层：还是底部面板，但限高可滚，别把 390 撑破 —— */
+.land .sheet-body{max-height:calc(100% - 26px);overflow-y:auto;scrollbar-width:none;padding:8px 20px 18px}
+.land .sheet-body::-webkit-scrollbar{display:none}
+.land .toast{bottom:92px}
+.land .lrc-float{left:22px;top:auto;bottom:116px;max-width:280px}
+.land .lrc-float .lf-line{max-width:200px}
+
+/* ============ 外观 · 明亮 ============
+   设定页「外观」组的 light 档。色值逐条取自本项目 newui/theme/tokens.ts 的 light 一档，
+   不在原型里另造一套浅色。基线仍是深色：这一层只挂在 .phone.light 上，
+   重写的全是 token，布局与组件形态一行都不改。
+   真正做主题反相的是 :root 那组叠色 token（--fill-* / --hairline* / --card / --glass*）：
+   组件只引用 token，浅底上由这一层把「叠白」换成「叠黑」，所以新增组件不必再写一套 .light 规则。
+   吸顶栏（顶栏 / 分类条 / 底栏）与歌词上下渐隐用 color-mix(--bg …,transparent) 跟随底色，
+   深色浅色都自动是对的，不需要覆盖层。
+   留在本层的只有两条改不动的真差异：歌词当前行的投影浓度、浮层遮罩浓度。
+   color 必须在本层重写一遍：body 的 color 是在深色 token 下算好的，
+   子元素靠继承拿到的仍是浅色字（未加 color 的 .page-title / .set-row 标题首当其冲）。 */
+.phone.light{
+  color:var(--text);
+  --bg:#F6F6FA;
+  --bg-soft:#EFEFF6;
+  --surface:#FFFFFF;
+  --surface-2:#F3F3F8;
+  --surface-3:#E9E9F1;
+  --line:rgba(21,22,28,.08);
+  --line-strong:rgba(21,22,28,.16);
+  --text:#15161C;
+  --text-2:#5A5F6E;
+  --text-3:#8B90A0;
+  --grad-soft:linear-gradient(120deg,rgba(255,92,138,.16),rgba(122,59,255,.16));
+  --shadow:0 18px 44px -20px rgba(21,22,28,.28);
+  --fill-1:rgba(21,22,28,.06);
+  --fill-2:rgba(21,22,28,.07);
+  --fill-3:rgba(21,22,28,.12);
+  --fill-4:rgba(21,22,28,.17);
+  --hairline:rgba(21,22,28,.06);
+  --hairline-strong:rgba(21,22,28,.26);
+  --card:#FFFFFF;
+  --glass:rgba(255,255,255,.82);
+  --glass-ink:#15161C;
+  --danger-ink:#C43C2E;
+}
+.phone.light .screen{
+  background:
+    radial-gradient(520px 300px at 80% -6%,rgba(122,59,255,.14),transparent 70%),
+    radial-gradient(420px 260px at 6% 4%,rgba(255,92,138,.13),transparent 70%),
+    var(--bg);
+}
+/* 以下几条是「同一语义在浅底上要换一个值」的真差异，没法用反相 token 表达，所以留在这里：
+   歌词当前行的投影（深底要压住黑雾、浅底要把字从白里抬出来）与浮层遮罩的浓度。 */
+.phone.light .ln.on{text-shadow:0 5px 22px rgba(21,22,28,.22)}
+.phone.light .sheet-mask{background:rgba(21,22,28,.28)}

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EchoIsle · UI 原型</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2308080C'/%3E%3Cpath d='M9 21.5V10.5m0 0c6 0 6 11 12 11V10.5' fill='none' stroke='%23FF5C8A' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+
+<svg class="sprite" aria-hidden="true">
+  <defs>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm0 0m8.5 12L23 22.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5 20 12 7 19.5V4.5Z" fill="currentColor"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 4.5h4v15H7zM13 4.5h4v15h-4z" fill="currentColor"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 5v14M19 5 8 12l11 7V5Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M18 5v14M5 5l11 7L5 19V5Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.9" fill="currentColor"/><circle cx="12" cy="12" r="1.9" fill="currentColor"/><circle cx="19" cy="12" r="1.9" fill="currentColor"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1v-9.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M4 6h11M4 12h11M4 18h7m5-3.5 4 3.5-4 3.5v-7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20V9m7 11V4m7 16v-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-9.4A4.1 4.1 0 0 1 12 8a4.1 4.1 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 12h2.5M8 7.5v9M12 5v14M16 8.5v7M20.5 11h.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-signal" viewBox="0 0 20 12"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4.5" width="3" height="7.5" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1" opacity=".35"/></symbol>
+    <symbol id="i-battery" viewBox="0 0 26 12"><rect x="1" y="1" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".5"/><rect x="3" y="3" width="14" height="6" rx="1.8" fill="currentColor"/><path d="M23 4.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".5"/></symbol>
+    <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9.5V13l2.5 1.6M9.5 2.5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <!-- 开启态一律用「描边 + 同色低透明度内填充」表达，全应用一套语言，不靠底色块 -->
+    <symbol id="i-timer-on" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8" fill="currentColor" opacity=".25"/><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9.5V13l2.5 1.6M9.5 2.5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.5 1.5M17.1 17.1l1.5 1.5M18.6 5.4l-1.5 1.5M6.9 17.1l-1.5 1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M4 9a5 5 0 0 1 5-5h9m0 0-3-3m3 3-3 3M20 15a5 5 0 0 1-5 5H6m0 0 3 3m-3-3 3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-repeat1" viewBox="0 0 24 24"><path d="M4 9a5 5 0 0 1 5-5h9m0 0-3-3m3 3-3 3M20 15a5 5 0 0 1-5 5H6m0 0 3 3m-3-3 3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="12" y="15.4" font-size="8" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none">1</text></symbol>
+    <!-- 工具行只靠图形区分，所以「顺序播放」「播完即停」不能再共用循环轮廓：
+         顺序播放 = 循环符号上压一道斜线（循环关闭），播完即停 = 放到底就停的箭头 + 端线 -->
+    <symbol id="i-repeat-off" viewBox="0 0 24 24"><path d="M4 9a5 5 0 0 1 5-5h9m0 0-3-3m3 3-3 3M20 15a5 5 0 0 1-5 5H6m0 0 3 3m-3-3 3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/><path d="M5 3.6 19.4 20.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-stop-after" viewBox="0 0 24 24"><path d="M5 5.5 15.5 12 5 18.5V5.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M19.8 5v14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 6h3.5c1.5 0 2.4.8 3.4 2.4l3.2 5.2c1 1.6 1.9 2.4 3.4 2.4H21m0 0-3-3m3 3-3 3M3 18h3.5c1.5 0 2.4-.8 3.4-2.4M14.6 8.2C15.6 6.7 16.5 6 18 6h3m0 0-3-3m3 3-3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.2A8.6 8.6 0 0 1 9.8 4a8.6 8.6 0 1 0 10.2 10.2Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-comment" viewBox="0 0 24 24"><path d="M20 12a7.5 7.5 0 0 1-11 6.6L4 20l1.4-4.4A7.5 7.5 0 1 1 20 12Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 11h6M9 14h3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".8"/></symbol>
+    <symbol id="i-float" viewBox="0 0 24 24"><rect x="2.5" y="3.5" width="12" height="8.5" rx="2.6" fill="none" stroke="currentColor" stroke-width="2" opacity=".5"/><rect x="7.5" y="10" width="14" height="10.5" rx="5.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 15.3h7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-float-on" viewBox="0 0 24 24"><rect x="2.5" y="3.5" width="12" height="8.5" rx="2.6" fill="none" stroke="currentColor" stroke-width="2" opacity=".5"/><rect x="7.5" y="10" width="14" height="10.5" rx="5.2" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="2"/><path d="M11 15.3h7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-heart-fill" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-9.4A4.1 4.1 0 0 1 12 8a4.1 4.1 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20Z" fill="currentColor"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6.9"/><circle cx="12" cy="12" r="2.7"/></g><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.35 5.35l1.65 1.65M17 17l1.65 1.65M5.35 18.65 7 17M17 7l1.65-1.65" fill="none" stroke="currentColor" stroke-width="2.2"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7.6V12l3.2 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M14.5 7.5h2.5a4.5 4.5 0 0 1 0 9h-2.5M9.5 7.5H7a4.5 4.5 0 0 0 0 9h2.5M8.5 12h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4.5 19.5h3.2l9.6-9.6-3.2-3.2L4.5 16.3v3.2Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.6 6.2 17.4 10M15.8 4.2 19.8 8.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10.4 18.6h3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.6h5V7M6.6 7l.9 12.4a1.6 1.6 0 0 0 1.6 1.5h5.8a1.6 1.6 0 0 0 1.6-1.5L17.4 7M10.4 11v6M13.6 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="stage">
+
+  <!-- 原型查看器控件：切换屏幕方向与设备外形。不属于 App 界面，所以放在手机壳外面 -->
+  <div class="viewer-bar">
+    <span class="vb-label">屏幕方向</span>
+    <div class="vb-seg" id="devSwitch">
+      <button class="vb-btn is-on" data-dev="phone">竖屏</button>
+      <button class="vb-btn" data-dev="land">横屏</button>
+      <button class="vb-btn" data-dev="pad">Pad</button>
+    </div>
+    <span class="vb-note" id="vbNote">390 × 844 pt · 底部 Tab</span>
+  </div>
+
+  <!-- ================= 手机 ================= -->
+  <div class="phone" id="phone">
+    <div class="screen">
+
+      <div class="island"></div>
+
+      <div class="statusbar">
+        <span class="sb-time">9:41</span>
+        <span class="sb-right">
+          <svg class="sb-signal"><use href="#i-signal"/></svg>
+          <svg class="sb-batt"><use href="#i-battery"/></svg>
+        </span>
+      </div>
+
+      <!-- 吸顶头部 -->
+      <header class="topbar" id="topbar">
+        <div class="topbar-row">
+          <button class="avatar-btn" id="avatarBtn" aria-label="侧栏">
+            <span class="avatar" id="topAvatar" style="--c1:#FF5C8A;--c2:#7A3BFF">野</span>
+          </button>
+          <button class="searchbar" id="searchBtn">
+            <svg class="ic"><use href="#i-search"/></svg>
+            <span class="ph">搜索歌曲 · 支持五平台</span>
+          </button>
+          <button class="icon-btn" id="castBtn" aria-label="音源设置">
+            <span class="pulse-dot" id="castDot" hidden></span>
+            <svg class="ic"><use href="#i-wave"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- 滚动区 -->
+      <main class="viewport" id="viewport">
+
+        <!-- 首页 -->
+        <div class="page" id="page-home">
+
+          <section class="banner-wrap">
+            <div class="banner-track" id="bannerTrack"></div>
+            <div class="banner-dots" id="bannerDots"></div>
+          </section>
+
+          <section class="quick-row" id="quickRow"></section>
+
+          <section class="section">
+            <div class="section-head">
+              <h2 class="section-title">继续收听</h2>
+              <button class="section-more" id="recentMore">清空记录<svg class="ic"><use href="#i-chevron"/></svg></button>
+            </div>
+            <div class="hscroll" id="recentRow"></div>
+          </section>
+
+          <section class="section">
+            <div class="daily-card" id="dailyCard"></div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <h2 class="section-title">推荐歌单</h2>
+              <button class="section-more" data-tab="playlist">全部歌单<svg class="ic"><use href="#i-chevron"/></svg></button>
+            </div>
+            <div class="pl-grid" id="playlistGrid"></div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <h2 class="section-title">热门单曲</h2>
+              <button class="section-more" data-tab="rank">完整榜单<svg class="ic"><use href="#i-chevron"/></svg></button>
+            </div>
+            <div class="rank-tabs" id="rankTabs"></div>
+            <div class="song-list" id="songList"></div>
+            <button class="ghost-btn" id="playAllBtn"></button>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <h2 class="section-title">热门歌手</h2>
+            </div>
+            <!-- 没有歌手主页可去，也不承诺真图：SDK 侧取不到歌手照片，头像位是示意插画 -->
+            <p class="section-note">头像是示意插画 · 平台未提供歌手照片</p>
+            <div class="hscroll" id="artistRow"></div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <h2 class="section-title">随手听</h2>
+            </div>
+            <div class="radio-grid" id="radioGrid"></div>
+          </section>
+
+          <div class="foot-note">
+            <span class="foot-mark"></span>
+            曲库内容来自各平台 · 能否播放取决于当前音源
+          </div>
+
+        </div>
+
+        <!-- 歌单 -->
+        <div class="page" id="page-playlist" hidden>
+
+          <div class="page-head">
+            <h2 class="page-title">歌单</h2>
+            <button class="pl-open-btn" id="plOpenBtn" aria-label="打开歌单"><svg class="ic"><use href="#i-link"/></svg></button>
+          </div>
+
+          <div class="cat-row" id="catRow"></div>
+
+          <section class="section">
+            <div class="section-head">
+              <h3 class="section-sub">我的歌单</h3>
+              <button class="section-more" id="plManage">管理<svg class="ic"><use href="#i-chevron"/></svg></button>
+            </div>
+            <div class="my-pl-row" id="myPlRow"></div>
+            <div class="empty-tip" id="myPlEmpty" hidden>还没有自建歌单 · 听到喜欢的先收藏进来</div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <h3 class="section-sub" id="plPoolTitle">推荐歌单</h3>
+              <span class="pl-count" id="plPoolCount"></span>
+            </div>
+            <div class="pl-grid" id="plPoolGrid"></div>
+            <div class="empty-tip" id="plPoolEmpty" hidden>这个分类下暂时没有推荐 · 换一个分类试试</div>
+          </section>
+
+          <div class="foot-note">
+            <span class="foot-mark"></span>
+            歌单目录来自平台曲库 · 每首歌要到播放时才取回可用地址
+          </div>
+
+        </div>
+
+        <!-- 排行榜 -->
+        <div class="page" id="page-rank" hidden>
+
+          <div class="page-head">
+            <h2 class="page-title">排行榜</h2>
+          </div>
+
+          <div class="rank-grid" id="rankGrid"></div>
+
+          <div class="foot-note">
+            <span class="foot-mark"></span>
+            榜单由各平台整理 · 点进去看完整排名
+          </div>
+
+        </div>
+
+        <!-- 我的 -->
+        <div class="page" id="page-mine" hidden>
+
+          <div class="mine-head">
+            <div class="mh-art" id="mineArt"></div>
+            <div class="mh-body">
+              <div class="mh-name" id="mineName"></div>
+              <div class="mh-sub">没有账号 · 收听都记在这台设备上</div>
+            </div>
+            <button class="mh-edit" id="mineEdit" title="修改昵称"><svg class="ic"><use href="#i-edit"/></svg>改昵称</button>
+          </div>
+
+          <div class="stat-row" id="statRow"></div>
+          <div class="fav-card" id="favCard"></div>
+
+          <section class="section">
+            <div class="section-head">
+              <h3 class="section-sub">最近播放</h3>
+              <button class="section-more" id="recentClear">清空记录<svg class="ic"><use href="#i-chevron"/></svg></button>
+            </div>
+            <div class="song-list compact" id="mineRecent"></div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <h3 class="section-sub">我的歌单</h3>
+              <!-- 这一角原本是「去歌单页」：跳过去只是换个 Tab，给不了用户想要的动作，换成就地新建 -->
+              <button class="section-more" id="createListBtn">新建歌单<svg class="ic"><use href="#i-chevron"/></svg></button>
+            </div>
+            <div class="pl-grid" id="minePlGrid"></div>
+            <div class="empty-tip" id="minePlEmpty" hidden>还没有自建歌单 · 听到喜欢的先收藏进来</div>
+          </section>
+
+          <div class="foot-note">
+            <span class="foot-mark"></span>
+            收藏 · 播放记录 · 自建歌单都只存在这台设备上
+          </div>
+
+        </div>
+
+        <!-- 设定：第 5 个 Tab，只放本机生效的开关 -->
+        <div class="page" id="page-setting" hidden>
+
+          <div class="page-head">
+            <h2 class="page-title">设定</h2>
+          </div>
+          <div class="set-hero">
+            <div class="sh-sub" id="setSub"></div>
+          </div>
+          <div id="setBody"></div>
+
+        </div>
+
+      </main>
+
+      <!-- 迷你播放条 -->
+      <div class="minibar" id="minibar">
+        <div class="mini-progress"><i id="miniProgressFill"></i></div>
+        <div class="mini-main">
+          <div class="mini-art" id="miniArt"></div>
+          <div class="mini-meta">
+            <div class="mini-title" id="miniTitle"></div>
+            <div class="mini-sub" id="miniSub"></div>
+          </div>
+          <button class="mini-act" id="miniHeart" aria-label="喜欢"><svg class="ic"><use href="#i-heart"/></svg></button>
+          <button class="mini-act primary" id="miniPlay" aria-label="播放/暂停"><svg class="ic"><use href="#i-play"/></svg></button>
+          <!-- 迷你条只给一枚「下一曲」：上一曲要回到开头得进播放页操作，这里放不下两个 -->
+          <button class="mini-act" id="miniNext" aria-label="下一曲"><svg class="ic"><use href="#i-next"/></svg></button>
+        </div>
+      </div>
+
+      <!-- 底部 Tab：Pad 横屏下这套 DOM 直接变成左侧导航栏 -->
+      <nav class="tabbar" id="tabbar">
+        <div class="nav-brand">
+          <span class="nb-mark"><svg class="ic"><use href="#i-wave"/></svg></span>
+          <span class="nb-text"><b>EchoIsle</b><em>本地曲库 · 五平台</em></span>
+        </div>
+        <i class="nav-sep"></i>
+        <div class="nav-label">导航</div>
+        <button class="tab is-active" data-tab="home"><svg class="ic"><use href="#i-home"/></svg><span>首页</span></button>
+        <button class="tab" data-tab="playlist"><svg class="ic"><use href="#i-list"/></svg><span>歌单</span></button>
+        <button class="tab" data-tab="rank"><svg class="ic"><use href="#i-chart"/></svg><span>排行榜</span></button>
+        <button class="tab" data-tab="mine"><svg class="ic"><use href="#i-user"/></svg><span>我的</span></button>
+        <button class="tab" data-tab="setting"><svg class="ic"><use href="#i-gear"/></svg><span>设定</span></button>
+        <i class="nav-sep"></i>
+        <button class="nav-foot" id="navFoot">
+          <i class="nf-dot"></i>
+          <span class="nf-text"><b id="navSrc">野花 · 5 个平台</b><em id="navQ">128k</em></span>
+          <svg class="ic"><use href="#i-chevron"/></svg>
+        </button>
+      </nav>
+
+      <!-- 播放页浮层 -->
+      <div class="player-layer" id="playerLayer">
+        <div class="player-bg" id="playerBg"></div>
+        <div class="player-top">
+          <button class="icon-btn" id="playerClose"><svg class="ic"><use href="#i-chevron"/></svg></button>
+          <div class="player-crumb"><span>正在播放</span><i class="q-tag" id="playerQuality"></i></div>
+        </div>
+
+        <div class="player-stage">
+          <div class="disc-wrap" id="discWrap"><div class="disc" id="playerDisc"></div></div>
+          <div class="lyric-wrap" id="lyricWrap" hidden>
+            <div class="lyric-scroll" id="lyricScroll"></div>
+          </div>
+        </div>
+        <div class="stage-dots" aria-hidden="true"><i></i><i></i></div>
+
+        <div class="player-meta">
+          <div class="player-info">
+            <h3 id="playerTitle"></h3>
+            <div class="player-artist" id="playerArtist"></div>
+          </div>
+          <button class="pc fav" id="playerHeart" aria-label="收藏"><svg class="ic"><use href="#i-heart"/></svg></button>
+        </div>
+        <div class="player-source" id="playerSource"></div>
+
+        <div class="seek" id="seekBar">
+          <i id="seekFill"></i><em id="seekKnob"></em>
+        </div>
+        <div class="seek-time"><span id="seekCur">0:00</span><span id="seekDur">0:00</span></div>
+
+        <div class="player-controls">
+          <button class="pc ghost" id="btnPrev" aria-label="上一曲"><svg class="ic"><use href="#i-prev"/></svg></button>
+          <button class="pc main" id="playerPlay" aria-label="播放/暂停"><svg class="ic"><use href="#i-play"/></svg></button>
+          <button class="pc ghost" id="btnNext" aria-label="下一曲"><svg class="ic"><use href="#i-next"/></svg></button>
+        </div>
+
+        <!-- 次级工具行：只有图形，不给选中底色，文字一律走 aria-label；状态靠换图标 -->
+        <div class="player-tools">
+          <button class="pt-btn" id="btnTimer" aria-label="定时停止播放 · 未开启"><svg class="ic"><use href="#i-timer"/></svg></button>
+          <button class="pt-btn" id="btnLoop" aria-label="循环模式 · 列表循环"><svg class="ic"><use href="#i-repeat"/></svg></button>
+          <button class="pt-btn" id="btnFloat" aria-label="LRC 浮窗 · 未开启"><svg class="ic"><use href="#i-float"/></svg></button>
+          <button class="pt-btn" id="btnComment" aria-label="评论"><svg class="ic"><use href="#i-comment"/></svg></button>
+        </div>
+      </div>
+
+      <!-- LRC 浮窗：可拖动的歌词气泡，覆盖在其它页面之上 -->
+      <div class="lrc-float" id="lrcFloat" hidden>
+        <i class="lf-src"></i>
+        <span class="lf-line" id="lfLine"></span>
+        <button class="lf-close" id="lfClose" aria-label="关闭浮窗"><svg class="ic"><use href="#i-close"/></svg></button>
+      </div>
+
+      <!-- 搜索：整页推入。没有输入时给历史与热搜，输入后分「单曲 / 歌单」两类结果 -->
+      <div class="pl-layer search-layer" id="searchLayer">
+        <div class="sc-top">
+          <div class="sc-box">
+            <svg class="ic"><use href="#i-search"/></svg>
+            <input class="sc-input" id="searchInput" placeholder="搜歌名、歌手、歌单" autocomplete="off">
+            <button class="sc-x" id="searchClear" hidden aria-label="清空"><svg class="ic"><use href="#i-close"/></svg></button>
+          </div>
+          <button class="sc-cancel" id="searchCancel">取消</button>
+        </div>
+        <div class="sc-body" id="searchBody"></div>
+      </div>
+
+      <!-- 歌单详情：从右侧推入，覆盖在 Tab 之上 -->
+      <div class="pl-layer" id="plLayer">
+        <div class="pl-bg" id="plBg"></div>
+        <div class="pl-top">
+          <button class="icon-btn" id="plBack" aria-label="返回"><svg class="ic"><use href="#i-chevron"/></svg></button>
+          <div class="player-crumb" id="plCrumb">歌单</div>
+          <button class="icon-btn" id="plFavBtn" aria-label="收藏歌单"><svg class="ic"><use href="#i-heart"/></svg></button>
+        </div>
+        <div class="pl-hero" id="plHero"></div>
+        <div class="pl-actions" id="plActions"></div>
+        <div class="song-list" id="plTracks"></div>
+        <div class="foot-note" id="plFoot"></div>
+      </div>
+
+      <!-- 音源状态浮层 -->
+      <div class="sheet" id="sourceSheet">
+        <div class="sheet-mask" data-close></div>
+        <div class="sheet-body">
+          <div class="sheet-handle"></div>
+          <h3 class="sheet-title">音源设置</h3>
+          <div class="sheet-sub" id="sheetSub"></div>
+          <div class="group-label">已安装音源</div>
+          <div class="opt-list" id="scriptList"></div>
+          <div class="group-label">音乐平台</div>
+          <div class="opt-list" id="platformList"></div>
+          <div class="group-label">音质</div>
+          <div class="q-chips" id="qualityRow"></div>
+          <div class="group-label">导入音源</div>
+          <div class="op-box">
+            <input class="op-input" id="importInput" placeholder="音源脚本链接" autocomplete="off" spellcheck="false">
+            <button class="op-go" id="importGo">导入</button>
+          </div>
+          <div class="op-err" id="importErr" hidden></div>
+        </div>
+      </div>
+
+      <!-- 用歌单 ID 打开：贴分享链接，或者只填那串号 -->
+      <div class="sheet" id="plIdSheet">
+        <div class="sheet-mask" data-close></div>
+        <div class="sheet-body">
+          <div class="sheet-handle"></div>
+          <h3 class="sheet-title">打开歌单</h3>
+          <div class="sheet-sub">把平台上分享出来的歌单链接贴进来，或者只填那串歌单 ID。</div>
+          <div class="op-box">
+            <input class="op-input" id="plIdInput" placeholder="歌单链接 / ID" autocomplete="off" spellcheck="false">
+            <button class="op-go" id="plIdGo">打开</button>
+          </div>
+          <div class="op-err" id="plIdErr" hidden></div>
+          <!-- 裸 ID 形态必须有平台坐标：链接能按域名认出来，一串号认不出来，所以让用户点一下 -->
+          <div class="group-label" id="plIdPlatLabel">只填 ID 的话，先点这份歌单来自哪个平台</div>
+          <div class="hot-words" id="plIdPlats"></div>
+          <div class="group-label">可以试试这几个</div>
+          <div class="hot-words" id="plIdSamples"></div>
+          <p class="sc-hint">歌单包含哪些平台的歌曲取决于歌单本身 · 能否播放在点播放时确认。</p>
+        </div>
+      </div>
+
+      <!-- 新建歌单：起个名字就能建，校验规则与旧屏一致（空名不建 / 超 100 字截断 / 同名先问） -->
+      <div class="sheet" id="createSheet">
+        <div class="sheet-mask" data-close></div>
+        <div class="sheet-body">
+          <div class="sheet-handle"></div>
+          <h3 class="sheet-title">新建歌单</h3>
+          <div class="sheet-sub">起个名字就能建，建好就出现在「我的歌单」这一排里。</div>
+          <div class="op-box">
+            <input class="op-input" id="createName" placeholder="你想起啥名..." autocomplete="off" spellcheck="false">
+            <button class="op-go" id="createGo">创建</button>
+          </div>
+          <div class="op-err" id="createErr" hidden></div>
+          <p class="sc-hint">新歌单只存在这台设备上，进入后即可添加歌曲。</p>
+        </div>
+      </div>
+
+      <!-- 全部分类：chip 行只放得下热门那几个，全量目录按平台分组收在这一层 -->
+      <div class="sheet" id="plTagsSheet">
+        <div class="sheet-mask" data-close></div>
+        <div class="sheet-body">
+          <div class="sheet-handle"></div>
+          <h3 class="sheet-title">全部分类</h3>
+          <div class="sheet-sub">当前平台的全部分类 · 选一个，下面的推荐歌单就换成这一类。</div>
+          <div id="plTagsBody"></div>
+        </div>
+      </div>
+
+      <!-- 昵称：头像永远取第一个字 -->
+      <div class="sheet" id="nameSheet">
+        <div class="sheet-mask" data-close></div>
+        <div class="sheet-body">
+          <div class="sheet-handle"></div>
+          <h3 class="sheet-title">修改昵称</h3>
+          <div class="sheet-sub">头像用昵称的第一个字，顶左上角的那颗圆也一起换。</div>
+          <div class="op-box">
+            <input class="op-input" id="nameInput" placeholder="想叫什么" autocomplete="off" maxlength="12">
+            <button class="op-go" id="nameGo">保存</button>
+          </div>
+          <div class="op-err" id="nameErr" hidden></div>
+          <div class="group-label">换个快的</div>
+          <div class="hot-words" id="namePicks"></div>
+          <p class="sc-hint">昵称只保存在这台设备的存储里，不上传任何服务器 · 更换设备后回到「EchoIsle」。</p>
+        </div>
+      </div>
+
+      <!-- 单曲操作面板 -->
+      <div class="sheet" id="moreSheet">
+        <div class="sheet-mask" data-close></div>
+        <div class="sheet-body">
+          <div class="sheet-handle"></div>
+          <div class="more-song" id="moreSong"></div>
+          <div class="opt-list" id="moreActions"></div>
+        </div>
+      </div>
+
+      <!-- 播放页子面板：定时 / 评论（均衡器随假能力一并撤掉，见 notes「正在播放页」） -->
+      <div class="sheet" id="playerSheet">
+        <div class="sheet-mask" data-close></div>
+        <div class="sheet-body">
+          <div class="sheet-handle"></div>
+          <h3 class="sheet-title" id="psTitle"></h3>
+          <div class="sheet-sub" id="psSub"></div>
+          <div id="psBody"></div>
+        </div>
+      </div>
+
+      <!-- 二次确认：删本机数据之前问一句（清除缓存 / 删除歌单 / 同名建单共用） -->
+      <div class="sheet" id="confirmSheet">
+        <div class="sheet-mask" data-close></div>
+        <div class="sheet-body">
+          <div class="sheet-handle"></div>
+          <h3 class="sheet-title" id="cfTitle"></h3>
+          <div class="sheet-sub" id="cfBody"></div>
+          <div class="cf-actions">
+            <button class="cf-btn" data-close>取消</button>
+            <button class="cf-btn go" id="cfOk">确定</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+
+    </div>
+  </div>
+
+  <!-- ================= 设计说明 ================= -->
+  <aside class="notes">
+    <div class="notes-inner">
+      <h1>EchoIsle · 五个 Tab</h1>
+      <p class="notes-lede">移动端 UI 原型（HTML/CSS/JS）：首页 / 歌单 / 排行榜 / 我的 / 设定，左上角可切<em>手机竖屏</em>、<em>手机横屏</em>与<em>Pad 横屏</em>三种外形，另有一档明暗主题。信息架构不是照搬竞品，而是由音源脚本解码出的能力边界反推出来的——音源只能把一首歌变成能播的声音，其余内容全部来自平台曲库。</p>
+
+      <h2>音源能力 → 设计约束</h2>
+      <table class="spec">
+        <tr><th>解码结论</th><th>UI 落点</th></tr>
+        <tr><td>仅注册 <code>musicUrl</code> 事件，其它 action 抛错</td><td>推荐、榜单、歌单、歌词、评论一律按「平台曲库内容」呈现，原型里为 mock；音源只在点播放那一刻介入</td></tr>
+        <tr><td><code>getId</code> 分支：tx / wy / kw / kg / mg</td><td>音源面板内的平台单选组 + 每首歌的来源角标；列表里给「暂不能播」的降级态，而不是报错</td></tr>
+        <tr><td>各平台 ID 取值不同（kg 用 <code>hash</code>，mg 用 <code>songmid+'d'</code>）</td><td>不暴露给用户。取哪个字段、拼什么串是脚本的事，界面上只留「这个来源能不能播」</td></tr>
+        <tr><td>没有 <code>getPlaylistUrls</code>，歌单号不能直接换成内容</td><td>页头「打开歌单」收的是用户自己从平台分享出来的那串号，只当「去哪份歌单」的坐标；打开之后仍然逐首判能不能播</td></tr>
+        <tr><td><code>s = "xx|128k&..."</code> 全平台仅 128k</td><td>音质选择器只在音源声明多档时才出现可选项，野花下只读 + 一句说明；不做假 HQ 开关</td></tr>
+        <tr><td>脚本可多份共存、单选生效（LX 音源模型）</td><td>面板顶部「已安装音源」列表，切换后平台覆盖范围、音质档位与三个 Tab 的「可播」数字同时刷新</td></tr>
+        <tr><td>初始化拉取 <code>/urlinfo/</code> 返回 <code>u</code>、<code>h</code></td><td>只保留右上状态灯；「检查更新」撤掉——不连真实接口的更新按钮是假按钮，设定页里也不放</td></tr>
+        <tr><td>请求带 md5 签名、跨域受限</td><td>原型不真连接口；签名与取址模板完全不出现在界面上</td></tr>
+      </table>
+
+      <h2>文案的取舍</h2>
+      <p class="notes-body">用户不会关心 <code>/url/{source}/{id}/{quality}</code>、请求方法、签名、<code>musicUrl</code> 事件名，也不会关心酷狗为什么要用 <code>hash</code>。这些在早期版本里散落在 toast、面板副标题和歌曲行尾部，现在全部撤掉，换成一句人话：<em>能不能播、换一个音源试试</em>。能力推理的过程保留在本文档，不进手机屏幕。</p>
+      <ul class="notes-list">
+        <li>歌曲行的「⋯」原本弹出取址模板，现在弹收藏 / 下一曲播放 / 加入歌单</li>
+        <li>音源面板副标题从「仅注册 musicUrl 事件」改为「音源只负责把歌曲变成能播的声音」</li>
+        <li>不支持的来源不显示错误码，显示「暂不能播」并把行压暗，播放时直接跳过</li>
+        <li>唯一的例外是歌单 ID：分享链接末尾那串数字本来就是用户会互相转发的东西，所以「打开歌单」面板可以直接把它当输入；被藏起来的是各平台 ID 的字段类型与取址方式，<code>data.js</code> 里仍留着 <code>idKey</code> / <code>idExample</code> 供解码</li>
+      </ul>
+
+      <h2>视觉</h2>
+      <div class="swatches" id="swatches"></div>
+      <p class="notes-body">主色是粉紫渐变 <code>#FF5C8A → #7A3BFF</code>（早期「野花」时期定盘，定名 EchoIsle 后沿用），中性底 <code>#08080C</code>；层级靠 <em>表面色 + 1px 高光描边 + 模糊</em> 而非投影堆叠，接近 iOS 26 的 Liquid 质感。圆角 20/26 双档，字阶 11/13/16/22。状态栏与灵动岛是硬件层，<code>z-index:86</code> 高于推入页(66)/播放页(70)/浮层(80)，只有 toast 在它上面。明亮主题不是另画一套配色，而是在 <code>.phone.light</code> 上重写同一批 CSS 变量，所有组件自动换肤。真正要小心的是<em>半透明叠色</em>：深色底靠「往上叠白」抬亮层级，浅底上同一手法会整片消失——所以 <code>:root</code> 里有一组专门给叠色用的 token，组件只引用它们，浅色层把「叠白」换成「叠黑」，同透明度只反相：
+    <code>--fill-1/2/3/4</code>（行按下的瞬时底 / 控件底 / 按压加重 / 结构件底）、<code>--hairline</code> 与 <code>--hairline-strong</code>（两档 inset 描边）、<code>--glass</code> + <code>--glass-ink</code>（浮在封面图上的毛玻璃贴片及其文字，迷你条 / LRC 浮窗 / 「建设中」角标共用一套）、<code>--danger-ink</code>（报错字：浅底上亮珊瑚读不出来，换深红）。
+    分组容器（设定列表 / 统计条 / 歌词卡）单独用 <code>--card</code>：深色是叠白，浅色<em>不</em>压黑，而是换成实心白面——页面灰、卡片白，跟 iOS 分组列表一致。
+    吸顶栏（顶栏 / 分类条 / 底栏）与歌词上下渐隐改用 <code>color-mix(in srgb,var(--bg) …%,transparent)</code> 跟随底色，深浅两档都自动正确，不再需要覆盖层。
+    留在 <code>.phone.light</code> 里的只有两条改不动的真差异：歌词当前行的投影浓度、浮层遮罩浓度。
+    压在图上的文字（轮播标题、榜单卡榜名、角标白字）不参与反相——它们的底永远是那张饱和渐变的插画，所以直接锁白；<code>.phone.light</code> 上的 <code>color</code> 仍要重写一次，否则 <code>body</code> 继承下来的字色还是暗色那套。</p>
+
+      <h2>图标体系</h2>
+      <p class="notes-body">全站图形只出自一处 sprite（<code>&lt;symbol&gt;</code>，共 36 枚），一律 24×24 网格、圆头圆角、只描边不铺面，颜色全部 <code>currentColor</code>——图标本身不带颜色，换肤与选中态都靠继承。三条规则支撑「像产品」的观感：</p>
+      <ul class="notes-list">
+        <li><em>线宽只有两档</em>：主描边 2.0；显示尺寸小到 16px 以下、或大到 26px 以上的控制键（上一曲 / 下一曲 / 关闭 / 返回 / 加号）提到 2.2 做视觉补偿。同一枚图标里不同线宽不超过两种，再浅的层级用 <code>opacity</code> 表达而不是继续调细线——所以「顺序播放」的斜线压 2.2、母环 2.0 加 55% 透明度，而不是三档线宽各自为政</li>
+        <li><em>状态成对出现，只换图形不换尺寸</em>：定时与 LRC 浮窗的开启态是「同一轮廓 + 同色 25% 内填充」，关闭态是纯描边，两枚 symbol 的路径起点与尺寸逐点对齐，切换时只改 <code>&lt;use href&gt;</code>，不加底色、不加角标、不放大</li>
+        <li><em>语义写进 <code>aria-label</code></em>：纯图标按钮（播放页工具行四颗、迷你条三颗）的当前状态只能从图形读，所以状态文案放在 <code>aria-label</code> 上随状态更新（如「循环模式 · 单曲循环」「定时停止播放 · 剩余 12:30」），屏内不塞文字</li>
+        <li>状态栏的信号 / 电量是硬件层图形，视角与线宽都不同，不参与这套规范；<code>i-clock</code> 是早期定时入口的遗留 symbol，已无人引用，留在 sprite 里不删（后续做「稍后播放」可能用得上）</li>
+      </ul>
+
+      <h2>歌曲行（各页共用）</h2>
+      <p class="notes-body">同一行组件在首页、搜索、歌单详情、榜单详情、最近播放里复用，只有 <code>compact</code> 一档尺寸差异。第二行的字段顺序是<em>固定</em>的：<b>来源平台角标 → 音质标签 → 歌手 → 专辑</b>，中间用 1px 竖线分隔。</p>
+      <ul class="notes-list">
+        <li>顺序按「这条信息有多大局」排：平台与音质是<em>这首歌能不能播</em>的判据，用户扫一眼是为了决定要不要点；歌手与专辑是内容描述，属于补充。所以判据在前、描述在后，与主流 App（网易云 / QQ音乐）把来源与音质放行尾不同，是因为本项目是多平台聚合、音质还会随音源变化，这两个信息在决策上更靠前</li>
+        <li>压缩时按「专辑 → 歌手」的顺序让步：两枚角标不参与压缩（<code>flex:none</code>），专辑 <code>flex:0 100 auto</code> 先被截断，歌手 <code>flex:0 1 auto</code> 后截断，任何宽度下都能看到平台与音质</li>
+        <li>落到 RN 时改的是 <code>SongRow</code> 的 <code>subRow</code> 子节点顺序（现为 <code>SrcBadge → subtitle → QTag</code>）：拆成 <code>SrcBadge → QTag → artist → album</code> 四段，<code>subtitle</code> 这一个 prop 要拆成 <code>artist</code> / <code>album</code> 两个，容器上补一条分隔线样式即可，其余 props 与交互不变</li>
+      </ul>
+
+      <h2>三种外形</h2>
+      <p class="notes-body">同一套 DOM，不复制页面：左上角「设备外形」三档——<em>手机竖屏</em> 390×844、<em>手机横屏</em> 844×390、<em>Pad 横屏</em> 1180×820。切到 Pad 时给外框和 <code>body</code> 各加一个 <code>.pad</code> 类，靠一段覆盖样式把「底部 Tab」翻成「左侧导航」；手机横屏只加 <code>.land</code>，把外框转成宽扁形、底栏保持横向、内容区改两列，不引入侧栏。预览窗口不够宽时整体等比缩小（<code>fitFrame()</code> 按 stage 宽度和窗口高度取较小值，手机模式不参与缩放），量到的坐标都还是逻辑像素。</p>
+      <ul class="notes-list">
+        <li>让位用一个变量做完：<code>--nav-w</code> 手机 <code>0px</code>、Pad <code>236px</code>，顶栏 / 滚动区 / 推入页 / 播放页 / 迷你条的 <code>left</code> 全部引用它——所以手机侧的计算式原样退化成 0，不需要第二套定位</li>
+        <li>侧栏由原 <code>#tabbar</code> 变身（<code>flex-direction:column</code> + 42px 行高），补了品牌行、「浏览」分组标题、独立的<em>设定</em>入口，底部 <code>margin-top:auto</code> 钉住当前音源状态：脚本名 + 版本 + 平台数 + 音质，解码失败时小圆点变橙。手机模式这四个新节点 <code>display:none</code>，不占空间</li>
+        <li>内容区加宽不等于放大：轮播 860×216、歌单 / 榜单 4 列、电台 3 列、歌曲行 860 宽，左右各留 30px 边距；<code>.viewport</code> 的 <code>padding-top</code> 同步改成 94px 与 Pad 顶栏等高，胶囊吸顶仍然是 <code>top:0</code></li>
+        <li>歌单详情改成 iPad 那种主从布局：左列 318px 放封面（正方向撑满）+ 标题 / 标签 + 播放全部，右列曲目列表<em>自己滚</em>（<code>overflow:hidden</code> + 内层 <code>max-height:100%</code>），滚动条藏在卡内，标题不再被长列表顶出屏幕</li>
+        <li>播放页开歌词时左右分栏（封面 440 ｜ 歌词 372），转盘留在原地继续转；不开歌词仍是竖排。<em>定时 / 评论 / 音源</em> 这些 sheet 从底部弹出改为居中模态（660px，最大高 74%），拖动条隐藏，出现动画换成 scale + fade</li>
+        <li>设定页分组两列排布；「我的」的统计条限宽 620px，不被拉到整页宽显得空洞</li>
+        <li>三档外形切换一律收回浮层与推入页并清掉浮窗的手拖坐标（内联像素是上一个外框的），避免带着旧几何进新布局；toast、LRC 浮窗的位置都按 <code>--nav-w</code> 重算，浮窗拖拽还把屏幕像素除回逻辑像素（<code>frameZoom()</code>）</li>
+        <li>状态栏保留（时间 / 信号 / 电量）但去掉灵动岛，Pad 外框没有挖孔</li>
+        <li>「屏幕方向 / 设备外形」是<em>查看器</em>的控件、不属于 App，此前放在手机壳上方，页面一滚就看不见，等于「没有这个功能」。现在它是 <code>position:sticky</code> 常驻条，始终贴在浏览器顶部，深色毛玻璃底与手机外壳分开一层；窗口窄到 860px 以下（裸机预览档）时它压成一条 42px 的窄条、手机高度改 <code>calc(100vh - 42px)</code>，保证切换开关永远露在可视区里</li>
+      </ul>
+
+      <h2>首页</h2>
+      <ul class="notes-list">
+        <li>搜索框 → 整页搜索（见下一节）；右上波纹图标 → 音源设置面板（切音源 / 切平台 / 切音质）</li>
+        <li>那颗波纹图标上的<em>琥珀色呼吸点只有一种含义</em>：当前脚本没配好（未初始化 / 平台对接不上），进来处理一下。配好即整颗撤掉——不给「一切正常」留常驻绿灯，否则用户会把它读成「在线状态」，而这种装饰性常驻点正是最容易被当成假数据的地方（<code>renderNav()</code> 里 <code>#castDot.hidden = state === 'ready'</code>）</li>
+        <li>轮播三条不是营销位，是三条<em>当前状态</em>：在看哪个平台曲库、正在放哪首、电台还没做。<code>renderBanners()</code> 每次播放与切源后重画，定时器只起一次，不会叠出重复条</li>
+        <li>榜单 chips 用<em>真榜名</em>（当前平台的<code>homeBoards()</code>，取前 4 张），只驱动下方「热门单曲」；榜里的歌按那张榜所属平台取址，切到没接的平台就明说「这个榜暂时打不开」</li>
+        <li>「播放全部 N 首」不带平台名：N 已经是按当前音源筛过的可播数，再缀一个来源只会让句子更长</li>
+        <li>继续收听一行末尾是<em>清空记录</em>（与设定页那行共用 <code>clearRecent()</code>），一行没有就整块连入口一起收掉，不留点了没反应的按钮</li>
+        <li>每日推荐的首数按这次真正挑到的算（池子 = 听过 ∪ 我喜欢 去重取前 10），池子空就写「先听几首，这里会自动排好」而不是硬编 10 首</li>
+        <li>热门歌手没有主页可去：点头像 = 播当前这张榜里他/她的歌，对不上就明说；下面补一行灰字讲清<em>头像是示意插画</em>，平台没给歌手照片</li>
+        <li>热门单曲行去掉「⋯」：这一列的定位就是单击即播，收藏与加入歌单留给播放页和详情页</li>
+        <li>电台（随手听两张卡 + 快捷入口 + 轮播里那条）统一标 <em>建设中</em>：卡片右上角挂角标，点击只给「电台 · 还在建设中」，不假装能播直播流</li>
+        <li>任意歌曲行 → 迷你播放条（喜欢 / 播停 / 下一曲三颗）→ 点开播放页</li>
+      </ul>
+
+      <h2>搜索</h2>
+      <p class="notes-body">音源没有 <code>search</code> 事件，所以搜索是「平台曲库」能力，原型里在本地对 mock 曲库做匹配。原来点热词只弹一句占位 toast，现在是一整页：没输入时是历史 + 热搜，<em>回车或点词才发搜索</em>（真实侧一次搜索要同时打单曲和歌单两个接口），中间亮一句「正在搜索…」，结果回来才铺列表。</p>
+      <ul class="notes-list">
+        <li>整页推入（<code>.pl-layer</code> 右滑），头部是搜索框 + 取消，<code>padding-top:54px</code> 与首页顶栏的搜索条对齐，吸顶分段条在滚动容器内容盒上 <code>top:0</code></li>
+        <li>结果 <em>单曲 / 歌单</em> 两类分开，标签上直接带命中数；默认落在单曲，若单曲零命中而歌单有则自动切过去，反之亦然</li>
+        <li>单曲复用 <code>songRow</code>：来源角标、音质、时长、可播状态与首页一致，点行只入队播放并留在搜索页继续挑；底部一句「N 首 · 其中 M 首现在这个音源能播」</li>
+        <li>歌单复用 <code>plCard</code> 与详情层，所以 <code>#searchLayer</code> 在 DOM 里排在 <code>#plLayer</code> 之前，同 z-index 下详情层压在搜索结果之上</li>
+        <li>匹配按<em>词</em>拆：「lofi 学习」整串谁都命中不了，拆成两个词后命中带「学习」标签的歌单；范围含歌名 / 歌手 / 专辑 / 平台名（搜「咪咕音乐」出的是咪咕那几首）；历史词去重最多留 8 个，可一键清空</li>
+        <li>换词时自动落到有结果的那一类，但用户手动点过的标签不会被抢走；只有一类为空时给「看 N 份歌单 / N 首单曲」的跳转，两类都空才说没找到，并给换词建议</li>
+        <li>输入里带「音源 / 平台」时追加一个「去设定里看音源」的入口，把搜不到的东西指回它该在的地方</li>
+        <li>热搜是真实接口数据，屏上截前 10 条；一条都没取回来时写「热搜暂时载入失败 · 直接输入关键词搜索」，不留一片空白让人以为页面坏了</li>
+        <li>播放状态变化时 <code>syncLists()</code> 会连搜索结果一起重画并保住 <code>scrollTop</code>，不会出现播完一首列表跳回顶部</li>
+      </ul>
+
+      <h2>歌单</h2>
+      <p class="notes-body">歌单目录来自平台曲库，音源给不了任何 playlist 事件，所以这一页只做「浏览 + 判断能不能播」：分类 chips 横向滚动、我的歌单前置、推荐池按分类过滤后给出每份歌单的 <code>N/N 首可播</code>，页头留给「按 ID 打开别处分享出来的歌单」。</p>
+      <ul class="notes-list">
+        <li>分类首位是「全部」并默认选中：不让用户进场就先替他被预设一种口味。分类目录<em>逐平台不同</em>（真实侧是 <code>getTags(source)</code>），chip 行只放得下「全部 + 该平台热门」，行尾一枚「全部分类」开 <code>#plTagsSheet</code> 看全量分组，取不到时写「这个平台暂时没找到分类」；切平台会把选中的分类退回「全部」，上一家的分类在这一家目录里可能根本不存在</li>
+        <li>分类标签与歌单是多对多（一首歌可挂多个 <code>cats</code>）；分类下确实没有推荐时给空态「这个分类下暂时没有推荐 · 换一个分类试试」，不硬凑内容</li>
+        <li>推荐池也是<em>上滑加载更多</em>：一次只铺 10 份（真实侧歌单列表同样是一页一页来），滚到列表底部自动取下一批，载入中一行是转圈 +「正在载入下一批…」；某一批失败时这一行变成「这一批没有载入 · 点击重试」的可点重试，重试即成功。原型里第 3 批故意先失败一次，好让这条真实路径看得见。计数在没取完前写「已列出 N / M 个」，取完收敛成总数并把列表尾收上「没有更多了」——不是原来那种「一屏铺满就没了」的静态 30 条。切平台或换分类会把已铺的批次重置回第一批（<code>renderPlaylistPage</code> 对比 <code>plCat</code> / <code>activeSource</code>）</li>
+        <li>chips 吸顶用 <code>top:0</code> 而不是 <code>top:110px</code>——sticky 的参照系是滚动容器的内容盒，而 <code>.viewport</code> 已经有 <code>padding-top</code>，再加偏移就会在顶栏下面留出空隙；<code>padding-top</code> 也从 112 收到 110 与顶栏同高，条内上内边距 3px，实测吸住后胶囊离顶栏下沿只有 3px</li>
+        <li>「我的歌单」这一排现在<em>是真数据</em>：详情层右上角那颗删除钮删掉的单子会立刻从这排消失，删空了给「还没有自建歌单 · 听到喜欢的先收藏进来」，不留一个空横滚条</li>
+        <li>页头的 + 换成「打开歌单」按钮：主流 App 都在这一页给用户一个「我手上有链接」的入口，<code>#plIdSheet</code> 收两种输入——整条分享链接（按域名认平台）或只有那串号；只填号时必须先点这份单子来自哪个平台，真实侧 <code>getListDetail(id, source, page)</code> 少了坐标就取不到歌，所以提示语写「仅凭一串 ID 判断不了来源」</li>
+        <li>面板里预置 4 个「平台简称 + 那串号」样例胶囊，点一下就填好并直接打开；空输入、没选平台、链接不是这五家的、号形不对，各给一句人话错误，错误行在开始重新打字时自动收起</li>
+        <li>打开之后仍走同一个详情层，toast 只说「已去某平台打开这份歌单 · 里面的歌要现从平台取」：此刻一首都没取回来，报 <code>N/N 首现在能播</code> 就是编数</li>
+        <li>详情层从右侧推入并覆盖 Tab 栏，用 <code>translateX</code> + <code>visibility</code> 延时，和浮层的上滑手势在方向上区分开</li>
+        <li>顶部毛玻璃取当前封面主色，整页只保留一次「播放全部 / 随机播放」，其余操作收进歌曲行的「⋯」</li>
+        <li>曲目是<em>分页取</em>的（真实侧 <code>getListMusics(id, source, page)</code> 一页一页来）：进来看见第一批，滚到底自动取下一批，载入中一行是转圈 +「正在载入下一批…」；这一批没取到时换成「这一批没有载入 · 点击重试」，点一下接着取。原型里第 3 页故意先失败一次，好让这一行看得见（重试即成功）。整单列完时列表尾补一行「没有更多了」——一屏内就列完的短单子（比如 5 首的自建歌单）也一样有，滑到底不至于对着空白猜还在不在加载</li>
+        <li>切音源后详情层不关闭，<code>syncPlLayer()</code> 原地重画已经取到的每一行的可播状态，已取到的页数不丢</li>
+      </ul>
+
+      <h2>排行榜</h2>
+      <p class="notes-body">音源没有 <code>rank</code> 事件，但「某个平台的第几名」是平台曲库自带的信息，所以这一页改成按平台组织：当前音源接了哪些平台，就只列这些平台的榜，不做「混了五个平台再逐首标能不能播」那种列表。</p>
+      <ul class="notes-list">
+        <li><code>BOARDS</code> × 五个平台 = <code>RANK_CHARTS</code>（每家 9 张榜，共 45 张）：平台给的榜单目录全列，<em>当前平台的 9 张整体排在最前</em>，其余按平台分组接在后面——原来每人只截 6 张，被砍掉的三张在界面上完全没有解释，用户只会以为「这个平台就这几个榜」，现在不再截断。首页那排 chips 仍然只取当前平台的前 4 张，受音源约束</li>
+        <li>45 张卡一屏放不下，所以按<em>平台分段</em>（<code>rankGroupHead()</code>：平台名 + 「N 个榜 · 热歌 / 新歌 / 飙升在前」）并在段内按「主打榜优先」排序：中途接着往下滚的人也能知道自己正站在哪家的曲库里，不至于把五家的榜看成一锅粥</li>
+        <li>分段之上同样分批铺：一次 8 张，滚到底自动取下一批，底部状态行与歌单页、详情层共用同一套语义（转圈 + 载入中 / 这一批没有载入 · 点击重试 / 没有更多了）；45 张全列完后以「没有更多了」收尾；切音源会把分组与已铺批次一起重置，当前平台回到最前</li>
+        <li>封面按「榜名」定色、按「榜型」定形（<code>CHART_TINT</code> / <code>CHART_EMBLEM</code>）：每张榜一个强调色 + 一层同色相平色深底（强调色压暗 76%，<code>shadeHex</code>）——热歌 = 黑胶，新歌 = 音符，原创 = 麦克风，飙升 = 上升箭头，古典 = 留声机，电音 = 方波，符号都按 512×512 画、居中留白。原来色只按六种榜型给，45 张里 29 张回落成同一个「橙黑胶」，一段里几张榜只有名字不同——现在同名榜跨平台保持同色（五个平台的欧美榜是一张脸，同榜就该同脸），段内相邻榜色相都拉开。榜单封套是资产、平台只是来源归属——若按平台上色，五站同榜型会撞成一张脸，用户分不清点的是哪个榜</li>
+        <li>徽标是自绘单色线条 SVG：<code>512×512</code> 画布上居中一枚一笔画符号（圆头圆角），符号色与底色随榜名成对出现（底 = 色压暗），不放光晕、网点、阴影——榜名白字 + 深色字影直接压上深底；卡上与详情头图共用同一份矢量缩放，不糊。以后加榜照同一配方：一个符号 + 一个强调色，深底由它压暗得出</li>
+        <li>2 列方块卡片：榜名左下角 900 字重，底边一行小字给平台全称。「每小时更新」那枚角标和「N 首」那行撤了——更新节奏接口没给，写上去就是编的，榜有多长也不是用户在这一格要看的</li>
+        <li>同一套封面在详情层头图复用（<code>chartArt()</code> 与 <code>rankCard()</code> 共用该榜的色与符号），从网格点进去认的还是同一张脸；榜单详情不再落到通用随机封面</li>
+        <li>点卡片进入详情层，与歌单共用同一个页面：<code>openPlaylist(chart, 'rank')</code> 靠 <code>kind</code> 换面包屑、行动按钮文案与页脚说明</li>
+        <li>整榜都按该平台取址，进来就是一整份能播的排名——所以「N/M 首能播」提示条、来源 chip 与跨平台圆点对照块全部撤掉</li>
+        <li>来源筛选只剩设定页与音源面板一处，切换后 <code>renderRankPage()</code> 随 <code>repaintAll()</code> 重画网格</li>
+      </ul>
+
+      <h2>我的</h2>
+      <p class="notes-body">只留本地状态：收藏、播放记录、自建歌单。主题、缓存、播放偏好这些开关从这一页撤走，右上的齿轮进的是独立设定页。</p>
+      <ul class="notes-list">
+        <li>统计条只留本地能算准的三项（喜欢 / 歌单 / 最近播放）——「可播来源」是音源的能力，不是我的内容，挪到设定页的「接入的平台」去讲</li>
+        <li>右上入口是设定（齿轮）：<code>#i-gear</code> 重画成外圈 + 内孔 + 八颗齿轮牙，原来那版只有中心圆加几根射线，看着像亮度调节</li>
+        <li>「我喜欢」卡片直接播放收藏里当前音源能解析的第一首，放不出的会被跳过</li>
+        <li>「我的歌单」标题右侧那角是<em>新建歌单</em>：原型旧版写的是「去歌单页」，跳过去只是换个 Tab，给不了用户想要的动作。<code>#createSheet</code> 起个名字就能建，规则与旧屏一致——空名不建、超 100 字截断、同名先问一句「已经有一份同名歌单了，还要继续建吗？」，按钮在落库期间亮「创建中」</li>
+        <li>本地自建歌单（含新建的、收藏、试听）在详情层是<em>本地形态</em>：右上角那颗不是心钮而是删除钮，按下必过二次确认，说清掉的是这张单子和它列出的歌目记录，歌本身的文件不动</li>
+        <li>播放记录由 <code>state.history</code> 去重累积；清空后标题右侧的「清空记录」随空态一起隐藏，不给一个点了没反应的按钮</li>
+        <li>「⋯」里的加入歌单会立刻反映到本页与【歌单】页的曲目数；反馈句不带计数（真实侧计数在异步写库之后才更新，按下那一瞬报出来的数不可信）</li>
+        <li>页头副行是「没有账号 · 收听都记在这台设备上」：原来那行「听众 ID 8842 0613」是编的，本项目没有用户 ID 概念</li>
+      </ul>
+
+      <h2>设定</h2>
+      <p class="notes-body">推入式整页（复用 <code>.pl-layer</code> 的右滑与毛玻璃），先落三组：外观 / 数据与缓存 / 关于。原则是「一个开关只在它的现场出现一次」——音质与内容平台在音源浮层、循环与定时在播放页工具行，设定页再列一遍就会出「两处显示不一致」。</p>
+      <ul class="notes-list">
+        <li>外观三档（明亮 / 黑暗 / 跟随系统）用行内选中态与「在用」回显，不需要用户记住自己在哪开过；「跟随系统」在浏览器里就是 <code>prefers-color-scheme</code>，与手机上同构</li>
+        <li><em>出厂默认是「明亮」</em>：主流音乐 App 的默认外观几乎都是浅色（首次打开要能读懂界面，而不是先撞上一块黑屏），本项目多数使用场景是白天；深色留给用户主动选，或选「跟随系统」交给手机决定。默认值写在 <code>state.theme</code> 与 <code>localStorage</code> 兜底两处，清掉本地存储后回到浅色</li>
+        <li>「关于」组把<em>出处写在明面上</em>：只留一行——左上品牌名，副行「内核由 lx-music-mobile 原作者与社区维护」（取数、音源与播放内核全部来自该开源项目，Apache-2.0），右侧版本号 <code>APP_VERSION = 1.9.1</code> 沿用其 <code>package.json</code>，不为界面重写另起。尊重作者、也让读者一眼知道上游是谁</li>
+        <li>「数据与缓存」明确只影响本机：清除播放缓存不动收藏、歌单与播放记录，清空记录那一行右侧就是当前条数</li>
+        <li>删本机数据前一律走同一个二次确认层（清除缓存 / 删除歌单 / 同名建单共用）</li>
+        <li>主题 / 播放模式 / 昵称 / 音源脚本 / 内容平台 / 音质这六项写 <code>localStorage</code>（键 <code>echoisle.proto.v1</code>）：真实侧它们各有 setting 键，刷新一次就回到默认等于骗人。队列与播放记录不写——那是听歌过程数据，每次打开重排一遍才看得清各形态</li>
+        <li>播放页工具行改成纯图标后，设定页不再重复挂循环/定时的开关：这两项的当前值在播放页的图标与 <code>aria-label</code> 上，重复一份文字版只会在两处对不上</li>
+      </ul>
+
+      <h2>正在播放页</h2>
+      <p class="notes-body">控件按「主传输 / 次级工具」两层排布：主传输行只留上一曲 / 播放 / 下一曲三颗，定时从这一行挪进下面的工具行；播放队列入口按需求去掉，改由 LRC 浮窗承担跨页面常驻的角色。</p>
+      <ul class="notes-list">
+        <li>底部工具行四颗（定时 / 循环 / 浮窗 / 评论）<em>没有文字、没有选中底色</em>：按下去只换图标，说明交给 <code>aria-label</code> 与 toast。开启态统一用「描边 + 同色低透明度内填充」表达（时计盘面、浮窗气泡各充一层色），一处语言全站通用，不再给按钮铺一块高亮底</li>
+        <li>进度条 <code>pointerdown/move</code> 拖动即定位，拖动期间关掉 <code>transition</code>，松手才回写 <code>state.t</code> 与歌词锚点</li>
+        <li>上一曲 / 下一曲在当前队列内跳转，并自动跳过本音源解析不了的来源（切到「落歌」后咪咕、酷狗会被跳过）</li>
+        <li>循环模式五态轮转：列表循环 → 随机 → 顺序播放 → 单曲循环 → 播完即停 → 回到列表循环。工具行只剩图形以后，三态不能再共用一枚 <code>i-repeat</code>，所以五态配五个轮廓：双箭头环 = 列表循环、环上压斜线 = 顺序播放（循环已关闭）、环中带 1 = 单曲循环、交叉箭头 = 随机、箭头抵端线 = 播完即停（顺序播放放到头就停、播完即停放完当前这首就停，两句 toast 分开说）</li>
+        <li>定时停止播放：选档后按钮换成带填充的那枚时计图标，分秒倒计时写进 <code>aria-label</code>，并由 <code>tick()</code> 每秒回写进定时面板自己的副标题。图标后面不塞数字——那等于把刚撤掉的文字状态请回来；到点是停下还是继续，由「听完当前这首」那个开关决定，不是只会暂停</li>
+        <li>均衡器整块撤掉：音源只注册了 <code>musicUrl</code>，播放内核没有频段增益通道，六段 <code>±10dB</code> 拖了也不会改变声音，那是假能力</li>
+        <li>歌词与封面是<em>同一个舞台的左右两页</em>，只由横滑交替：右滑进歌词、左滑回封面（判据与 newui 的 <code>PlayerStageSwipe</code> 一致，|dx| ≥ 24 且 |dx| ≥ |dy|×1.5，纵向一律让给歌词自己的滚动），播放页里没有任何一颗「歌词」按钮。舞台下方留两枚指示点，是这一处手势唯一的可见提示，当前页拉长成胶囊，用 <code>currentColor</code> + 透明度上色，浅色主题不用另写一套底色。音源无 <code>lyric</code> 事件，文案为原型占位（非任何真实歌曲的歌词），屏内只写「歌词由各平台提供」</li>
+        <li>Pad 与手机横屏的歌词态是「唱片 + 歌词同屏」的分栏，滑动只开合歌词栏，不存在翻页，所以指示点在这两种外形里藏掉</li>
+        <li>LRC 浮窗：可拖动的歌词气泡，浮在首页/各 Tab 之上并跟随进度换行，点它回到播放页；全屏播放页打开时自动让位</li>
+        <li>收藏 / 评论：收藏落在本地 Set 并同步迷你条；评论按页翻（第 1 页也是一次取数，先亮「评论在取了」），回复是<em>嵌套树</em>，逐层缩进带线程竖线，第 2 级起加「回复 @某人」浅色前缀；工具行那颗评论图标不带条数（真实侧此刻还没取到数），面板里那句「其中 N 条乐评人长评」也撤了——接口没这个口径，那个数是拿总数除出来的</li>
+      </ul>
+
+      <h2>落到 React Native</h2>
+      <p class="notes-body"><code>FlashList</code> + <code>LinearGradient</code>；吸顶头部用 <code>Animated</code> 驱动高度插值，或 iOS 直接用 <code>expo-ui</code> 的 <code>Header</code>。<code>SafeAreaView</code> + <code>KeyboardAvoidingView</code>；模糊用 <code>expo-blur</code>。音源层保持 JSI/TurboModule 侧的 <code>getMusicUrl(source, id, quality)</code> 单点调用。</p>
+    </div>
+  </aside>
+
+</div>
+
+<script src="data.js?v=2"></script>
+<script src="app.js?v=2"></script>
+</body>
+</html>

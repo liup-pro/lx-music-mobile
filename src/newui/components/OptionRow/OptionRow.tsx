@@ -1,0 +1,241 @@
+import { memo } from 'react'
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native'
+import LinearGradient from 'react-native-linear-gradient'
+
+import {
+  FONT_SIZE,
+  FONT_WEIGHT,
+  GRADIENTS,
+  OPTION_ROW,
+  useTheme,
+} from '@/newui/theme'
+
+import { Icon, type IconName } from '../Icon'
+
+export interface OptionRowProps {
+  /** .or-body b 主名（音源名 / 平台名 / 动作名） */
+  name: string
+  /** 名字旁的小字（原型 b small：v1.0.0 版本号） */
+  version?: string
+  /** .or-body em 一句话说明（「能播 N 个平台 · 音质列表」等） */
+  sub?: string
+  /** .or-state 尾部状态标签（文字 + tone 色点）；不传则不渲染 */
+  stateLabel?: string
+  /** 状态标签色（原型 --tone：ok / brand-3 / text-3 语义色，由容器传 theme 色值） */
+  stateTone?: string
+  /** .opt-row.on：brandSoft 渐变底 + 主色描边 + 实心单选圈 */
+  active?: boolean
+  /** .opt-row.off：整体 dimmed（原型 opacity .42） */
+  dimmed?: boolean
+  /**
+   * .opt-ic 图标方块（styles.css L688-690，原型 actRow L770-774）：
+   * 传入即渲染 30×30 圆角 10 图标底替代单选圈 —— 单曲操作面板等「动作行」用；
+   * 不传保持音源浮层的单选圈（.radio）。与 active 互斥语义，同传时图标优先。
+   */
+  icon?: IconName
+  onPress?: () => void
+  style?: StyleProp<ViewStyle>
+}
+
+/** 单选圈（原型 .radio，styles.css L733-735）：未选 inset 1.6px var(--hairline-strong)；
+ * 选中 inset 6px 主色 + 同 token 的中心亮环。两环都随主题反相（浅底自动叠黑），
+ * RN 用嵌套 View 表达。 */
+const Radio = memo(({ active }: { active: boolean }) => {
+  const theme = useTheme()
+  return (
+    <View
+      style={[
+        styles.radio,
+        {
+          borderColor: active ? theme.colors.brand : theme.colors.hairlineStrong,
+          backgroundColor: active ? theme.colors.brand : 'transparent',
+        },
+      ]}
+    >
+      {active && (
+        <View style={[styles.radioCenter, { borderColor: theme.colors.hairlineStrong }]} />
+      )}
+    </View>
+  )
+})
+Radio.displayName = 'NewUIOptionRowRadio'
+
+/**
+ * 浮层单选列表行（对应原型 .opt-row，styles.css L672-687）：
+ * 音源设置浮层「已安装音源 / 音乐平台」两组列表共用；纯展示组件，
+ * 选中 / dimmed / 状态标签由容器接线（SourceSheet 容器）。
+ * 近似点：未选圈是 CSS inset box-shadow（1.6px 内描边），RN 转外沿 borderWidth 视觉等价。
+ */
+export const OptionRow = memo(
+  ({
+    name,
+    version,
+    sub,
+    stateLabel,
+    stateTone,
+    active = false,
+    dimmed = false,
+    icon,
+    onPress,
+    style,
+  }: OptionRowProps) => {
+    const theme = useTheme()
+    const tone = stateTone ?? theme.colors.text3
+    return (
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.root,
+          {
+            backgroundColor: theme.colors.fill2,
+            borderColor: theme.colors.line,
+          },
+          active && [
+            styles.active,
+            { borderColor: OPTION_ROW.onBorderColor },
+          ],
+          dimmed && styles.dimmed,
+          pressed && styles.pressed,
+          style,
+        ]}
+      >
+        {active && (
+          <LinearGradient
+            colors={[...GRADIENTS.brandSoft.colors]}
+            start={GRADIENTS.brandSoft.start}
+            end={GRADIENTS.brandSoft.end}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
+        {icon != null ? (
+          <View
+            style={[
+              styles.iconBox,
+              { backgroundColor: theme.colors.fill2, borderColor: theme.colors.line },
+            ]}
+          >
+            <Icon name={icon} size={OPTION_ROW.iconBoxIcon} color={theme.colors.text2} />
+          </View>
+        ) : (
+          <Radio active={active} />
+        )}
+        <View style={styles.body}>
+          <View style={styles.nameRow}>
+            <Text
+              style={[styles.name, { color: theme.colors.text }]}
+              numberOfLines={1}
+            >
+              {name}
+            </Text>
+            {version ? (
+              <Text style={[styles.version, { color: theme.colors.text3 }]}>{version}</Text>
+            ) : null}
+          </View>
+          {sub ? (
+            <Text
+              style={[styles.sub, { color: theme.colors.text3 }]}
+              numberOfLines={1}
+            >
+              {sub}
+            </Text>
+          ) : null}
+        </View>
+        {stateLabel ? (
+          <View style={styles.state}>
+            <View style={[styles.stateDot, { backgroundColor: tone }]} />
+            <Text style={[styles.stateText, { color: tone }]}>{stateLabel}</Text>
+          </View>
+        ) : null}
+      </Pressable>
+    )
+  },
+)
+
+OptionRow.displayName = 'NewUIOptionRow'
+
+const styles = StyleSheet.create({
+  /** .opt-row：gap 11 / padding 11 12 / radius 15 */
+  root: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: OPTION_ROW.gap,
+    paddingVertical: OPTION_ROW.paddingY,
+    paddingHorizontal: OPTION_ROW.paddingX,
+    borderRadius: OPTION_ROW.radius,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  /** .opt-row.on：去默认 chip 底（由渐变铺），描边转主色 */
+  active: {
+    backgroundColor: 'transparent',
+  },
+  /** .opt-row.off */
+  dimmed: { opacity: OPTION_ROW.offAlpha },
+  /** .opt-row:active scale(.99) */
+  pressed: { transform: [{ scale: OPTION_ROW.pressScale }] },
+  /** .opt-ic：30×30 圆角 10 图标底（styles.css L688-690，动作行专用） */
+  iconBox: {
+    width: OPTION_ROW.iconBoxSize,
+    height: OPTION_ROW.iconBoxSize,
+    borderRadius: OPTION_ROW.iconBoxRadius,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    overflow: 'hidden',
+  },
+  radio: {
+    width: OPTION_ROW.radioSize,
+    height: OPTION_ROW.radioSize,
+    borderRadius: OPTION_ROW.radioSize / 2,
+    borderWidth: OPTION_ROW.radioRingWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  /** 选中中心：直径 18 - 6×2 = 6，1.6px 亮环（CSS inset 语义转 RN 近似） */
+  radioCenter: {
+    width: OPTION_ROW.radioSize - OPTION_ROW.radioFill * 2,
+    height: OPTION_ROW.radioSize - OPTION_ROW.radioFill * 2,
+    borderRadius: (OPTION_ROW.radioSize - OPTION_ROW.radioFill * 2) / 2,
+    borderWidth: OPTION_ROW.radioCenterRingWidth,
+  },
+  /** .or-body：flex 1 / gap 3 */
+  body: { flex: 1, minWidth: 0, gap: OPTION_ROW.bodyGap },
+  nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: OPTION_ROW.versionGap },
+  /** .or-body b：14 / 700 */
+  name: {
+    flexShrink: 1,
+    fontSize: FONT_SIZE.rank,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  /** .or-body b small：10.5 / 600 / text-3 */
+  version: {
+    flexShrink: 0,
+    fontSize: FONT_SIZE.tiny,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
+  /** .or-body em：11 / text-3 / 单行省略 */
+  sub: {
+    fontSize: FONT_SIZE.caption,
+  },
+  /** .or-state：gap 5，前置 6px 圆点 */
+  state: { flexDirection: 'row', alignItems: 'center', gap: OPTION_ROW.stateGap, flexShrink: 0 },
+  stateDot: {
+    width: OPTION_ROW.stateDotSize,
+    height: OPTION_ROW.stateDotSize,
+    borderRadius: OPTION_ROW.stateDotSize / 2,
+  },
+  /** .or-state 文字：10.5 / 800 */
+  stateText: {
+    fontSize: FONT_SIZE.tiny,
+    fontWeight: FONT_WEIGHT.extraBold,
+  },
+})

@@ -1,0 +1,123 @@
+/**
+ * 歌单详情层文案常量（对应原型 #plLayer 与 app.js openPlaylist L408-483）。
+ * kind 三种形态（pl / rank / mine）的面包屑与页脚一一对应原型里的映射表。
+ */
+
+/**
+ * 详情层形态：歌单 / 排行榜 / 自建歌单（原型 openPlaylist(p, kind)）/ 本地歌单（2026-10-12 修复：
+ * 纯自建、试听、收藏这类没有平台坐标的歌单，用同一详情页按本地 listId 取歌，不另做页面）。
+ */
+export type NewUiSonglistDetailKind = 'pl' | 'rank' | 'mine' | 'local'
+
+/** .pl-top 中部面包屑（原型 { rank: '排行榜', mine: '自建歌单', pl: '歌单' }；local 说「我的歌单」最贴） */
+export const NEW_UI_PLD_CRUMB: Record<NewUiSonglistDetailKind, string> = {
+  rank: '排行榜',
+  mine: '自建歌单',
+  pl: '歌单',
+  local: '我的歌单',
+}
+
+/** .foot-note 页脚说明（原型 openPlaylist 里的三句映射，逐字照抄；local 为本轮新补） */
+export const NEW_UI_PLD_FOOT_NOTE: Record<NewUiSonglistDetailKind, string> = {
+  rank: '整份榜单按这个平台的排名 · 每首都能直接播',
+  mine: '这份歌单只存在这台设备上',
+  pl: '整份歌单先列出来 · 每首要到播放时才确认能不能播',
+  local: '这份歌单只存在这台设备上 · 队列就是它本身，点开直接听',
+}
+
+/** 固定按钮 / 无障碍文案 */
+export const NEW_UI_PLD_LABELS = {
+  playAll: '播放全部',
+  shuffle: '随机播放',
+  /** 心钮四态文案（2026-10-12 走查真 toggle）：歌单与榜单语义不同——榜单收的是整榜曲目 */
+  fav: '把这份歌单存进我的歌单',
+  unfav: '已存进我的歌单 · 再点移出',
+  favBoard: '把这整张榜的歌存进我的歌单',
+  unfavBoard: '整张榜已存好 · 再点移出',
+  back: '返回',
+  /**
+   * 本地歌单形态右上角那颗（2026-10-13 清单「我的」第 2 条）：这一位原来是心钮，
+   * 但「存进我的歌单」对本地歌单没有意义（它本来就在我的歌单里），换成「删除本歌单」。
+   * 图标是 trash + err 色（与收藏一眼分开），按下必过二次确认，不可删的系统列表不出现这颗钮。
+   */
+  deleteList: '删除本歌单',
+} as const
+
+/**
+ * 删除本地歌单的二次确认文案（2026-10-13；2026-10-14 QA D-09 起确认载体换成新 UI 共通件
+ * ConfirmSheet——原型 #confirmSheet 的等价落地，不再是系统 Alert）。
+ * 旧屏同一动作走 `screens/Home/Views/Mylist/MyList/listAction.ts` L12-20 的 confirmDialog
+ * （zh-cn `list_remove_tip`「你真的想要移除「{name}」吗？」+ `list_remove_tip_button`「是的，没错」），
+ * 确认语义照旧、文案是新 UI 的说人话版，并**如实说清连带删掉歌目记录**
+ * （`core/list.removeUserList` → `event/listEvent.ts` L117-125 会 removeListMusics 清掉这份歌单的曲目数据；
+ * 曲库与文件本身不受影响，掉的只是这张单子列出来的那几首记录）。
+ */
+export const NEW_UI_PLD_DELETE_CONFIRM = {
+  /** .sheet-title（原型 askDeleteList title「要删掉「x」吗」，app.js L1011-1012；QA D-09 换回确认浮层后标题/正文拆开） */
+  title: (name: string): string => `要删掉「${name}」吗`,
+  /** .sheet-sub 正文（原 message 的正文部分，措辞沿用第 9 轮 D-08 定稿） */
+  body: '这张歌单和它列出来的歌目记录会一起从这台设备上消失（歌本身的文件不动，别处的收藏也不受影响）。',
+  /** 右键（原型 okLabel「删除歌单」） */
+  confirmText: '删除歌单',
+} as const
+
+/**
+ * 榜单「存整榜」落库时 sourceListId 的坐标前缀（照抄旧 `screens/Home/Views/Leaderboard/listAction`
+ * 的 getListId：`board__` + 榜单 id）。存进来的那份要再进详情层，必须剥掉这个前缀并按
+ * rank 形态打开（榜单取数走 core/leaderboard，不是 songlist），否则按歌单坐标取不到歌。
+ */
+export const NEW_UI_BOARD_LIST_ID_PREFIX = 'board__'
+
+/** 平台取歌超时上限（QA 2026-10-14 详情页 D-08）：音源脚本/网络异常时 Promise
+ * 可能永不 settle，页面永远卡「加载中」；到限推到 error 分支给重试入口。
+ * 取 30s：分页明细单批约 30 首、逐首地址经脚本 HTTP，耗时参差；
+ * 比正常慢源多留裕量，也把「白等」封在用户还能接受的分钟内 */
+export const NEW_UI_PLD_LOAD_TIMEOUT_MS = 30_000
+
+/** 可播统计胶囊（原型 `${playable}/${tracks} 首可播`） */
+export const newUiPlayableTag = (playable: number, total: number): string =>
+  `${playable}/${total} 首可播`
+
+/** 首批曲目还没在手时的 hero 胶囊文案（QA 2026-10-14 详情页 D-05）。
+ * 歌还没取回来就报「0/232 首可播」「0 首」是虚报计数——
+ * 原型 app.js L901-905 同款取向：一首都没定位到时不报计数，只回显来自哪个平台；
+ * local 形态没有平台标签可显，用这句如实兑底 */
+export const NEW_UI_PLD_TAG_PENDING = '正在数有几首 · 稍等'
+
+/**
+ * 空态文案（status=end 但没取到歌 / 首页就失败）。
+ * 「歌单是空的」有两种对象，措辞必须分开（2026-10-14 第 10b 轮，bug-fix.md L58 走查遗留）：
+ * - localEmpty：kind='local' 的本地歌单（用户刚建的空单子）——问题不是「换一份」，是还没往里放歌，
+ *   要说清对象并给出加歌的路（⋯ 面板「加入此单」是真实入口，非假动作）；
+ * - end：平台歌单（pl/mine/rank 形态）明细取回来是空的——那是平台侧给的就空，如实请用户换一份。
+ * localError = 本地整单没读出来（读取失败，不是空），与上面两种再分开。
+ */
+export const NEW_UI_PLD_EMPTY = {
+  error: '这份歌单暂时取不到歌 · 网络或音源不稳，稍后再来',
+  localError: '这份歌单暂时打不开 · 稍后再试',
+  localEmpty: '这张歌单还没有歌 · 听到喜欢的点行尾 ⋯ 加进来',
+  end: '这份歌单是空的 · 换一份听听',
+} as const
+
+/** 列表底部状态行（分页加载 / 到底 / 下一页失败）。文案取原型 PLD_STATUS 原句（app.js L842）：
+ * 载入中 = 转圈 +「正在载入下一批…」；失败重试 =「这一批没有载入 · 点击重试」；
+ * 到底一行走共通常量 NEW_UI_PAGING_END_TEXT（三处列表同一句，不在这里重复） */
+export const NEW_UI_PLD_STATUS = {
+  loading: '正在载入下一批…',
+  loadMoreError: '这一批没有载入 · 点击重试',
+} as const
+
+/** 动作反馈 toast */
+export const NEW_UI_PLD_TOAST = {
+  playAllEmpty: '这里现在没有能播的歌 · 换个音源或稍后再试',
+  /** 点不可播行（原型 play() 的按平台提示，label = getPlatformMeta(source).label） */
+  unplayable: (label: string): string => `当前音源放不了${label}的歌 · 换一首或换个音源吧`,
+  /** 收藏真 toggle（2026-10-12 走查）：四步都要点下有感 */
+  favSaving: '正在存进我的歌单 · 稍等',
+  boardSaving: '正在把整张榜的歌收进我的歌单 · 榜单长，多等几秒',
+  favRemoved: '已移出我的歌单',
+  favFailed: '没弄成 · 网络或音源不稳，稍后再试',
+  /** 本地歌单删除（2026-10-13）：成功如实报删了哪张，失败不留没动静的退场 */
+  listDeleted: (name: string): string => `已删掉「${name}」· 我的歌单里少了一张`,
+  listDeleteFailed: '没删掉 · 存储写入不顺，稍后再试',
+} as const
