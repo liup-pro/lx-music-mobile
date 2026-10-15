@@ -2001,6 +2001,7 @@ function openSheet(kind) {
   const map = { timer: renderTimerSheet, comment: renderCommentSheet };
   $('#psTitle').textContent = '';
   $('#psSub').innerHTML = '';
+  $('#psMeta').innerHTML = '';
   $('#psBody').innerHTML = '';
   map[kind]();
   openLayer($('#playerSheet'));
@@ -2071,7 +2072,8 @@ function renderCommentSheet() {
   cmtShown = 0;
   cmtLoading = true;
   cmtFailed = false;
-  box.appendChild(el('div', 'cmt-total', `<b>${commentTotal(state.song).toLocaleString()}</b><span class="q-tag">${CMT_TXT.sortTag}</span>`));
+  /* 总数与排序口径跟着标题一起钉住，不跟着评论列表滚 */
+  $('#psMeta').appendChild(el('div', 'cmt-total', `<b>${commentTotal(state.song).toLocaleString()}</b><span class="q-tag">${CMT_TXT.sortTag}</span>`));
   box.appendChild(el('div', 'empty-tip', CMT_TXT.loading));
   setTimeout(() => {
     if ($('#psTitle').textContent !== CMT_TXT.title) return;
@@ -2575,7 +2577,7 @@ function init() {
   $('#plBack').onclick = closePlLayer;
   $('#plLayer').addEventListener('scroll', plLayerScroll, { passive: true });
   /* 评论浮层滚到底自动翻下一页（真实侧就是触底取数）；这一层还被定时面板共用，只在评论开着时才翻页 */
-  $('#playerSheet .sheet-body').addEventListener('scroll', (e) => {
+  $('#psBody').addEventListener('scroll', (e) => {
     const n = e.target;
     if ($('#psTitle').textContent !== CMT_TXT.title) return;
     if (n.scrollTop + n.clientHeight > n.scrollHeight - 120) loadCmtPage();
