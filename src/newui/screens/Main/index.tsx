@@ -45,6 +45,16 @@ const PAGES: Record<NewUiTabKey, ComponentType<NewUiPageProps>> = {
 }
 
 /**
+ * 自带主滚动容器（PageListView 整页虚拟化）的 Tab（2026-10-16 推荐池 OOM 轮：
+ * 第 1 站点歌单页、第 2 站点首页）。这些页**不再套下面的共用 PageViewport**——
+ * 虚拟化列表嵌进裸 ScrollView 会抢滚动手势（Sheet.tsx L50-52 的嵌套滚动教训），两条滚动源二选一。
+ * 切 Tab 回顶仍成立：这一族的页面在根层是「裸 pageNode」，tabKey 一变 Page 组件类型就变，
+ * React 整棵卸载重挂（与旧 PageViewport key={tabKey} 重挂载等价），FlatList 从 offset 0 起。
+ * 其余页面内容定长，继续共用主屏这一个 PageViewport 实例。
+ */
+const SELF_SCROLLING_TABS: readonly NewUiTabKey[] = ['home', 'playlist']
+
+/**
  * 新 UI 主屏幕骨架（对应原型 .screen：.topbar + .viewport + .tabbar）。
  * 顶栏与 Tab 栏都是绝对定位浮层，页面滚动内容从其下穿过，复现原型的半透明渐变底。
  * 界面层容器：只管「当前 Tab / 吸顶状态 / 系统栏配色」，业务数据由各页面自行接入既有 store。
@@ -201,6 +211,13 @@ export const MainScreen = ({ componentId }: MainScreenProps) => {
       onCatLayoutY={handleCatLayoutY}
       onOpenClearCacheConfirm={openClearCacheConfirm}
       onRegisterClearCache={registerClearCache}
+      // 整页虚拟化的页（歌单页 2026-10-16 推荐池 OOM 轮 / 首页同轮第 2 站点）自带 PageListView
+      // 滚动容器，顶栏 pinned / 分类条越线判定的滚动信号经这两个口直回主屏（走 PageViewport 的
+      // 其余页忽略这组 prop，信号仍由下面共用的 PageViewport 供）；insets 供页面算顶栏留白与 Tab 栏净空
+      onViewportPinnedChange={setPinned}
+      onViewportScrollOffset={handleScrollOffset}
+      viewportTopInset={top}
+      viewportBottomInset={bottom}
     />
   ), [
     Page,
@@ -215,23 +232,35 @@ export const MainScreen = ({ componentId }: MainScreenProps) => {
     handleCatLayoutY,
     openClearCacheConfirm,
     registerClearCache,
+    handleScrollOffset,
+    top,
+    bottom,
   ])
 
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.bg }]}>
-      <PageViewport
-        key={tabKey}
-        bottomInset={bottom}
-        // 触底广播（第 7b 轮排行榜分批续取）：viewport 是五页共用实例，这里只负责「有人到底了」，
-        // 谁处理由页面自己经 usePageEndReached 注册；触发线取原型的距底 160px（RANK_PAGING）
-        endReachedDistance={RANK_PAGING.endReachedDistance}
-        onEndReached={emitPageEndReached}
-        onPinnedChange={setPinned}
-        onScrollOffset={handleScrollOffset}
-        topInset={top}
-      >
-        {pageNode}
-      </PageViewport>
+      {/* 自带滚动容器的页（歌单页 / 首页推荐池均已整页虚拟化）不再套 PageViewport——
+          触底广播（emitPageEndReached）只对走 PageViewport 的页面有意义（usePageEndReached 总线），
+          走自带容器的两页不经总线：歌单页的距底 160px 判定直连 pool.loadNextBatch，
+          首页本就没有续取链路（总线唯一的订阅方是排行榜页，首页滚到底从来无人接，撤掉空转不改行为） */}
+      {SELF_SCROLLING_TABS.includes(tabKey)
+        ? pageNode
+        : (
+          <PageViewport
+            key={tabKey}
+            bottomInset={bottom}
+            // 触底广播（第 7b 轮排行榜分批续取）：viewport 是其余三页（排行榜 / 我的 / 设定）共用的滚动容器，
+            // 这里只负责「有人到底了」，谁处理由页面自己经 usePageEndReached 注册；
+            // 触发线取原型的距底 160px（RANK_PAGING）
+            endReachedDistance={RANK_PAGING.endReachedDistance}
+            onEndReached={emitPageEndReached}
+            onPinnedChange={setPinned}
+            onScrollOffset={handleScrollOffset}
+            topInset={top}
+          >
+            {pageNode}
+          </PageViewport>
+        )}
       {/* 歌单页分类条吸顶层（QA D-06）：挂在 PageViewport 之后、TopBar 之前 ——
           TopBar 更高的 JSX 序压在它的 paddingTop 空档上，视觉即「分类条贴住顶栏下沿」 */}
       {tabKey === 'playlist' && catStuck ? (

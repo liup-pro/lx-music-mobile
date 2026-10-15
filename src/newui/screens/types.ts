@@ -33,4 +33,17 @@ export interface NewUiPageProps {
   onOpenClearCacheConfirm?: () => void
   /** 设定页把「真清除」动作注册给主屏（ConfirmSheet 右键按下时由根层容器执行）；卸载传 null 注销 */
   onRegisterClearCache?: (action: (() => void) | null) => void
+  /**
+   * —— 页面自带滚动容器时的吸顶链路回传（2026-10-16 歌单页推荐池虚拟化轮，
+   * 同轮第 2 站点首页沿用同一组口）——
+   * 歌单页 / 首页的推荐池改整页虚拟化列表（PageListView）后，页面不再套在主屏 PageViewport 里；
+   * 顶栏 pinned 与分类条吸顶（CatStickerBar）的越线判定仍要拿到滚动信号，由这两个口直回主屏。
+   * 其余 Tab 页继续走主屏共用的 PageViewport，这四个 prop 不下发语义、保持 undefined。
+   */
+  onViewportPinnedChange?: (pinned: boolean) => void
+  onViewportScrollOffset?: (y: number) => void
+  /** 状态栏高度：自带滚动容器的页面算顶栏总留白（topbarHeight）用，与 PageViewport.topInset 同源 */
+  viewportTopInset?: number
+  /** 底部安全区：自带滚动容器的页面垫 Tab 栏净空用，与 PageViewport.bottomInset 同源 */
+  viewportBottomInset?: number
 }

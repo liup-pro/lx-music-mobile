@@ -1169,6 +1169,12 @@ export const SHEET = {
   /** 触底判定距离（px）：滚动到距内容底不足此值即视为「到底」，浮层分页用
    *  （RN ScrollView 无 FlatList 式 onEndReachedThreshold 比例语义，取固定像素近似） */
   endReachThreshold: 300,
+  /** 浮层虚拟化主体（Sheet 的 list 路径，2026-10-16 评论浮层 OOM 修复轮）的回收参数：
+   *  评论卡含回复线程行高约 90~160px，体贴视口最高 78% 窗口高（≈5~7 行），
+   *  首屏铺满一屏略有余、批间不空窗；windowSize 与页面级 PageListView 同档 */
+  listInitialNumToRender: 8,
+  listMaxToRenderPerBatch: 6,
+  listWindowSize: 7,
 } as const
 
 /* ================= 二次确认浮层（QA D-09，#confirmSheet，index.html L498-509；

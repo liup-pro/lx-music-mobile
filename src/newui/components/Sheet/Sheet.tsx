@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import {
   Animated,
   BackHandler,
   Easing,
+  FlatList,
   Platform,
   Pressable,
   ScrollView,
@@ -10,6 +11,7 @@ import {
   Text,
   useWindowDimensions,
   View,
+  type ListRenderItem,
 } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 import { BlurView } from '@react-native-community/blur'
@@ -31,7 +33,25 @@ import { blurNativeRegistered } from '../Glass'
 /** 原型 --ease: cubic-bezier(.22,.61,.36,1) */
 const EASE = Easing.bezier(MOTION.easing[0], MOTION.easing[1], MOTION.easing[2], MOTION.easing[3])
 
-export interface SheetProps {
+/**
+ * 浮层「虚拟化主体」的行配置（2026-10-16 评论浮层 OOM 修复轮新增，可选）。
+ * 传入后骨架自带的唯一滚动容器由 ScrollView 换成 FlatList（VirtualizedList），
+ * handle/标题/副题进入 ListHeaderComponent 头部 cell（位置与视觉和滚动行为零变化——
+ * 它们在旧 ScrollView 里本来也是随内容滚走的普通子节点），
+ * 挂载视图数从「全量行」退化为「屏内行 + windowSize 余量」。
+ * 刻意仍是一层滚动容器：不往 children 里嵌第二层，嵌套手势争抢的老口径不变。
+ */
+export interface SheetListProps<T> {
+  data: readonly T[]
+  renderItem: ListRenderItem<T>
+  keyExtractor: (item: T, index: number) => string
+  /** 头部 cell 内、标题/副题之下的附加定长内容（如评论浮层 .cmt-total 总数行、三态提示）；随滚动进出、不回收 */
+  headerComponent?: ReactElement | null
+  /** 列表尾 cell（如分页状态行）；随滚动进出 */
+  footerComponent?: ReactElement | null
+}
+
+export interface SheetProps<T = unknown> {
   /** 显隐（false 时播完退场动画后自动卸载） */
   visible: boolean
   /** .sheet-title（20px / 900）；不传则不渲染（原型 #moreSheet 就没有标题行，只有 handle + 内容） */
@@ -40,18 +60,25 @@ export interface SheetProps {
   subtitle?: string
   /** 关闭（点遮罩 / Android 返回键都走它） */
   onClose: () => void
-  /** .sheet-body 滚动内容（挂在标题/副题之下，原型 #psBody） */
-  children: ReactNode
+  /** .sheet-body 滚动内容（挂在标题/副题之下，原型 #psBody）；list 模式下忽略（主体由列表承载） */
+  children?: ReactNode
   /** 底部安全区（叠加在 30px 内边距之下） */
   bottomInset?: number
   /**
-   * 滚动接近底部时回调（骨架自带 ScrollView 的 onScroll 距底判定，阈值 SHEET.endReachThreshold）
-   * ——浮层内含分页列表时用（评论浮层加载更多），不传则不挂 onScroll、与旧行为完全一致。
-   * 刻意复用骨架自带的这**唯一**一个 ScrollView 触发分页，不再往 children 里嵌第二层滚动容器
-   * （嵌套 ScrollView/FlatList 会抢手势、造成滚不动的死区）。RN 0.73 ScrollViewProps 无
-   * onEndReached（那是 VirtualizedList 专属），故用 onScroll 等价实现，连发由调用方挡重入。
+   * 滚动接近底部时回调 —— 浮层内含分页列表时用（评论浮层加载更多），不传则不挂触底链路、与旧行为完全一致。
+   * 两条路径的触发语义：
+   * - ScrollView 默认主体：骨架自带这**唯一**一个 ScrollView 的 onScroll 距底判定（RN 0.73 ScrollViewProps
+   *   无 onEndReached，那是 VirtualizedList 专属），阈值 SHEET.endReachThreshold px，滚动事件会连发；
+   * - list 虚拟化主体：FlatList 原生 onEndReached，阈值按 endReachThreshold px 折算成视口倍数近似对齐，
+   *   原生仍可能连发/短内容自动触发。
+   * 两种语义下「重复触发挡重入」都由调用方负责（CommentSheet 的 isLoading/isEnd 闸），行为等价。
    */
   onEndReached?: () => void
+  /**
+   * 虚拟化主体（可选）：传了就把骨架自带的 ScrollView 换成 FlatList（评论这类「分页累加、
+   * 无上限」的大列表专用）。不传 = 与改造前逐像素一致的普通浮层，其余浮层零影响。
+   */
+  list?: SheetListProps<T>
 }
 
 /**
@@ -67,7 +94,7 @@ export interface SheetProps {
  * 刻意不走 BlurredContainer 本体：它的降级语义是「不透明表面底」，遮罩要的降级是「透底的半透明黑」，
  * 两者不同族，强行套 spec 反而逼出 fallback 分支的特例，故此处只用 BlurView 原生件 + 共用探测位。
  */
-export const Sheet = ({
+export function Sheet<T = unknown>({
   visible,
   title,
   subtitle,
@@ -75,7 +102,8 @@ export const Sheet = ({
   children,
   bottomInset = 0,
   onEndReached,
-}: SheetProps) => {
+  list,
+}: SheetProps<T>) {
   const theme = useTheme()
   const { height: windowHeight } = useWindowDimensions()
   // 退场动画播完前保持挂载（对齐原型 visibility 延迟 .42s）
@@ -106,6 +134,16 @@ export const Sheet = ({
     return () => subscription.remove()
   }, [visible, onClose])
 
+  /**
+   * list 模式给 FlatList 的触底回调：引用永不变（VirtualizedList 对回调引用变化会告警且重建内部监听），
+   * 经 ref 透传当前 props.onEndReached。ScrollView 模式不用它（走内联 onScroll 距底判定，与旧行为一致）。
+   */
+  const endReachedRef = useRef(onEndReached)
+  endReachedRef.current = onEndReached
+  const handleListEndReached = useCallback(() => {
+    endReachedRef.current?.()
+  }, [])
+
   if (!mounted) return null
 
   // 原型 .sheet-body transform:translateY(100%)（styles.css L661 / L666）——「自身高度」的百分比；
@@ -117,6 +155,30 @@ export const Sheet = ({
     inputRange: [0, 1],
     outputRange: [windowHeight, 0],
   })
+
+  /** handle + 标题 + 副题（两条主体路径共用同一结构；旧版就是 ScrollView 的前几个子节点，位置零变化） */
+  const sheetHead = (
+    <>
+      {/* .sheet-handle：36×4 胶囊（原型 L721 background:var(--fill-4)） */}
+      <View style={[styles.handle, { backgroundColor: theme.colors.fill4 }]} />
+      {title != null && title.length > 0 && (
+        <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
+      )}
+      {subtitle != null && subtitle.length > 0 && (
+        <Text style={[styles.sub, { color: theme.colors.text3 }]}>{subtitle}</Text>
+      )}
+    </>
+  )
+
+  /**
+   * FlatList 的 onEndReachedThreshold 是「视口高的倍数」，与 ScrollView 路径的 300px 定值不同量纲；
+   * 按体贴满格（78% 窗口高）折算近似对齐。体贴不满格（内容很短）时会更早触发，
+   * 但重入由调用方挡闸（与旧路径「连发」同一语义），无副作用。
+   */
+  const listEndReachedThreshold = Math.max(
+    SHEET.endReachThreshold / Math.max(windowHeight * SHEET.maxHeightRatio, 1),
+    0.05,
+  )
 
   return (
     <View style={styles.root} accessibilityViewIsModal>
@@ -174,42 +236,62 @@ export const Sheet = ({
             },
           ]}
         >
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={[
-              styles.scrollContent,
-              { paddingBottom: SHEET.paddingBottom + bottomInset },
-            ]}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            onScroll={
-              onEndReached
-                ? (e) => {
-                    // RN 0.73 的 ScrollViewProps 没有 onEndReached（那是 VirtualizedList 系专属），
-                    // 这里用 onScroll 距底判定等价复刻：距底 < SHEET.endReachThreshold 即触发一次；
-                    // 事件会连发，靠调用方（CommentSheet）的 isLoading/isEnd 挡重入，与旧 FlatList 同构。
-                    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent
-                    if (
-                      contentOffset.y + layoutMeasurement.height >=
-                      contentSize.height - SHEET.endReachThreshold
-                    ) {
-                      onEndReached()
+          {list ? (
+            /* 虚拟化主体（评论这类分页累加大列表）：骨架自带滚动容器就地换成 FlatList，
+               不是往 children 里嵌第二层滚动容器（嵌套抢手势的老口径不变）。
+               刻意不启用 removeClippedSubviews——回收单元里的 SVG 封面（Art 内圈层）
+               在 Android 有整格变白的老毛病（PageListView 2026-10-16 同轮结论）；windowSize 回收已够用。 */
+            <FlatList
+              data={list.data as T[]}
+              renderItem={list.renderItem}
+              keyExtractor={list.keyExtractor}
+              ListHeaderComponent={<>{sheetHead}{list.headerComponent}</>}
+              ListFooterComponent={list.footerComponent}
+              style={styles.scroll}
+              contentContainerStyle={[
+                styles.scrollContent,
+                { paddingBottom: SHEET.paddingBottom + bottomInset },
+              ]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              scrollEventThrottle={MOTION.scrollThrottle}
+              initialNumToRender={SHEET.listInitialNumToRender}
+              maxToRenderPerBatch={SHEET.listMaxToRenderPerBatch}
+              windowSize={SHEET.listWindowSize}
+              onEndReached={onEndReached ? handleListEndReached : undefined}
+              onEndReachedThreshold={listEndReachedThreshold}
+            />
+          ) : (
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={[
+                styles.scrollContent,
+                { paddingBottom: SHEET.paddingBottom + bottomInset },
+              ]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              onScroll={
+                onEndReached
+                  ? (e) => {
+                      // RN 0.73 的 ScrollViewProps 没有 onEndReached（那是 VirtualizedList 系专属），
+                      // 这里用 onScroll 距底判定等价复刻：距底 < SHEET.endReachThreshold 即触发一次；
+                      // 事件会连发，靠调用方（CommentSheet）的 isLoading/isEnd 挡重入，与旧 FlatList 同构。
+                      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent
+                      if (
+                        contentOffset.y + layoutMeasurement.height >=
+                        contentSize.height - SHEET.endReachThreshold
+                      ) {
+                        onEndReached()
+                      }
                     }
-                  }
-                : undefined
-            }
-            scrollEventThrottle={MOTION.scrollThrottle}
-          >
-            {/* .sheet-handle：36×4 胶囊（原型 L721 background:var(--fill-4)） */}
-            <View style={[styles.handle, { backgroundColor: theme.colors.fill4 }]} />
-            {title != null && title.length > 0 && (
-              <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
-            )}
-            {subtitle != null && subtitle.length > 0 && (
-              <Text style={[styles.sub, { color: theme.colors.text3 }]}>{subtitle}</Text>
-            )}
-            {children}
-          </ScrollView>
+                  : undefined
+              }
+              scrollEventThrottle={MOTION.scrollThrottle}
+            >
+              {sheetHead}
+              {children}
+            </ScrollView>
+          )}
         </LinearGradient>
       </Animated.View>
     </View>

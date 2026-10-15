@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View, type ListRenderItem } from 'react-native'
 
 import type { ListInfoItem } from '@/store/songlist/state'
 
@@ -16,6 +16,7 @@ import {
   FootNote,
   GhostButton,
   HScroll,
+  PageListView,
   PlCard,
   QuickRow,
   RadioCard,
@@ -52,12 +53,23 @@ import {
   useRecentPlays,
   useSingerPics,
 } from '@/newui/hooks'
-import { FONT_SIZE, PLATFORM_TINTS, RADIO_CARD, SONG_ROW, SPACING, useTheme, type PlatformTintKey } from '@/newui/theme'
+import { CARD_GRID, FONT_SIZE, PLATFORM_TINTS, RADIO_CARD, SONG_ROW, SPACING, useTheme, type PlatformTintKey } from '@/newui/theme'
 import { clearNewUiRecentPlays, getSingerMidOfSong, getToday, playQueue, showNewUiToast, toSongDisplay } from '@/newui/utils'
 
 /** 上屏上限（原型刻意设计值，集中在 const/home 的 NEW_UI_HOME_LIMITS，含各处原型行号） */
 const RECENT_LIMIT = NEW_UI_HOME_LIMITS.recent
 const ARTIST_LIMIT = NEW_UI_HOME_LIMITS.artists
+
+/**
+ * 推荐歌单网格的一「行」：最多 CARD_GRID.columns（2）张卡。
+ * 虚拟化以**行**为回收单元（与歌单页 PoolRow 同款形态）；
+ * 两页各留一份本地定义与渲染（字段命名空间不同：artSeed 前缀、点卡落的 fromTab 不同），
+ * 第三处再出现时抽共通件（见本轮交付报告「遗留」）。
+ */
+interface PoolRow {
+  key: string
+  items: ListInfoItem[]
+}
 
 /** 首页「热门歌手」的一条：名字 + 可用于取真人头像的歌手 id（null = 这个平台没给出歌手 id） */
 interface ArtistEntry {
@@ -83,8 +95,40 @@ const splitSingers = (singer: string): string[] =>
  * （推荐歌单与热门单曲跟随音源浮层选定的内容平台，见 hooks/useContentPlatform）；
  * 热门歌手 = 从当前榜单曲目认人，头像复用同一批曲目带出的歌手 id（hooks/useSingerPics
  * → utils/singerPic，只有 tx 源给得出真人照，其余平台如实回落示意插画）。
+ *
+ * —— 2026-10-16 真机 OOM 修复轮（第 2 站点）：推荐池改「整页虚拟化列表」——
+ * 旧形态是主屏共用 PageViewport（裸 ScrollView）里整页 `.map` 直出。首页各段落里，
+ * 只有推荐歌单池（`playlists.items.map`）的条目数由平台侧给多少决定，其余（继续收听 12 /
+ * 榜单歌 10 / 歌手 8 / 电台 2）都是写死的上限。**如实说明**：当前 useRecommendPlaylists
+ * 一次取一批再 slice(0, 4)，所以首页今天的上屏量是有限的（本轮改的是形态，不是止血数字）；
+ * 但这段落与歌单页那条根因链同一条——一旦换成随触底累加的取数（每批 10 份那种），
+ * 裸 ScrollView 就会让挂载视图数与池长成正比，Yoga 节点撑满 Java 堆 → OOM 栈顶 YogaNodeJNIBase。
+ * 现本页自带 PageListView（FlatList）作主滚动容器，**卡池按两列成行为虚拟单元**，
+ * 挂载数 = 屏内行 + windowSize 余量，与池长解耦；页头（轮播 / 快捷四格 / 继续收听 /
+ * 每日推荐 / 池子标题行）进 ListHeaderComponent，热门单曲（就地换榜的整块）/ 热门歌手 /
+ * 随手听 / 页脚进 ListFooterComponent——RN VirtualizedList 源码里 header/footer 两个 cell
+ * 是无条件渲染的（不参与 windowing），所以这两块**永不回收、永不重挂**：
+ * ① 轮播的 4.2s 自动换播定时器与横滑停靠位不会因滚动被重置（与旧 ScrollView 行为逐字一致，
+ *    且横滑 ScrollView 嵌在纵滚列表里本就是改造前「纵向 ScrollView > 横向 ScrollView」的同款嵌套，
+ *    手势关系没变）；
+ * ② 榜单 tab 就地换榜要的「整块重渲染不被拆散」天然成立（整块就在一个 footer 里）。
+ * 顶栏 pinned / 逐帧偏移经 onViewport* props 直回主屏（与歌单页同一条链路，
+ * 见 MainScreen 的自带滚动容器分支）；首页**没有**触底续取链路，故不传 onEndReached，
+ * 也不再经主屏 PageViewport 的 emitPageEndReached 总线（总线唯一的订阅方是排行榜页，
+ * 首页滚到底从来没人接，撤掉这条空转不影响任何行为）。
+ * 各区块顺序、间距、视觉与原型 #page-home 一致；数据语义（取几条、上限、点谁播什么）一字未动。
+ * **不加 removeClippedSubviews**——回收单元里的 SVG 封面在 Android 有整格变白的老毛病
+ * （SearchResultPanel 2026-10-12 同款结论，PageListView 注释亦同）。
  */
-export const HomePage = ({ componentId, onSwitchTab, onOpenSourceSheet }: NewUiPageProps) => {
+export const HomePage = ({
+  componentId,
+  onSwitchTab,
+  onOpenSourceSheet,
+  onViewportPinnedChange,
+  onViewportScrollOffset,
+  viewportTopInset = 0,
+  viewportBottomInset = 0,
+}: NewUiPageProps) => {
   const theme = useTheme()
   const banners = useHomeBanners()
   const recentPlays = useRecentPlays()
@@ -212,6 +256,51 @@ export const HomePage = ({ componentId, onSwitchTab, onOpenSourceSheet }: NewUiP
     pushNewUiSonglistDetail(componentId, info, 'pl', 'home')
   }, [componentId])
 
+  // —— 推荐歌单池：虚拟单元 = 一行两卡（.pl-grid 的 1fr 1fr）——
+  // 池子只整批替换（useRecommendPlaylists 一次取一批并 slice 到 limit），行 key 用成员 id 拼接，
+  // 换平台/换分类时整批换 key、行内容跟着换，不会把旧行的封面留在新行上
+  const poolRows = useMemo<PoolRow[]>(() => {
+    const out: PoolRow[] = []
+    for (let i = 0; i < playlists.items.length; i += CARD_GRID.columns) {
+      const slice = playlists.items.slice(i, i + CARD_GRID.columns)
+      out.push({ key: slice.map(item => `${item.source}-${item.id}`).join('|'), items: slice })
+    }
+    return out
+  }, [playlists.items])
+
+  // 池子自身的空态/错误文案（口径与改造前 Section 体内三分支逐字一致：
+  // 错误 → 报错误原文；有条目 → 不显示（卡行接管）；没条目 → 正在取的一句话。
+  // 位置从「Section 体」挪到标题行之下、卡行应在之处（列表头尾部），前后顺序不变）
+  const poolTip = playlists.error
+    ? playlists.error
+    : poolRows.length
+      ? null
+      : NEW_UI_HOME_EMPTY.loading
+
+  const poolKeyExtractor = useCallback((row: PoolRow) => row.key, [])
+
+  // 一行两卡：列间隙 .pl-grid 的 12（gap 列向），行向 14 由第二行起的首 margin 承担——
+  // 与旧 CardGrid（flexWrap + rowGap/columnGap）逐像素等价，也与歌单页虚拟化后的行口径相同
+  const renderPoolRow = useCallback<ListRenderItem<PoolRow>>(({ item, index }) => (
+    <View style={[styles.row, index > 0 ? styles.rowGap : null]}>
+      {item.items.map(pl => (
+        <PlCard
+          key={`${pl.source}-${pl.id}`}
+          width={cardWidth}
+          title={pl.name}
+          artSeed={`${NEW_UI_HOME_ART_SEED.playlist}:${pl.id}`}
+          artUri={pl.img ?? undefined}
+          meta={[pl.play_count, pl.total ? `${pl.total} 首` : null]
+            .filter(Boolean)
+            .join(' · ')}
+          tint={/* QA 2026-10-14 D-14：原型 .pl-card .ps 恒有 .src-dot（app.js L341-343），项目口径换平台 tint 上色（与歌单页池子卡/我的页同款） */
+            PLATFORM_TINTS[pl.source as PlatformTintKey]}
+          onPress={() => handlePlaylistPress(pl)}
+        />
+      ))}
+    </View>
+  ), [cardWidth, handlePlaylistPress])
+
   const handleSongPress = useCallback((song: LX.Music.MusicInfoOnline) => {
     if (!assertApiSupport(song.source)) {
       showNewUiToast('这首歌所在的平台，当前音源放不出来')
@@ -243,8 +332,13 @@ export const HomePage = ({ componentId, onSwitchTab, onOpenSourceSheet }: NewUiP
 
   const today = getToday()
 
-  return (
-    <>
+  // —— 列表头（ListHeaderComponent）：轮播 + 快捷四格 + 继续收听 + 每日推荐 + 池子标题行 ——
+  // 全是定长内容（轮播 3 条、快捷 4 格、继续收听上限 12、榜单/池子各有上限），
+  // 且 VirtualizedList 的 header cell 不参与 windowing：轮播的自动换播定时器与横滑停靠位
+  // 不会因滚动被重置，与改造前的裸 ScrollView 行为逐字一致；横滑 ScrollView 嵌在纵滚列表内
+  // 也是改造前就存在的同款嵌套（纵向 ScrollView > 横向 ScrollView），手势关系没变。
+  const listHeader = (
+    <View>
       <Banner items={banners} onPress={handleBannerPress} />
 
       <QuickRow items={NEW_UI_HOME_QUICK_ITEMS} onPress={handleQuickPress} />
@@ -289,36 +383,24 @@ export const HomePage = ({ componentId, onSwitchTab, onOpenSourceSheet }: NewUiP
         />
       </Section>
 
+      {/* 池子标题行（Section 不传 children：只出头，卡行由列表体承载）——
+          root margin-top 26 + head margin-bottom 12 与旧「Section 头 + CardGrid 体」逐字同间距，
+          与歌单页虚拟化后用的是同一套口径 */}
       <Section
         title={NEW_UI_HOME_TITLES.playlists}
         more={NEW_UI_HOME_MORES.playlists}
         onMorePress={() => onSwitchTab('playlist')}
-      >
-        {playlists.error
-          ? <EmptyTip text={playlists.error} />
-          : playlists.items.length
-            ? (
-              <CardGrid>
-                {playlists.items.map(item => (
-                  <PlCard
-                    key={`${item.source}-${item.id}`}
-                    width={cardWidth}
-                    title={item.name}
-                    artSeed={`${NEW_UI_HOME_ART_SEED.playlist}:${item.id}`}
-                    artUri={item.img ?? undefined}
-                    meta={[item.play_count, item.total ? `${item.total} 首` : null]
-                      .filter(Boolean)
-                      .join(' · ')}
-                    tint={/* QA 2026-10-14 D-14：原型 .pl-card .ps 恒有 .src-dot（app.js L341-343），项目口径换平台 tint 上色（与歌单页池子卡/我的页同款） */
-                      PLATFORM_TINTS[item.source as PlatformTintKey]}
-                    onPress={() => handlePlaylistPress(item)}
-                  />
-                ))}
-              </CardGrid>
-            )
-            : <EmptyTip text={NEW_UI_HOME_EMPTY.loading} />}
-      </Section>
+      />
+      {poolTip ? <EmptyTip text={poolTip} /> : null}
+    </View>
+  )
 
+  // —— 列表尾（ListFooterComponent）：热门单曲 + 热门歌手 + 随手听 + 页脚 ——
+  // 三块都是定长（榜单歌 10 首 / 歌手 8 位 / 电台 2 张），不为它们做「虚拟化而虚拟化」：
+  // footer cell 与 header 一样永不回收，正合「点榜单 tab 就地换榜要整块重渲染、不被拆散」的要求
+  // （换榜后 ChipRow 选中态 + song-list 整体重建都在同一个块内完成，与改造前一模一样）。
+  const listFooter = (
+    <View>
       <Section
         title={NEW_UI_HOME_TITLES.songs}
         more={NEW_UI_HOME_MORES.songs}
@@ -417,11 +499,37 @@ export const HomePage = ({ componentId, onSwitchTab, onOpenSourceSheet }: NewUiP
       </Section>
 
       <FootNote text="曲库内容来自各平台 · 能否播放取决于当前音源" />
-    </>
+    </View>
+  )
+
+  return (
+    <PageListView
+      data={poolRows}
+      renderItem={renderPoolRow}
+      keyExtractor={poolKeyExtractor}
+      headerComponent={listHeader}
+      footerComponent={listFooter}
+      topInset={viewportTopInset}
+      bottomInset={viewportBottomInset}
+      // 吸顶链路换滚动源的接回（2026-10-16，与歌单页同一条）：顶栏 pinned 与逐帧偏移直发主屏，
+      // 计量在 useViewportScroll，与其余三页经 PageViewport 的口径逐字相同。
+      // 首页没有分类条吸顶，主屏 handleScrollOffset 拿到偏移时因未上报触发线（catLineRef=null）
+      // 而空转，歌单页那条链路不受影响（两页从不同时挂载，主屏切 Tab 时已把 catLineRef 复位）
+      onPinnedChange={onViewportPinnedChange}
+      onScrollOffset={onViewportScrollOffset}
+    />
   )
 }
 
 const styles = StyleSheet.create({
+  /** .pl-grid 的一行：两卡横排，列间隙 12（columnGap）；行间隙 14（rowGap）走行首 margin */
+  row: {
+    flexDirection: 'row',
+    gap: CARD_GRID.columnGap,
+  },
+  rowGap: {
+    marginTop: CARD_GRID.rowGap,
+  },
   /** 热门歌手区块的一句话说明：紧贴标题下方（.section-head 之后、卡片行之前） */
   artistsNote: {
     marginBottom: SPACING.md,

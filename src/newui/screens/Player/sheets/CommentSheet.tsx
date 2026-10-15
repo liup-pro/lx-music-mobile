@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View, type ListRenderItem } from 'react-native'
 
 import { filterList, getHotComment, type Comment } from '@/screens/Comment/utils'
 
@@ -31,7 +31,10 @@ export interface CommentSheetProps {
  * **分页口径逐条照抄旧 CommentHot.tsx**：page 从 1 起、每页 15 条、
  * CommentInfo { total, maxPage }（utils.ts L17-24）、isEnd = page >= maxPage（旧 L50）、
  * 首页 isEnd = maxPage === 1（旧 L62）、追加时 filterList 去重（utils.ts L50）。
- * 触底取下一页挂在 Sheet 骨架自带的唯一 ScrollView 上（onEndReached），不嵌第二层滚动容器。
+ * 触底取下一页挂在 Sheet 的**虚拟化主体**上（list 路径：骨架自带滚动容器就地换成 FlatList，
+ * 原生 onEndReached + 本容器 isLoading/isEnd 挡重入；仍是唯一一层滚动容器，不嵌第二层）。
+ * 2026-10-16 OOM 修复轮：热门歌评论翻页累加可到几千条，旧版在骨架 ScrollView 里 .map 全量直出、
+ * 滚不回收把 Yoga 节点堆满 Java 堆——现在挂载视图数 = 屏内行数 + windowSize 余量，与总数解耦。
  * 点赞是新 UI 里的本地状态（旧工程评论无点赞写接口，不造假接线）。
  * 评论项（含回复层级）渲染委托给同目录递归展示件 CommentNode，本容器只管数据与三态。
  */
@@ -122,15 +125,30 @@ export const CommentSheet = ({ visible, musicInfo, onClose, bottomInset }: Comme
     })
   }, [])
 
-  return (
-    <Sheet
-      visible={visible}
-      title={NEW_UI_SHEET_COMMENT.title}
-      subtitle={NEW_UI_SHEET_COMMENT.sub}
-      onClose={onClose}
-      bottomInset={bottomInset}
-      onEndReached={handleLoadMore}
-    >
+  /**
+   * 虚拟化行模型（2026-10-16 评论浮层 OOM 修复轮）：**一条根评论（含其整条回复线程）= 一行**。
+   * 回复递归展开仍是 CommentNode 内部的事（bug-fix「评论浮窗」第 2 条的层级/缩进/竖线零变化）；
+   * 五平台真实数据最深只有 2 级（根 + 一层回复数组），单行体量有界，
+   * 不会出现「一条热评几百楼把一行撑成巨块」的失控——行回收粒度 = 热卡体量。
+   * renderItem 依赖 likedIds：点赞变化只重建回调、由 CommentNode memo 挡住未变行的重渲染。
+   */
+  const renderItem = useCallback<ListRenderItem<Comment>>(
+    ({ item, index }) => (
+      <CommentNode
+        comment={item}
+        depth={0}
+        first={index === 0}
+        liked={likedIds.has(String(item.id))}
+        onToggleLike={toggleLiked}
+      />
+    ),
+    [likedIds, toggleLiked],
+  )
+  const keyExtractor = useCallback((item: Comment) => String(item.id), [])
+
+  // 头部 cell：三态提示 +（就绪时的）.cmt-total 总数行；随滚动进出、不回收（定长小内容）
+  const listHeader = (
+    <View>
       {phase === 'loading' && (
         <Text style={[styles.state, { color: theme.colors.text3 }]}>
           {NEW_UI_SHEET_COMMENT.loading}
@@ -146,49 +164,51 @@ export const CommentSheet = ({ visible, musicInfo, onClose, bottomInset }: Comme
           {NEW_UI_SHEET_COMMENT.empty}
         </Text>
       )}
-
       {phase === 'ready' && comments.length > 0 && (
-        <>
-          {/* .cmt-total：总数 + 排序说明（原型还有一枚「乐评人长评」标签，真实接口无此口径，不造假） */}
-          <View style={styles.total}>
-            <Text style={[styles.totalNum, { color: theme.colors.text }]}>
-              {formatCount(total)}
-            </Text>
-            <QTag label={NEW_UI_SHEET_COMMENT.sortTag} />
-          </View>
-
-          {/* 评论项渲染整体委托给递归展示件 CommentNode（bug-fix「评论浮窗」第 2 条）：
-              根级 = 完整块（头像/点赞/正文），回复级 = 缩进胶囊，层级按真实 reply 嵌套递归；
-              无回复的普通评论外观与分页行为零变化 */}
-          {comments.map((c, index) => (
-            <CommentNode
-              key={String(c.id)}
-              comment={c}
-              depth={0}
-              first={index === 0}
-              liked={likedIds.has(String(c.id))}
-              onToggleLike={toggleLiked}
-            />
-          ))}
-
-          {/* 分页状态行（旧 List.tsx L108-127 Footer 的等价物）：加载中 / 到底了 / 失败可点重试，如实标注 */}
-          {moreState !== 'idle' && (
-            <Pressable
-              onPress={moreState === 'error' ? handleLoadMore : undefined}
-              hitSlop={8}
-              style={({ pressed }) => [styles.more, pressed ? styles.pressed : null]}
-              accessibilityRole={moreState === 'error' ? 'button' : undefined}
-            >
-              <Text style={[styles.moreText, { color: theme.colors.text3 }]}>
-                {moreState === 'loading' && NEW_UI_SHEET_COMMENT.moreLoading}
-                {moreState === 'end' && NEW_UI_SHEET_COMMENT.moreEnd}
-                {moreState === 'error' && NEW_UI_SHEET_COMMENT.moreError}
-              </Text>
-            </Pressable>
-          )}
-        </>
+        /* .cmt-total：总数 + 排序说明（原型还有一枚「乐评人长评」标签，真实接口无此口径，不造假） */
+        <View style={styles.total}>
+          <Text style={[styles.totalNum, { color: theme.colors.text }]}>
+            {formatCount(total)}
+          </Text>
+          <QTag label={NEW_UI_SHEET_COMMENT.sortTag} />
+        </View>
       )}
-    </Sheet>
+    </View>
+  )
+
+  // 尾部 cell：分页状态行（旧 List.tsx L108-127 Footer 的等价物），失败可点重试，三句文案不变
+  const listFooter =
+    phase === 'ready' && comments.length > 0 && moreState !== 'idle' ? (
+      <Pressable
+        onPress={moreState === 'error' ? handleLoadMore : undefined}
+        hitSlop={8}
+        style={({ pressed }) => [styles.more, pressed ? styles.pressed : null]}
+        accessibilityRole={moreState === 'error' ? 'button' : undefined}
+      >
+        <Text style={[styles.moreText, { color: theme.colors.text3 }]}>
+          {moreState === 'loading' && NEW_UI_SHEET_COMMENT.moreLoading}
+          {moreState === 'end' && NEW_UI_SHEET_COMMENT.moreEnd}
+          {moreState === 'error' && NEW_UI_SHEET_COMMENT.moreError}
+        </Text>
+      </Pressable>
+    ) : null
+
+  return (
+    <Sheet
+      visible={visible}
+      title={NEW_UI_SHEET_COMMENT.title}
+      subtitle={NEW_UI_SHEET_COMMENT.sub}
+      onClose={onClose}
+      bottomInset={bottomInset}
+      onEndReached={handleLoadMore}
+      list={{
+        data: comments,
+        renderItem,
+        keyExtractor,
+        headerComponent: listHeader,
+        footerComponent: listFooter,
+      }}
+    />
   )
 }
 
