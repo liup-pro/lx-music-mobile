@@ -28,4 +28,4 @@ export {
 } from './singerPic'
 export { getCachedSongPic, resolveSongPic } from './songPic'
 export { requestNewUiTab, subscribeNewUiTab } from './tabJump'
-export { isDeletableUserListId } from './userList'
+export { isDeletableUserListId, isOwnedMusicListId } from './userList'

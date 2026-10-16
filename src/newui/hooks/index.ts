@@ -34,6 +34,7 @@ export {
 export { usePlaylistChipItems } from './playlistChipItems'
 export { usePlaylistPool, type PlaylistPoolState } from './usePlaylistPool'
 export { usePlayedList } from './usePlayedList'
+export { usePlayQueue, type NewUiPlayQueue, type NewUiPlayQueueRow } from './usePlayQueue'
 export { emitPageEndReached, usePageEndReached } from './usePageEndReached'
 export {
   useRankBoards,

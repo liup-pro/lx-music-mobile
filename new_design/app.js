@@ -17,6 +17,16 @@ const fmt = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).pad
 /* 浮层统一用 .show 驱动，配合 CSS 的 visibility 延迟切换，避免依赖 rAF */
 const openLayer = (n) => n.classList.add('show');
 const closeLayer = (n) => n.classList.remove('show');
+/* 「返回」一次只收最上面那一层：同级 .sheet 的层级高低就是 index.html 里的先后（见 styles.css「sheets」），
+ * 所以 DOM 里最后一个亮着的 sheet 正是当前最上层。播放列表面板上摊开行内「⋯」时，
+ * 先收 ⋯ 回到那一屏，再按才收面板——一次把两层都收掉等于把人从他要挑的那一屏踢出去。
+ * 收掉返回 true（这一层有东西可收），空了返回 false，交给外层继续收 */
+function closeTopSheet() {
+  const shown = $$('.sheet').filter((n) => n.classList.contains('show'));
+  if (!shown.length) return false;
+  closeLayer(shown[shown.length - 1]);
+  return true;
+}
 
 /* ============ 封面 / 头像 ============
  * 图片走 picsum（可离线时自动回落到本地 SVG 版式），头像用生成的剪影占位 */
@@ -420,7 +430,9 @@ function renderSongs() {
   };
 }
 
-function songRow(s, rank, queue, noMenu) {
+/* scene 只有一处用处：播放列表面板那一屏的行内「⋯」给的是这一屏用得上的那几项（openMore 的 queue 分支）。
+ * 其余落点（首页榜单、榜单/歌单详情、搜索、最近播放）不传，仍是全站通用那一份菜单 */
+function songRow(s, rank, queue, noMenu, scene) {
   const ok = supports(s.source);
   const row = el('button', 'song-row' + (state.song?.id === s.id ? ' playing' : '') + (ok ? '' : ' off'));
   row.appendChild(el('span', 'rank' + (rank <= 3 && ok ? ' top' : ''), String(rank)));
@@ -452,7 +464,7 @@ function songRow(s, rank, queue, noMenu) {
     const more = el('button', '', '<svg class="ic"><use href="#i-more"/></svg>');
     more.onclick = (e) => {
       e.stopPropagation();
-      openMore(s, queue);
+      openMore(s, queue, scene);
     };
     right.appendChild(more);
   }
@@ -918,7 +930,7 @@ function openPlaylist(p, kind) {
   plLoading = false;
   plLoadFailed = false;
   const tracks = plAllTracks();
-  const playable = tracks.filter((s) => supports(s.source));
+  const playable = plPlayableQueue();
 
   $('#plCrumb').textContent = PLD_CRUMB[k];
   $('#plBack').setAttribute('aria-label', PLD_LABELS.back);
@@ -1005,12 +1017,25 @@ function openPlaylist(p, kind) {
   $('#plLayer').scrollTop = 0;
 }
 
+/* 歌单详情层交给播放器的那一列 = 这份单子里现在能播的那批。
+ * 顺手把「这一列是谁家的」标在数组上：只有本机的一张单子（自建 / 内置「我喜欢」）才标得出名字，
+ * 榜单、平台歌单、搜索结果起播时在线内容已被复制成临时单子，标不出来就是 null。
+ * RN 侧这个判据是现成的：playerInfo.playerListId 是不是用户自己的一张单子
+ * （口径同 src/newui/utils/userList.ts:23 isDeletableUserListId 那份名单的划分——
+ *   默认试听 LIST_IDS.DEFAULT 与临时 LIST_IDS.TEMP 都是暂存池，动它们只影响这一次播放）。
+ * 播放列表面板里「⋯」的那条「移出」就靠这个标记决定写哪一种文案。 */
+const plPlayableQueue = () => {
+  const list = plAllTracks().filter((s) => supports(s.source));
+  list.queueOwner = plNow && !plNow.missing && (plNow.kind === 'local' || plNow.kind === 'fav') ? plNow.name : null;
+  return list;
+};
+
 /* 列表本体：只铺到 plShown，底部按需挂一条状态行 */
 function renderPlTracks() {
   const box = $('#plTracks');
   box.innerHTML = '';
   const tracks = plAllTracks();
-  const playable = tracks.filter((s) => supports(s.source));
+  const playable = plPlayableQueue();
   if (!tracks.length) {
     /* missing = 没定位到这份单子（真实侧是取数/读库失败），与「单子真的是空的」分开说；
      * 「我喜欢」空态再单独一档：怎么往里收，就写在原地 */
@@ -1256,6 +1281,9 @@ function renderMinePage() {
     e.stopPropagation();
     const can = liked.filter((s) => supports(s.source));
     if (!can.length) { toast(liked.length ? '收藏里的歌曲在当前音源下均不可播 · 换个音源试试' : '还没有收藏 · 点歌曲右侧的爱心'); return; }
+    /* 「我喜欢」也是本机的一张单子（真实侧 LIST_IDS.LOVE），起播的这一列就标成它的名字，
+     * 播放列表那屏的「移出」才会说成「从「我喜欢」移出」而不是含糊的一句 */
+    can.queueOwner = '我喜欢';
     play(can[0], can);
     openLayer(player());
   };
@@ -1371,6 +1399,9 @@ function cycleLoop() {
   state.loop = LOOP_ORDER[(LOOP_ORDER.indexOf(state.loop) + 1) % LOOP_ORDER.length];
   lsSave({ loop: state.loop });
   paintLoop();
+  /* 这一列只有一档模式需要改口径：随机要在列表头顶多一句提示（也只这一句）。
+   * 面板开着的时候不重铺，切完档看到的还是旧的那一句 */
+  refreshQueueUI();
   toast('循环模式 · ' + LOOP_NAME[state.loop]);
 }
 
@@ -1524,7 +1555,77 @@ const MORE_TXT = {
   removed: (list, title) => `已把「${title}」从「${list}」移出 · 歌还在这台设备的曲库里`,
 };
 
-function openMore(s, queue) {
+/* 「下一曲播放」全站只有这一条写法（播放列表那一屏的「⋯」也复用同一条，不造第二套手感）。
+ * 原型侧的动作就是把这一首排到当前这首之后；真实侧它是临时队首
+ * （src/core/player/tempPlayList.ts:10 addTempPlayList([...{isTop:true}])，旧 UI 同款调用
+ *   src/screens/Home/Views/Mylist/MusicList/MusicToggleModal.tsx:311，newui MoreSheet.tsx 已接）：
+ * 插进 tempPlayList，播完即出（src/core/player/player.ts:412-416），不改持久单子、也不搬
+ * playerPlayIndex（src/core/player/playInfo.ts:58 if (!isTempPlay) 那一段）。所以<em>落地时这一列的重排是纯显示层的</em>：
+ * 读 getList(playerInfo.playerListId) 出原序，再把 tempPlayList 里那几首显示在当前行之后
+ * （src/store/player/state.ts 的 tempPlayList 读得到），写回单子等于改用户歌单，绝对不能做。 */
+function nextRow(s, q) {
+  return actRow('i-next', QUEUE_TXT.next, () => {
+    const i = q.findIndex((x) => x.id === state.song?.id);
+    const nq = copyQueue(q);
+    nq.splice(i + 1, 0, s);
+    state.queue = nq;
+    refreshQueueUI();
+    closeLayer($('#moreSheet'));
+    toast(QUEUE_TXT.nextSet(s.title));
+  });
+}
+
+/* 播放列表这一屏的行内「⋯」定稿：这一屏只有"看这次要播什么 / 指定下一首 / 切过去听"三件事，
+ * 所以只给三项，正在出声的那一行只给一项；收藏、加入歌单那些在别的入口都有，这里不重复铺。
+ * 判据与真实落点逐条写在 notes「正在播放页」 */
+function openQueueMore(s, list) {
+  const cq = queueOf();
+  if (state.song && s.id === state.song.id) {
+    /* 正在出声的这一行：排下一曲、移出这两件"列里的事"都对它不成立，只给重来一遍 */
+    list.appendChild(actRow('i-play', QUEUE_TXT.again, () => {
+      seekTo(0);
+      closeLayer($('#moreSheet'));
+      toast(QUEUE_TXT.againTip(s.title));
+    }));
+    return;
+  }
+  list.appendChild(actRow('i-play', QUEUE_TXT.play, () => {
+    play(s, cq);
+    closeLayer($('#moreSheet'));
+    toast(QUEUE_TXT.played(s.title));
+  }));
+  list.appendChild(nextRow(s, cq));
+  /* 「移出」写哪一种文案，看此刻在播的这一列是谁家的（这一列自带的 queueOwner 标记，来处见 plPlayableQueue）：
+   * 本机的一张单子 → 逐字复用歌单详情层那句「从「X」移出」，动的是本机那条歌目；
+   * 这一次播放临时凑出来的一列 → 「这次不播这一首」，歌单与收藏都不动。
+   * 一条含糊的"移出"有两种后果，所以宁可分两种文案，也不把它留成一个待拍板的问号 */
+  const owner = cq.queueOwner || null;
+  const drop = actRow('i-close', owner ? MORE_TXT.remove(owner) : QUEUE_TXT.skip, () => {
+    if (owner === '我喜欢') {
+      state.fav.delete(s.id);
+      paintFav();
+      refreshFavLayer();
+    } else {
+      const p = MY_PLAYLISTS.find((x) => x.name === owner);
+      if (p && p.tracks.includes(s.id)) p.tracks.splice(p.tracks.indexOf(s.id), 1);
+    }
+    const nq = copyQueue(cq);
+    const at = nq.findIndex((x) => x.id === s.id);
+    if (at >= 0) nq.splice(at, 1);
+    state.queue = nq;
+    refreshQueueUI();
+    closeLayer($('#moreSheet'));
+    if (!$('#page-mine').hidden) renderMinePage();
+    if (!$('#page-playlist').hidden) renderPlaylistPage();
+    /* 详情层若正摊在这张单子上，歌目少了一条就当场重铺（syncPlLayer 自己判开没开） */
+    syncPlLayer();
+    toast(owner ? MORE_TXT.removed(owner, s.title) : QUEUE_TXT.skipped(s.title));
+  });
+  drop.classList.add('warn');
+  list.appendChild(drop);
+}
+
+function openMore(s, queue, scene) {
   moreSong = s;
   const head = $('#moreSong');
   head.innerHTML = '';
@@ -1544,6 +1645,13 @@ function openMore(s, queue) {
 
   const list = $('#moreActions');
   list.innerHTML = '';
+  /* 播放列表那一屏的行内「⋯」是另一套：只给这一屏用得上那三项（正在出声的那一行只有一项），
+   * 头部那块（封面 + 歌名 + 平台 + 歌手 · 专辑）与浮层骨架都是现成的，不另起一层 */
+  if (scene === 'queue') {
+    openQueueMore(s, list);
+    openLayer($('#moreSheet'));
+    return;
+  }
   const liked = state.fav.has(s.id);
   list.appendChild(actRow(liked ? 'i-heart-fill' : 'i-heart', liked ? '取消收藏' : '收藏到「我喜欢」', () => {
     liked ? state.fav.delete(s.id) : state.fav.add(s.id);
@@ -1554,14 +1662,7 @@ function openMore(s, queue) {
     toast(liked ? '已取消收藏' : '已收藏到「我喜欢」');
   }));
   const q = queue || queueOf();
-  const i = q.findIndex((x) => x.id === state.song?.id);
-  list.appendChild(actRow('i-next', '下一曲播放', () => {
-    const nq = q.slice();
-    nq.splice(i + 1, 0, s);
-    state.queue = nq;
-    closeLayer($('#moreSheet'));
-    toast(`已把「${s.title}」排在当前这首之后`);
-  }));
+  list.appendChild(nextRow(s, q));
   /* 自建歌单详情层里的这首歌，除了「再加入」还得能「从这里移出去」：
    * 移掉的只是这张单子在本地列出的那条歌目记录，歌本身、别的单子、平台端的收藏都不动 */
   const host = (plNow && plNow.kind === 'local') ? MY_PLAYLISTS.find((p) => p.id === plNow.id) : null;
@@ -1653,6 +1754,10 @@ function renderRadio() {
 const state = {
   song: null, playing: false, t: 0, timer: null,
   queue: null,
+  /* 这一列就是「这次要播的那份清单」，不是另造的一份数据（真实侧 = getList(playerInfo.playerListId)）。
+   * "这一列是谁家的"标在数组自己身上（queueOwner：本机一张单子的名字，其余为 null），
+   * 复制换引用时由 copyQueue 一并带过去；播放列表那一屏的行内「⋯」据此决定「移出」写哪一种文案。
+   * 判据与来处见 plPlayableQueue 上方注释、notes「正在播放页」 */
   history: RECENT.slice(),
   loop: 'listLoop',
   name: NICK_DEFAULT,
@@ -1681,6 +1786,13 @@ if (LS.name) state.name = LS.name;
 const player = () => $('#playerLayer');
 /* 队列 = 最近一次进入的列表；没有显式队列时回落到首页当前榜单 */
 const queueOf = () => (state.queue && state.queue.length ? state.queue : currentSongs());
+/* 改这一列一律复制一份再换引用（不原地改那些正被别处闭包握着的老数组），
+ * 并把「这一列是谁家的」标记一并带过去——换了引用不能丢归属，否则「移出」的文案会认错 */
+const copyQueue = (from) => {
+  const nq = from.slice();
+  nq.queueOwner = from.queueOwner || null;
+  return nq;
+};
 /* 评论数在真实实现里来自平台接口，原型按曲目 ID 稳定生成 */
 const commentTotal = (s) => 1284 + (s ? hash(s.id) % 9000 : 0);
 
@@ -1708,6 +1820,8 @@ function play(s, queue) {
 function syncLists() {
   renderSongs();
   renderRecent();
+  /* 队列钮的条数与开着的面板都要跟着这次播放走：面板里点一行切了歌，播中标记就得换行 */
+  refreshQueueUI();
   if (!$('#page-rank').hidden) renderRankPage();
   if (!$('#page-mine').hidden) renderMinePage();
   syncPlLayer();
@@ -1722,7 +1836,7 @@ function syncLists() {
 function syncPlLayer() {
   if (!plNow || !$('#plLayer').classList.contains('show')) return;
   const tracks = plAllTracks();
-  const playable = tracks.filter((s) => supports(s.source));
+  const playable = plPlayableQueue();
   renderPlTracks();
   if (plNow.kind !== 'rank') {
     const tag = $('#plHero .q-tag');
@@ -1742,6 +1856,8 @@ function toggle() {
   state.playing ? startTimer() : stopTimer();
   paintPlayer();
   renderSongs();
+  /* 歌名前那几道均衡器条纹只在该曲真在放时亮着，暂停了就跟着收 */
+  refreshQueueUI();
 }
 
 const startTimer = () => { if (!state.timer) state.timer = setInterval(tick, 1000); };
@@ -2076,9 +2192,9 @@ function bindStageSwipe(node) {
   node.addEventListener('pointercancel', stop);
 }
 
-/* ============ 播放页子面板：定时 / 评论 ============ */
+/* ============ 播放页子面板：定时 / 评论 / 播放列表 ============ */
 function openSheet(kind) {
-  const map = { timer: renderTimerSheet, comment: renderCommentSheet };
+  const map = { timer: renderTimerSheet, comment: renderCommentSheet, queue: renderQueueSheet };
   $('#psTitle').textContent = '';
   $('#psSub').innerHTML = '';
   $('#psMeta').innerHTML = '';
@@ -2116,6 +2232,72 @@ function renderTimerSheet() {
   box.appendChild(sw);
 
   box.appendChild(el('p', 'q-note', '若想听完当前这首再停，可将循环模式切到「单曲循环」。'));
+}
+
+/* ============ 播放列表面板 ============
+ * 一条按播放顺序平铺的列，不分段、不分类（没有"正在播放 / 接下来 / 之前"三段）：
+ * 这一列就是「这次要播的那份清单」（queueOf()），正在播的那一首只是待在它自己那个位次上，
+ * 靠行内现成的播中态（.song-row.playing 的底色 + 内描边、歌名前的均衡器条纹）标出来，不另起一段标题。
+ * 真实侧同构而且只有一份数据：getList(playerInfo.playerListId) 出整份清单、
+ * playInfo.playerPlayIndex 出当前位置，切过去听就是 playList(listId, index)（src/core/player/player.ts:289）；
+ * 播放内核（react-native-track-player）那边那份 queue 只当两三首缓冲用（src/plugins/player/playList.ts:143-183），
+ * 不是 UI 数据源，落地时不要拿它当这一列。
+ * 只有随机档需要多一句提示（下一首是切歌那一刻才抽的，这一列的顺序在那一档不作数）；
+ * 五种循环档不再各写一句说明——上一轮那样写，一句"看这次要播什么"的屏被写成了模式说明书。 */
+const QUEUE_TXT = {
+  title: '播放列表',
+  /* 顶部就这一句：说清这一列是什么、点它会怎样 */
+  sub: (n) => `这次要播的一共 ${n} 首 · 点一行就切过去听`,
+  noSong: '当前没有播放中的歌曲',
+  /* 随机档独有的一句，别的档不铺说明 */
+  random: '随机是切歌那一刻才抽的 · 这一列只是可能被抽到的',
+  /* 行内「⋯」在这一屏的定稿：非当前行三项（听这一首 / 下一曲播放 / 移出），当前行一项。
+   * 「移出」按此刻在播的这份单子是谁家的分两种文案，本机那张复用 MORE_TXT.remove 那条既有文案 */
+  play: '听这一首',
+  played: (title) => `已切到「${title}」`,
+  again: '这首从头再放',
+  againTip: (title) => `「${title}」从头再放`,
+  next: '下一曲播放',
+  nextSet: (title) => `已把「${title}」排在当前这首之后`,
+  skip: '这次不播这一首',
+  skipped: (title) => `「${title}」这次不播了 · 歌单与收藏都不动`,
+};
+
+function renderQueueSheet() {
+  const box = $('#psBody');
+  /* 自己清自己：切完歌由 refreshQueueUI() 直接重铺（openSheet 那句清空只在开面板时走），
+   * 不清就是一次次往上叠行 */
+  box.innerHTML = '';
+  $('#psTitle').textContent = QUEUE_TXT.title;
+  if (!state.song) {
+    $('#psSub').innerHTML = '';
+    box.appendChild(el('div', 'empty-tip', QUEUE_TXT.noSong));
+    return;
+  }
+  const q = queueOf();
+  $('#psSub').innerHTML = QUEUE_TXT.sub(q.length);
+  /* 随机档那一句挂在列表头顶，钉不钉住无所谓：它解释的是顺序，不是某一行的状态 */
+  if (state.loop === 'random') box.appendChild(el('p', 'q-note', QUEUE_TXT.random));
+  /* 一列铺到底：行还是全站那一种行（复用 songRow），「⋯」也是那一族，只是这一屏换成上面定的那几项 */
+  const list = el('div', 'song-list');
+  q.forEach((s, i) => list.appendChild(songRow(s, i + 1, q, false, 'queue')));
+  box.appendChild(list);
+}
+
+/* 队列钮只报条数（文字全在 aria-label 上，与工具行另外四颗同一口径）；
+ * 面板开着的时候一并重铺，改完「下一曲播放」「移出」立刻能看见结果 */
+function paintQueueBtn() {
+  $('#btnQueue').setAttribute('aria-label',
+    state.song ? `播放列表 · 共 ${queueOf().length} 首` : '播放列表 · 当前没有播放中的歌曲');
+}
+function refreshQueueUI() {
+  paintQueueBtn();
+  if ($('#psTitle').textContent !== QUEUE_TXT.title) return;
+  /* 原地重铺要保住滚动位置（与 #searchBody / #plLayer 那两处同一写法）：
+   * 从行内「⋯」做完「下一曲播放」「这次不播这一首」收回面板时，人被弹回顶部就挑不动了 */
+  const y = $('#psBody').scrollTop;
+  renderQueueSheet();
+  $('#psBody').scrollTop = y;
 }
 
 /* 评论分页：真实侧一页一页翻（getComment），所以浮层里的列表也是逐页追加；
@@ -2772,6 +2954,16 @@ function init() {
 
   $$('[data-close]').forEach((n) => (n.onclick = () => closeLayer(n.closest('.sheet'))));
 
+  /* 原型里没有系统返回键可按，用 Esc 顶它：一次只收最上面那一层，
+   * 顺序是「面板之上的第二层 → 播放页 → 推入页」，绝不一次收掉两层 */
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (closeTopSheet()) return;
+    if ($('#playerLayer').classList.contains('show')) { closeLayer($('#playerLayer')); syncFloat(); return; }
+    if ($('#searchLayer').classList.contains('show')) { closeSearch(); return; }
+    if ($('#plLayer').classList.contains('show')) closePlLayer();
+  });
+
   $('#plBack').onclick = closePlLayer;
   $('#plLayer').addEventListener('scroll', plLayerScroll, { passive: true });
   /* 评论浮层滚到底自动翻下一页（真实侧就是触底取数）；这一层还被定时面板共用，只在评论开着时才翻页 */
@@ -2823,6 +3015,7 @@ function init() {
   $('#btnLoop').onclick = cycleLoop;
   $('#btnTimer').onclick = () => openSheet('timer');
   $('#btnComment').onclick = () => openSheet('comment');
+  $('#btnQueue').onclick = () => openSheet('queue');
   $('#btnFloat').onclick = toggleFloat;
   bindStageSwipe($('.player-stage'));
   $('#lfClose').onclick = toggleFloat;
@@ -2843,6 +3036,7 @@ function init() {
   paintPlayer();
   paintLoop();
   paintFloatBtn();
+  paintQueueBtn();
   renderSongs();
 }
 

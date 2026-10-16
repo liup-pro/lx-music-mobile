@@ -1,0 +1,9 @@
+{
+  "_note": "对账白名单：键 = `件|A|CSS属性` 或 `件|B|CSS属性=数值`，值 = 抑制理由。命中即从输出里消失，但抑制数量在结论行可见。只收「跨端口径不可能逐字」的项；真缺口一律不进来。",
+  "flags": {
+    "mine/stat-row|A|text-align": "RN 无块级 text-align 继承：.stat 的居中由容器 alignItems:center 实现（子 Text 收缩宽即视觉居中），跨端口径近似",
+    "search/sc-top|B|font-weight=650": "650 非 RN 字重档位（iOS UIFontWeight 只认整百，'650' 会掉回 regular），原生化就近取 semibold 600（SearchTop cancelText）",
+    "search/sc-tabs|B|font-weight=750": "750 非 RN 字重档位，原生化就近取 extraBold 800（SearchResultPanel tabLabel，注释已写明 750）",
+    "search/sc-result|B|font-weight=750": "750 非 RN 字重档位，原生化就近取 extraBold 800（SearchResultPanel emptyTitle，注释已写明 750）"
+  }
+}

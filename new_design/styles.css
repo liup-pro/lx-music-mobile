@@ -724,7 +724,12 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 #psBody>.q-chips{margin-top:14px}
 
 
-/* ============ sheets ============ */
+/* ============ sheets ============
+ * 所有面板共用这一个 z-index，层级高低由 index.html 里的先后决定：同层里谁写在后面谁压在上面。
+ * 因此"第二层"的那两个（#moreSheet 行内 ⋯、#confirmSheet 二次确认）必须排在各面板之后——
+ * 播放列表面板（#playerSheet）里点行内「⋯」时，菜单要浮在面板之上，不是被压在背后。
+ * 这条口径同时被 app.js 的 closeTopSheet() 用着（"返回"取最后一个亮着的 sheet 就是最上层），
+ * 所以挪动这些节点的顺序等于改层级，别只当排版。 */
 .sheet{position:absolute;inset:0;z-index:80;display:flex;align-items:flex-end;
   visibility:hidden;transition:visibility 0s linear .42s}
 .sheet.show{visibility:visible;transition-delay:0s}
@@ -747,6 +752,12 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 #playerSheet .sheet-handle,#playerSheet .sheet-title,#playerSheet .sheet-sub,#psMeta{flex:none}
 #psBody{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
 #psBody::-webkit-scrollbar{display:none}
+/* 播放列表面板复用 songRow，但这一列不要榜单序号：1、2、3 那种排名色彩是榜单语义，
+   这一列的位次就是"从上到下按播放顺序走"，不需要再给一列数字。
+   行内也不放操作钮——「听这一首 / 下一曲播放 / 移出」都归那行自己的「⋯」（同一族 .opt-row），
+   免得同一屏长出第二套菜单 */
+#psBody .song-row .rank{display:none}
+#psBody .song-list{gap:4px;margin-top:12px}
 .group-label{font-size:10.5px;font-weight:800;letter-spacing:1.3px;color:var(--text-3);margin:20px 0 9px}
 .opt-list{display:flex;flex-direction:column;gap:7px}
 .opt-row{

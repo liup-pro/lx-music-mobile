@@ -208,7 +208,7 @@ const PART_DEFS = [
   P('U14', 'U14', 'common-control', 'q-tag', '.q-tag 音质/时长小标签原子（样式归 _base；静态实例在 U51 件内）', { doc: true, occCls: ['.q-tag'] }),
   P('U15', 'U15', 'common-control', 'src-badge', '.src-badge 平台来源角标原子（样式归 _base；songRow 生成）', { doc: true, occCls: ['.src-badge'] }),
   P('U16', 'U16', 'common-control', 'hscroll-recent', '.hscroll + .recent-card 继续收听横滚（含区块壳与「清空记录」钮）', { js: ['renderRecent', 'recentIds', 'clearRecent', 'RECENT_LIMIT'] }),
-  P('U17', 'U17', 'common-control', 'sheet-chrome', '.sheet 浮层 chrome 定义（mask/body/handle/title/sub + 164dfa4 钉住规则 #playerSheet .sheet-body/#psBody——钉住归 chrome，不归评论件；八实例件继承）', { doc: true, sheetIds: ['sourceSheet', 'plIdSheet', 'createSheet', 'plTagsSheet', 'nameSheet', 'moreSheet', 'playerSheet', 'confirmSheet'], js: ['openSheet', 'openLayer', 'closeLayer'] }),
+  P('U17', 'U17', 'common-control', 'sheet-chrome', '.sheet 浮层 chrome 定义（mask/body/handle/title/sub + 164dfa4 钉住规则 #playerSheet .sheet-body/#psBody——钉住归 chrome，不归评论件；八实例件继承）；本轮口径定稿：八只面板共用 z-index:80，层级高低由 index.html 里的先后决定「同层里谁写在后面谁压在上面」，故第二层 #moreSheet、第三层 #confirmSheet 必须排在各面板之后（#moreSheet 已从 #playerSheet 之前挪到之后），收层一次只收最上面那一层', { doc: true, sheetIds: ['sourceSheet', 'plIdSheet', 'createSheet', 'plTagsSheet', 'nameSheet', 'moreSheet', 'playerSheet', 'confirmSheet'], js: ['openSheet', 'openLayer', 'closeLayer', 'closeTopSheet'] }),
   P('U18', 'U18', 'common-control', 'group-label', '.group-label 浮层分组标题（「已安装音源/音乐平台/音质/导入音源」等文案见符号行；.fold 变体 + .fold-toggle 折叠开关归本件，尾行 .fold-more 归 U19）', { doc: true, occCls: ['.group-label'], js: ['renderSheet', 'renderTagGroups', 'scriptFoldedNow'] }),
   P('U19', 'U19', 'common-control', 'opt-list', '.opt-list / .opt-row（radio/or-body/or-state/opt-ic）选项行族；行尾移除钮 .or-del 与列表尾「还有 N 个没显示」行 .fold-more 归本件', { doc: true, occCls: ['.opt-list'], js: ['renderSheet', 'actRow', 'openMore', 'scriptRow'] }),
   P('U20', 'U20', 'common-control', 'op-box', '.op-box / .op-input / .op-go / .op-err / .op-file 输入行族（.op-file 是本机导入那枚次级钮；打开/创建/保存钮文案在实例件内）', { doc: true, occCls: ['.op-box'], js: ['handleImport', 'handleImportFile', 'importGate', 'submitCreateList', 'saveNick', 'tryOpenByPid'] }),
@@ -223,7 +223,7 @@ const PART_DEFS = [
   P('U25', 'U25', 'home', 'quick-row', '.quick-row 快捷入口四宫格（每日推荐/排行榜/电台/我喜欢，QUICK 见 data.js）', { js: ['renderQuick'] }),
   P('U26', 'U26', 'home', 'daily-card', '.daily-card 今日推荐卡（含区块壳）', { js: ['renderDaily', 'dailyPool', 'todayLabel'] }),
   P('U27', 'U27', 'home', 'pl-card', '.pl-grid / .pl-card 推荐歌单区块（首页那份；歌单页/我的页复用见 U38/U46）', { js: ['renderPlaylists', 'plCard'] }),
-  P('U29', 'U29', 'home', 'song-list', '.song-list 热门单曲区块（section 壳 + ghost-btn + 列表壳；rank-tabs 子块挖出归 chip-row；songRow/src-badge/q-tag/play-badge 复用 _base 与内容件）', { js: ['renderSongs', 'songRow', 'currentSongs', 'currentBoard', 'HOME_SONG_LIMIT'] }),
+  P('U29', 'U29', 'home', 'song-list', '.song-list 热门单曲区块（section 壳 + ghost-btn + 列表壳；rank-tabs 子块挖出归 chip-row；songRow/src-badge/q-tag/play-badge 复用 _base 与内容件）；本轮 songRow() 多收第 5 参 scene——只有传 \'queue\' 时行内「⋯」给 U80 那一屏专属菜单，其余落点不传、菜单不变', { js: ['renderSongs', 'songRow', 'currentSongs', 'currentBoard', 'HOME_SONG_LIMIT'] }),
   P('U31', 'U31', 'home', 'artist-card', '.artist-card 热门歌手横滚（含区块壳；section-note 挖出归 U32）', { js: ['renderArtists', 'ARTIST_LIMIT'] }),
   P('U32', 'U32', 'home', 'section-note', '.section-note 区块说明灰字（RN 缺件·页面内联，本轮拆件头号转正候选）', { js: ['renderArtists'] }),
   P('U33', 'U33', 'home', 'radio-card', '.radio-grid / .radio-card / .wip-tag 随手听（私人 FM/赫兹电台 +「建设中」）', { js: ['renderRadio'] }),
@@ -256,7 +256,7 @@ const PART_DEFS = [
   P('U57', 'U57', 'player', 'seek', '.seek 进度条（拖动即定位，拖动期间关 transition）', { js: ['seekTo', 'tick', 'bindDragX'] }),
   P('U58', 'U58', 'player', 'seek-time', '.seek-time 起止时间行（RN 缺件·内联，转正候选）', { js: ['paintProgress', 'fmt'] }),
   P('U59', 'U59', 'player', 'player-controls', '.player-controls / .pc 主传输行三颗（循环五态文案见 LOOP_* 行）', { js: ['step', 'toggle', 'LOOP_ORDER', 'LOOP_ICON', 'LOOP_NAME', 'paintLoop'] }),
-  P('U60', 'U60', 'player', 'player-tools', '.player-tools / .pt-btn 次级工具行四颗（定时/循环/浮窗/评论；浮窗本体在 U61，两件对读防「钮有着落、本体悬空」）', { js: ['paintTimerTag', 'cycleLoop', 'toggleFloat', 'setIcon'] }),
+  P('U60', 'U60', 'player', 'player-tools', '.player-tools / .pt-btn 次级工具行五颗（定时/循环/浮窗/评论/播放列表；浮窗本体在 U61、播放列表面板本体在 U80，两件对读防「钮有着落、本体悬空」）；第 5 颗 #btnQueue 图标复用 sprite 现成的 i-list 不新增 symbol，屏内不加文字，条数写在 aria-label（`播放列表 · 共 N 首`，由 paintQueueBtn 回写）', { js: ['paintTimerTag', 'cycleLoop', 'toggleFloat', 'setIcon', 'paintQueueBtn'] }),
   P('U61', 'U61', 'player', 'lrc-float', '.lrc-float 歌词悬浮窗（可拖动气泡）', { js: ['syncFloat', 'paintFloatBtn', 'toggleFloat', 'bindFloatDrag'], warn: 'RN 未落地·功能级缺口（对撞报告 U61 实锤）；派单接件时按整件对照，勿再散着抄。' }),
 
   P('USEARCH_shell', '搜索层壳', 'search', '_layer', 'search-layer 壳层（复用 .pl-layer 推入基础样式，那份 CSS 归 songlist-detail/_layer.css——拆件在此点它）', { js: ['openSearch', 'closeSearch'] }),
@@ -270,17 +270,18 @@ const PART_DEFS = [
   P('U67', 'U67', 'songlist-detail', 'pl-top', '.pl-top / .pl-crumb / .pl-fav-btn 顶排（RN 缺件·内联，转正候选；面包屑文案见 PLD_CRUMB）', { js: ['PLD_CRUMB', 'togglePlFav'] }),
   P('U68', 'U68', 'songlist-detail', 'pl-hero', '.pl-hero 头图区（ph-body/ph-sub/ph-meta/sep；「N/M 首可播」等文案在 openPlaylist）', { js: ['openPlaylist', 'chartArt'] }),
   P('U69', 'U69', 'songlist-detail', 'pl-actions', '.pl-actions 播放全部 + 随机钮（RN 缺件·内联，转正候选；PLD_LABELS 文案见符号行；「播放全部」实心 .ghost-btn.solid 实例在 openPlaylist 内生成，样式本体在 _base）', { js: ['PLD_LABELS', 'openPlaylist'] }),
-  P('U70', 'U70', 'songlist-detail', 'pl-tracks', '#plTracks 曲目表（song-list 复用 U29；分页状态行 .pl-status/.pl-end 样式在 _base——三页共用；PLD_STATUS 文案见符号行）', { js: ['renderPlTracks', 'plStatusRow', 'loadPlPage', 'plEndRow', 'PLD_STATUS', 'PLD_EMPTY', 'PL_PAGE_SIZE'] }),
+  P('U70', 'U70', 'songlist-detail', 'pl-tracks', '#plTracks 曲目表（song-list 复用 U29；分页状态行 .pl-status/.pl-end 样式在 _base——三页共用；PLD_STATUS 文案见符号行）；本轮起播那一列改由 plPlayableQueue() 出，顺手把「这一列是谁家的」标在数组上（queueOwner：本机一张单子的名字，其余 null），供 U80 的「移出」文案分叉', { js: ['renderPlTracks', 'plStatusRow', 'loadPlPage', 'plEndRow', 'PLD_STATUS', 'PLD_EMPTY', 'PL_PAGE_SIZE', 'plPlayableQueue'] }),
 
   P('U72', 'U72', 'sheets', 'source-sheet', 'sourceSheet 音源浮层实例（chrome 见 U17；「音源只负责一件事…」sheetSub 与 q-note 三句由 renderSheet 生成，文案见符号行；含就绪置顶排序 sortedScripts、折叠开关 scriptFoldedNow/SCRIPT_FOLD_LIMIT、行尾移除 askRemoveScript/removeScript、在线+本机双路导入 importGate/receiveScript/handleImportFile）', { js: ['renderSheet', 'renderImportRow', 'handleImport', 'handleImportFile', 'importGate', 'receiveScript', 'scriptRow', 'askRemoveScript', 'removeScript', 'sortedScripts', 'scriptFoldedNow', 'SCRIPT_FOLD_LIMIT', 'SCRIPT_MAX', 'NO_SCRIPT'] }),
   P('U73', 'U73', 'sheets', 'plid-sheet', 'plIdSheet 打开歌单浮层实例（PLID 样例表与错误文案见符号行；本件持有「打开」按钮与三句固定提示）', { js: ['openPlIdSheet', 'PLID', 'pidOf', 'bareIdOf', 'renderPlIdPlats', 'renderPlIdSamples', 'plIdError'] }),
   P('U74', 'U74', 'sheets', 'create-sheet', 'createSheet 新建歌单浮层实例（CREATE_TXT 见符号行；本件持有「创建」与校验提示）', { js: ['openCreateSheet', 'submitCreateList', 'doCreate', 'CREATE_TXT', 'CREATE_NAME_MAX', 'createListError'] }),
   P('U75', 'U75', 'sheets', 'tags-sheet', 'plTagsSheet 全部分类浮层实例（分组由 renderTagGroups() 灌入；「正在从平台获取分类…」见符号行）', { js: ['openTagSheet', 'renderTagGroups', 'plGroups', 'PL_TAG_REC'] }),
   P('U47', 'U47', 'sheets', 'name-sheet', 'nameSheet 改昵称浮层实例（NICK_PICKS 见符号行；本件持有「想叫什么/保存/换个快的」与收尾提示全文）', { js: ['openNameSheet', 'saveNick', 'NICK_PICKS'] }),
-  P('U76', 'U76', 'sheets', 'more-sheet', 'moreSheet 单曲操作面板实例（.more-song 头 + opt-list 动作；「收藏到「我喜欢」」等文案见 openMore；加入候选组头「加入自建歌单」与空态句见 MORE_TXT，候选名单即 addablePlaylists）', { js: ['openMore', 'actRow', 'moreSong', 'MORE_TXT', 'addablePlaylists'] }),
-  P('U78_79', 'U78+U79', 'sheets', 'player-sheet', '#playerSheet 播放页子面板宿主：定时与评论两种实例共用这一只 DOM（内容件见 timer-sheet / comment-sheet；钉住规则归 U17 chrome）', { js: ['openSheet', 'closeLayer'] }),
+  P('U76', 'U76', 'sheets', 'more-sheet', 'moreSheet 单曲操作面板实例（.more-song 头 + opt-list 动作；「收藏到「我喜欢」」等文案见 openMore；加入候选组头「加入自建歌单」与空态句见 MORE_TXT，候选名单即 addablePlaylists）；本轮两处改动：① songRow 多收第 5 参 scene，传 \'queue\' 时整份菜单换成 U80 那一屏专属的几项（openQueueMore），其余落点不传仍是这一份；② 上一轮往这份通用菜单里加的那条「从这次播放里移出」已整行收走，「下一曲播放」抽出为共享行 nextRow()（与 U80 同一族），且本件 DOM 已挪到 #playerSheet 之后以拿到更高层级', { js: ['openMore', 'actRow', 'moreSong', 'MORE_TXT', 'addablePlaylists', 'nextRow'] }),
+  P('U78_79', 'U78+U79', 'sheets', 'player-sheet', '#playerSheet 播放页子面板宿主：定时 / 评论 / 播放列表三种实例共用这一只 DOM（内容件见 timer-sheet / comment-sheet / queue-sheet；钉住规则归 U17 chrome；openSheet(kind) 的 map 三档）', { js: ['openSheet', 'closeLayer'] }),
   P('U78', 'U78', 'sheets', 'timer-sheet', 'timer 浮层内容件（renderTimerSheet() 灌入 player-sheet；「不开启」「N 分钟」「等当前这首放完再停」见符号行；开关本体归 U22）', { doc: true, js: ['renderTimerSheet', 'paintTimerTag', 'sleepSub', 'stopAtEdge'] }),
   P('U79', 'U79', 'sheets', 'comment-sheet', 'comment 浮层内容件（renderCommentSheet()/cmtItem() 嵌套树灌入 player-sheet；cmt-total/cmt-item/cmt-reply/cmt-to 样式归本件；164dfa4：cmt-total 钉在 #psMeta、仅 #psBody 滚——钉住规则本体在 U17）', { doc: true, js: ['renderCommentSheet', 'paintComments', 'cmtItem', 'loadCmtPage', 'CMT_TXT', 'CMT_PAGE_SIZE', 'commentTotal'] }),
+  P('U80', 'U80', 'sheets', 'queue-sheet', 'queue 播放列表面板内容件（#playerSheet 实例三，openSheet(\'queue\') 由 U60 那颗 #btnQueue 开）：一条按播放顺序平铺的列，不分段不分类——没有「正在播放 / 接下来 / 之前」三段，也没有五档循环模式各写的尾句说明；正在播的那首只用行内现成的 .song-row.playing 底色 + 歌名前 .eq 条纹，本件不为它新造任何样式；顶部只留 #psSub 一句「这次要播的一共 N 首 · 点一行就切过去听」，随机档只多一句 .q-note「随机是切歌那一刻才抽的 · 这一列只是可能被抽到的」，空态一句「当前没有播放中的歌曲」；行内「⋯」本屏专属：非当前行三项「听这一首 / 下一曲播放 / 这次不播这一首／从「X」移出」，正在出声那行只有「这首从头再放」；这一列不带榜单序号（#psBody .song-row .rank{display:none} 归本件）、不挂分页状态行', { doc: true, js: ['renderQueueSheet', 'QUEUE_TXT', 'openQueueMore', 'nextRow', 'queueOf', 'copyQueue', 'plPlayableQueue', 'refreshQueueUI', 'paintQueueBtn'], note: '标记全部由 renderQueueSheet() 运行时生成（行还是全站那一种 songRow，归 U29/U30），本件无静态壳；数据只有一份——queueOf()/state.queue 这一列 + 它自带的 queueOwner 标（来处 plPlayableQueue，见 U70），playList 内核那份 queue 不是 UI 数据源。就地重铺走 refreshQueueUI()：先存 #psBody.scrollTop 再重铺再回位；切档（cycleLoop）/切歌（syncLists、toggle）都点它。面板之上再叠行内「⋯」（U76）是本件的层级前提，见 U17 那条口径。' }),
   P('U77', 'U77', 'sheets', 'confirm-sheet', 'confirmSheet 二次确认浮层实例（.cf-actions/.cf-btn；「要执行这一步吗」默认文案见 askConfirm）', { js: ['askConfirm', 'askClearCache', 'askDeleteList'] }),
 ]
 const partByKey = new Map(PART_DEFS.map((p) => [p.key, p]))
@@ -460,6 +461,11 @@ const CSS_EXC = [
   // #importHint 是导入进行时的回显间距，都只在 #sourceSheet 内出现，归实例件 U72。
   [/^#importFile$/, 'U72'],
   [/^#importHint$/, 'U72'],
+  // 播放列表面板两条 ID 限定实例规则（同上判例，与既有的 #psBody>.q-chips→U78 同一族写法）：
+  // 这两条都只在 renderQueueSheet() 铺出的那一列里生效（#psBody 里只有这一屏挂 .song-list/.song-row），
+  // 若不指名会被 U17 的 '#psBody' 模式先吃掉（U17 是 chrome 定义件，不该持有实例专属规则）。
+  [/^#psBody \.song-row \.rank$/, 'U80'],
+  [/^#psBody \.song-list$/, 'U80'],
 ]
 const CSS_MATCHERS = [
   ['_chrome', ['.pad ', '.land ', '.phone.pad', '.phone.land', 'body.pad', '.stage', '.phone', '.screen', '.island', '.statusbar', '.sb-time', '.sb-right', '.sb-signal', '.sb-batt', '.viewer-bar', '.vb-label', '.vb-seg', '.vb-btn', '.vb-note', '.nav-brand', '.nav-sep', '.nav-label', '.nav-foot', '.notes', '.swatches', '.sw']],

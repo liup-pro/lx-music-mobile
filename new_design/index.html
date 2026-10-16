@@ -350,6 +350,8 @@
           <button class="pt-btn" id="btnLoop" aria-label="循环模式 · 列表循环"><svg class="ic"><use href="#i-repeat"/></svg></button>
           <button class="pt-btn" id="btnFloat" aria-label="LRC 浮窗 · 未开启"><svg class="ic"><use href="#i-float"/></svg></button>
           <button class="pt-btn" id="btnComment" aria-label="评论"><svg class="ic"><use href="#i-comment"/></svg></button>
+          <!-- 播放列表入口：图标位不给文字，共几首写在 aria-label 上，随这一列的变动回写（见 notes「正在播放页」） -->
+          <button class="pt-btn" id="btnQueue" aria-label="播放列表"><svg class="ic"><use href="#i-list"/></svg></button>
         </div>
       </div>
 
@@ -482,17 +484,7 @@
         </div>
       </div>
 
-      <!-- 单曲操作面板 -->
-      <div class="sheet" id="moreSheet">
-        <div class="sheet-mask" data-close></div>
-        <div class="sheet-body">
-          <div class="sheet-handle"></div>
-          <div class="more-song" id="moreSong"></div>
-          <div class="opt-list" id="moreActions"></div>
-        </div>
-      </div>
-
-      <!-- 播放页子面板：定时 / 评论（均衡器随假能力一并撤掉，见 notes「正在播放页」） -->
+      <!-- 播放页子面板：定时 / 评论 / 播放列表（均衡器随假能力一并撤掉，见 notes「正在播放页」） -->
       <div class="sheet" id="playerSheet">
         <div class="sheet-mask" data-close></div>
         <div class="sheet-body">
@@ -504,7 +496,20 @@
         </div>
       </div>
 
-      <!-- 二次确认：删本机数据之前问一句（清除缓存 / 删除歌单 / 同名建单共用） -->
+      <!-- 行内「⋯」是"开在别的浮层之上的第二层"（播放列表面板里点 ⋯ 就要压在 #playerSheet 之上），
+           所以它排在各面板之后：同级 .sheet 共用 z-index:80，DOM 里靠后的那个压在上面
+           （口径写在 styles.css「sheets」那一段，与下面 #confirmSheet 是同一写法，不另起 z-index） -->
+      <div class="sheet" id="moreSheet">
+        <div class="sheet-mask" data-close></div>
+        <div class="sheet-body">
+          <div class="sheet-handle"></div>
+          <div class="more-song" id="moreSong"></div>
+          <div class="opt-list" id="moreActions"></div>
+        </div>
+      </div>
+
+      <!-- 二次确认：删本机数据之前问一句（清除缓存 / 删除歌单 / 同名建单共用）
+           它是第三层，所以一直排在最后 -->
       <div class="sheet" id="confirmSheet">
         <div class="sheet-mask" data-close></div>
         <div class="sheet-body">
@@ -693,9 +698,9 @@
       </ul>
 
       <h2>正在播放页</h2>
-      <p class="notes-body">控件按「主传输 / 次级工具」两层排布：主传输行只留上一曲 / 播放 / 下一曲三颗，定时从这一行挪进下面的工具行；播放队列入口按需求去掉，改由 LRC 浮窗承担跨页面常驻的角色。</p>
+      <p class="notes-body">控件按「主传输 / 次级工具」两层排布：主传输行只留上一曲 / 播放 / 下一曲三颗，定时从这一行挪进下面的工具行。播放列表入口<em>上一轮按需求撤过、这一轮按「看不见接下来播什么 / 看不见整份播放列表 / 不能指定下一首」这条痛点恢复回来</em>——恢复的依据是真实侧这几条都有现成落点（读列表 <code>getList(playerInfo.playerListId)</code>、读位次 <code>playInfo.playerPlayIndex</code>、把一首临时排到下一首 <code>addTempPlayList(…, isTop:true)</code>），不是把当初撤掉的假能力请回来。</p>
       <ul class="notes-list">
-        <li>底部工具行四颗（定时 / 循环 / 浮窗 / 评论）<em>没有文字、没有选中底色</em>：按下去只换图标，说明交给 <code>aria-label</code> 与 toast。开启态统一用「描边 + 同色低透明度内填充」表达（时计盘面、浮窗气泡各充一层色），一处语言全站通用，不再给按钮铺一块高亮底</li>
+        <li>底部工具行五颗（定时 / 循环 / 浮窗 / 评论 / 播放列表）<em>没有文字、没有选中底色</em>：按下去只换图标或开面板，说明交给 <code>aria-label</code> 与 toast。开启态统一用「描边 + 同色低透明度内填充」表达（时计盘面、浮窗气泡各充一层色），一处语言全站通用，不再给按钮铺一块高亮底</li>
         <li>进度条 <code>pointerdown/move</code> 拖动即定位，拖动期间关掉 <code>transition</code>，松手才回写 <code>state.t</code> 与歌词锚点</li>
         <li>上一曲 / 下一曲在当前队列内跳转，并自动跳过本音源解析不了的来源（切到「落歌」后咪咕、酷狗会被跳过）</li>
         <li>循环模式五态轮转：列表循环 → 随机 → 顺序播放 → 单曲循环 → 播完即停 → 回到列表循环。工具行只剩图形以后，三态不能再共用一枚 <code>i-repeat</code>，所以五态配五个轮廓：双箭头环 = 列表循环、环上压斜线 = 顺序播放（循环已关闭）、环中带 1 = 单曲循环、交叉箭头 = 随机、箭头抵端线 = 播完即停（顺序播放放到头就停、播完即停放完当前这首就停，两句 toast 分开说）</li>
@@ -705,6 +710,13 @@
         <li>Pad 与手机横屏的歌词态是「唱片 + 歌词同屏」的分栏，滑动只开合歌词栏，不存在翻页，所以指示点在这两种外形里藏掉</li>
         <li>LRC 浮窗：可拖动的歌词气泡，浮在首页/各 Tab 之上并跟随进度换行，点它回到播放页；全屏播放页打开时自动让位</li>
         <li>收藏 / 评论：收藏落在本地 Set 并同步迷你条；评论按页翻（第 1 页也是一次取数，先亮「评论在取了」），回复是<em>嵌套树</em>，逐层缩进带线程竖线，第 2 级起加「回复 @某人」浅色前缀；工具行那颗评论图标不带条数（真实侧此刻还没取到数），面板里那句「其中 N 条乐评人长评」也撤了——接口没这个口径，那个数是拿总数除出来的。浮层滚动只给评论列表这一段：<em>标题、说明、那行「总数 + 热度排序」和拖动条一起钉住不动</em>，滚到底翻下一页的判据也换到列表自身上，滑多了标题与总数不会被顶出视野</li>
+        <li><em>播放列表入口放工具行最右，不放顶部</em>：顶部那颗 <code>playerClose</code> 已经把这一层收下去了，再挤一颗会撞车；而「接下来播什么」与循环模式、定时、评论是同一层意图（都是"听法"而非"控件"），并排最省事。图标复用 sprite 里现成的 <code>i-list</code>，不新增 symbol；共几首写进 <code>aria-label</code>（<code>播放列表 · 共 N 首</code>），屏内不加文字，与另外四颗同一口径</li>
+        <li><em>一列平铺，不分段</em>：这一屏只有一条按播放顺序从上到下的列——还是那一种 <code>songRow()</code> 行，走播放页现成的子面板骨架 <code>#playerSheet</code>（<code>openSheet('queue')</code>），标题 / 说明 / 只有 <code>#psBody</code> 滚 这三条现成规矩一并继承。上一轮那三段「正在播放」「接下来播放 · N 首」「这一首之前的 N 首」，连同五档循环模式各写的尾句说明（单曲循环那句、播完回到第一首那句、播完就停下那句、"要手动点下一曲才会播"那句、"这一列只有这一首"那句）<em>一并撤掉</em>：用户要看的就是"这次到底播哪些歌"，把一列清单切成三段再各挂一句后果，等于把播放列表写成了模式说明书。真实侧同样只有一份数据：<code>getList(playerInfo.playerListId)</code> 出整份清单、<code>playInfo.playerPlayIndex</code> 出当前位置，<em>没有第五份数据</em>——播放内核（<code>react-native-track-player</code>）那边那份 queue 只当两三首缓冲用（<code>src/plugins/player/playList.ts:143-183</code>），不是 UI 数据源，落地不要拿它当这一列。这一列也<em>不带榜单序号</em>（<code>#psBody .song-row .rank{display:none}</code>：1、2、3 那种色彩是榜单语义，位次就是"从上往下按播放顺序走"，不需要再供一列数字）、<em>不挂分页状态行</em>（<code>.pl-status</code>：本地已经握在手上的清单，做假分页等于骗人）</li>
+        <li><em>正在播的那一首只做行内标识，不起段标题</em>：用的就是 <code>.song-row.playing</code> 那层现成的播中态（<code>styles.css:295</code> 渐变底 + 内描边）与歌名前的均衡器条纹（<code>songRow()</code> 里那段 <code>.eq</code>），<em>这一屏没有为它新造任何一种样式</em>；顶部只留 <code>#psSub</code> 那一句人话——<code>这次要播的一共 N 首 · 点一行就切过去听</code>。上一轮副标题那句「现在是列表循环」也删了：列到末尾会怎样（回第一首 / 停下 / 这首再来一遍）是工具行那颗循环钮的现场，这一屏不解释、连模式名都不转述</li>
+        <li><em>只有随机档多一句提示</em>：列表头顶一句 <code>.q-note</code>——<code>随机是切歌那一刻才抽的 · 这一列只是可能被抽到的</code>。依据是真实侧 <code>getNextPlayMusicInfo()</code>（<code>src/core/player/player.ts:317</code>）一次只回<em>下一首那一条</em>，随机档还得到那一刻才抽（抽中的缓存进 <code>randomNextMusicInfo</code> 直到本次切歌，<code>:325</code>、<code>:396</code>），画"往后好几首的顺序"就是画落不了地的承诺。另外三档（列表循环 / 顺序播放 / 单曲循环）不另外铺话，同一列原序就是它们的说法；面板里也<em>不放第二份循环开关</em>——按全站那条"一个开关只在它的现场出现一次"，档只在工具行那颗钮上，两处都能切迟早对不上</li>
+        <li>行内「⋯」<em>这一屏单独定稿，非当前行三项、当前行一项</em>：原型走 <code>openMore(s, queue, 'queue')</code> → <code>openQueueMore()</code>（<code>songRow()</code> 因此多收第 5 个参数 <code>scene</code>；其它落点不传，仍是原来那一份：收藏 / 下一曲播放 /（自建歌单详情层）从本单移出 / 加入自建歌单。<em>上一轮往那份通用菜单里加的一条「从这次播放里移出」本轮一并收走</em>——移出是"这一列"的动作，只在播放列表这一屏出现；挂在榜单、搜索那些行上，人会以为自己在改那张榜，其实动的是别的东西）。非当前行 = <code>听这一首</code> → <code>下一曲播放</code> → <code>这次不播这一首</code>／<code>从「X」移出</code>；正在出声的那一行 = 只有 <code>这首从头再放</code>。图标全用现成的 <code>i-play</code> / <code>i-next</code> / <code>i-close</code>（移出那条带 <code>.opt-row.warn</code>，与「从「歌单」移出」同一写法），<em>不新增 symbol</em>；<em>收藏、加入自建歌单、分享、下载、查看歌曲信息一概不出现在这一屏</em>（别的入口都有，这一屏的意图只是"看这次要播什么 + 指定下一首 + 切过去听"）。四项落点都现成，不用新写任何能力：① <code>听这一首</code> = <code>playList(listId, index)</code>（<code>src/core/player/player.ts:289</code>，按 id 的同族 <code>:273 playListById()</code>；newui 已在用——本机单子 <code>src/newui/screens/SonglistDetail/SonglistDetailScreen.tsx:467</code>，在线内容 <code>src/newui/utils/play.ts:26-27</code> 先 <code>setTempList</code> 再 <code>playList(LIST_IDS.TEMP, index)</code>）；② <code>这首从头再放</code> = <code>setCurrentTime(0)</code>（<code>src/plugins/player/utils.ts:168</code>，播放页那颗「上一曲」前 3 秒外就是走同一条回零）；③ <code>下一曲播放</code> = <code>addTempPlayList([{listId, musicInfo, isTop:true}])</code>（<code>src/core/player/tempPlayList.ts:10</code>，旧 UI 同款 <code>src/screens/Home/Views/Mylist/MusicList/MusicToggleModal.tsx:311</code>，newui <code>src/newui/screens/Main/sheets/MoreSheet.tsx</code> 里这一行已经接上）——它插的是<em>临时队首</em>、播完即出（<code>player.ts:412-416</code>）、不改歌单也不搬 <code>playerPlayIndex</code>（<code>src/core/player/playInfo.ts:58</code>），所以<em>落地时"那一行跑到当前这首后面"是显示层从 tempPlayList 读出来再拼的顺序，绝不能去改写单子本身</em>（改顺序那条是 <code>updateListMusicPosition()</code>，<code>src/core/list.ts:77</code>，动的是持久歌单）；④ <code>移出</code> = <code>removeListMusics(playerInfo.playerListId, [id])</code>（<code>src/core/list.ts:63</code>）。<em>上一轮那条含糊的「从这次播放里移出」有两种后果、被挂成待拍板项，这一轮直接拍掉：文案跟着"此刻在播的这份单子是谁家的"走</em>——在线内容起播时已经复制成临时单子（<code>src/screens/SonglistDetail/listAction.ts:18-19</code>、<code>Leaderboard/listAction.ts:18-19</code>），默认试听那份也是暂存池，这两处真只影响这一次播放，就写 <code>这次不播这一首</code>；从「我的」里的自建单子或「我喜欢」直接起播时，队列<em>就是那份单子本身</em>（<code>src/screens/Home/Views/Mylist/MusicList/List.tsx:182</code>），动一下即写进本机数据，那就逐字复用歌单详情层已经在说的 <code>从「X」移出</code>（<code>MORE_TXT.remove</code>，不另起一句），用户看到单子名就知道动的是哪一份。判据也是现成的，<code>src/newui/utils/userList.ts:23</code> 那份系统 id 名单已经把 DEFAULT / TEMP 这类暂存池与用户自己的单子分开了，落地不动 core 一行。正在出声的那一行不给移出——移掉现在响着的那条，接下来该播什么谁都不认。<em>本轮仍不画的一件事</em>："跳过这首但别删它"，那要把它写进 <code>playedList</code>（<code>src/core/player/playedList.ts:8</code>，过滤在 <code>src/core/player/utils.ts:50-67</code>），这个列表今天只被随机档内部记账用着，一当用户动作暴露就同时牵动上一曲、随机池与播完即停的判定</li>
+        <li><em>「⋯」是开在这一层之上的第二层，不是把它替换掉</em>：同级 <code>.sheet</code> 共用 <code>z-index:80</code>，谁在 <code>index.html</code> 里写在后面谁就压在上面（<code>#confirmSheet</code> 一直是这么赢的），所以 <code>#moreSheet</code> 排在 <code>#playerSheet</code> 之后——上一版它排在所有面板之前，播放列表里点行内「⋯」就被自己的面板压在背后看不见。连带校正三件：点遮罩与按返回都<em>只收最上面那一层</em>（<code>closeTopSheet()</code> 取 DOM 里最后一个亮着的 sheet，先收 ⋯ 回到这一屏，再收才动面板）、⋯ 那片 <code>inset:0</code> 的遮罩盖在整屏上所以下面那一屏<em>点不穿</em>、做完动作重铺这一屏时<em>保住 <code>#psBody</code> 的滚动位置</em>（<code>refreshQueueUI()</code>，与 <code>#searchBody</code>／<code>#plLayer</code> 那两处同一写法），当前行的播中标识、行数、<code>#psSub</code> 那句的 N 都随 <code>renderQueueSheet()</code> 回写，反馈 toast 在 <code>z-index:90</code> 一直浮在最上</li>
+        <li><em>落到 RN 时这条层级顺序照搬</em>：「面板之上再叠一层菜单」对应到 <code>src/newui/</code> 的浮层基座（<code>UI_SHEET</code> / <code>Sheet</code> 骨架那套）里叠一层，<em>不要退化成"关掉播放列表面板才能开行内「⋯」"</em></li>
       </ul>
 
       <h2>落到 React Native</h2>

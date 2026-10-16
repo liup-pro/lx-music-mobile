@@ -23,3 +23,19 @@ const SYSTEM_LIST_IDS: readonly string[] = [
  */
 export const isDeletableUserListId = (listId: string): boolean =>
   listId !== '' && !SYSTEM_LIST_IDS.includes(listId)
+
+/**
+ * 播放列表那一列是「本机的一张单子」还是「这一次播放临时凑出来的一池」（2026-10-16 件 U80）。
+ *
+ * 判据逐字照抄原型 `plPlayableQueue()`（app.js L1027）挂在数组上的 queueOwner 标记：
+ * **只有本机的一张单子标得出名字** —— 内置「我喜欢」与用户自建歌单；
+ * 榜单、平台歌单、搜索结果起播时在线内容已被复制成暂存池，标不出来就是 null。
+ * 暂存池即 `LIST_IDS.DEFAULT`（试听）/ `LIST_IDS.TEMP`（新 UI 的播放暂存池）/ `LIST_IDS.DOWNLOAD`，
+ * 动它们只影响这一次播放，不动用户的单子与收藏。
+ *
+ * 与 `isDeletableUserListId` 的差别只在「我喜欢」：那张单子删不掉（所以上一条返回 false），
+ * 但它确实是本机的一张单子（歌目可以逐条移出去），所以本条把它算进来。
+ * 播放列表面板行内「⋯」的那条「移出」靠这个标记决定写哪一种文案。
+ */
+export const isOwnedMusicListId = (listId: string | null): boolean =>
+  listId === LIST_IDS.LOVE || isDeletableUserListId(listId ?? '')

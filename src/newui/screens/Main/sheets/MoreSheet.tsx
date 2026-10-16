@@ -7,7 +7,7 @@ import { LIST_IDS } from '@/config/constant'
 import { useSettingValue } from '@/store/setting/hook'
 
 import { Art, GroupLabel, OptionRow, Sheet, SrcBadge } from '@/newui/components'
-import { NEW_UI_SHEET_MORE } from '@/newui/const'
+import { NEW_UI_SHEET_MORE, NEW_UI_SHEET_QUEUE } from '@/newui/const'
 import { hasPlatformHome, useApiSupport, useLoveSongs, useMyPlaylists } from '@/newui/hooks'
 import { FONT_SIZE, FONT_WEIGHT, MORE_SONG, OPTION_ROW, useTheme } from '@/newui/theme'
 import { isOnlineMusic, showNewUiToast, toSongDisplay } from '@/newui/utils'
@@ -28,6 +28,40 @@ export interface MoreSheetProps {
    */
   hostListId?: string
   hostListName?: string
+  /**
+   * 场景（原型 songRow 的第 5 参 scene，app.js L435 / openMore L1628-1652）：
+   * `'queue'` = 播放列表面板那一屏（件 U80）的行内「⋯」，整份菜单换成 openQueueMore L1581 那几项；
+   * 其余落点不传（默认 `'default'`），仍是上面这一份通用菜单，一字未动。
+   */
+  scene?: 'default' | 'queue'
+  /**
+   * queue 场景的行集与动作（由宿主 QueueSheet 算好传入，本面板纯展示）：
+   * 正在出声的那一行只有「这首从头再放」，其余行是「听这一首 / 下一曲播放 / 移出」。
+   * 非 queue 场景不传即可。
+   */
+  queueActions?: NewUiQueueMoreActions
+}
+
+/**
+ * 播放列表面板那一屏的行内「⋯」行集（原型 openQueueMore，app.js L1581-1626）。
+ * 这一屏只有「看这次要播什么 / 指定下一首 / 切过去听」三件事，
+ * 收藏、加入歌单那些在别的入口都有，这里不重复铺（原型原话）。
+ */
+export interface NewUiQueueMoreActions {
+  /** 是不是正在出声的那一行 */
+  isCurrent: boolean
+  /** 当前行唯一一项：这首从头再放 */
+  onAgain: () => void
+  /** 听这一首 */
+  onPlay: () => void
+  /** 下一曲播放（全站只有这一条写法，与歌单详情层同一族） */
+  onNext: () => void
+  /**
+   * 「移出」这一行的文案与动作；**缺省 = 这一行移不出去，就不给一颗死按钮**。
+   * 写哪一种文案由宿主按「这一列是谁家的」决定（原型 queueOwner 标记）：
+   * 本机的一张单子 → 「从「X」移出」，这一次播放临时凑出来的一列 → 「这次不播这一首」。
+   */
+  remove?: { label: string, onPress: () => void }
 }
 
 /**
@@ -53,7 +87,7 @@ export interface MoreSheetProps {
  *   因此根本不进这份名单；范围写在名单上方一句（MORE_TXT.addGroup），一份自建都没有时换成空态句
  *   （MORE_TXT.addEmpty，原型挂 .q-note 位）。「整份移出收藏」等既有能力不在这面板上，一字未动
  */
-export const MoreSheet = ({ visible, musicInfo, onClose, bottomInset, hostListId, hostListName }: MoreSheetProps) => {
+export const MoreSheet = ({ visible, musicInfo, onClose, bottomInset, hostListId, hostListName, scene = 'default', queueActions }: MoreSheetProps) => {
   const theme = useTheme()
   const assertApiSupport = useApiSupport()
   const loveSongs = useLoveSongs()
@@ -117,6 +151,8 @@ export const MoreSheet = ({ visible, musicInfo, onClose, bottomInset, hostListId
   // 关闭期间不查询、保留旧表——退场帧行状态不闪；重开由本 effect 刷新。
   useEffect(() => {
     if (!visible) return
+    // queue 场景（件 U80）没有「加入歌单」那一批行，查重表整段跳过，不发多余读库
+    if (scene === 'queue') return
     if (!songId || playlistIdsKey.length === 0) {
       setExistsMap({})
       return
@@ -138,7 +174,7 @@ export const MoreSheet = ({ visible, musicInfo, onClose, bottomInset, hostListId
     return () => {
       alive = false
     }
-  }, [visible, playlistIdsKey, songId])
+  }, [visible, playlistIdsKey, songId, scene])
 
   /* ---- 动作（原型每条 actRow 点后即关层 + toast，L746/756/762；查重失败不关层 L760） ---- */
   const handleFav = useCallback(() => {
@@ -199,33 +235,85 @@ export const MoreSheet = ({ visible, musicInfo, onClose, bottomInset, hostListId
   const display = toSongDisplay(song, playable)
   const online = isOnlineMusic(song)
 
+  /**
+   * .more-song 头部（styles.css L529-533）：封面 44 / 歌名 14.5·800 / 徽标 + 歌手·专辑。
+   * 两个场景共用同一块 —— 原型 openMore 那句「头部那块（封面 + 歌名 + 平台 + 歌手 · 专辑）
+   * 与浮层骨架都是现成的，不另起一层」（app.js L1647-1649）。
+   */
+  const songHead = (
+    <View style={[styles.head, { borderBottomColor: theme.colors.line }]}>
+      <Art
+        width={MORE_SONG.artSize}
+        height={MORE_SONG.artSize}
+        radius={MORE_SONG.artRadius}
+        seed={display.artSeed}
+        imageUri={display.artUri}
+        scrim
+      />
+      <View style={styles.headBody}>
+        <Text
+          style={[styles.headTitle, { color: theme.colors.text }]}
+          numberOfLines={1}
+        >
+          {display.title}
+        </Text>
+        <View style={styles.headSub}>
+          <SrcBadge label={display.sourceLabel} tint={display.sourceTint ?? theme.colors.text3} />
+          <Text style={[styles.headArtist, { color: theme.colors.text3 }]} numberOfLines={1}>
+            {display.subtitle}
+          </Text>
+        </View>
+      </View>
+    </View>
+  )
+
+  /* ---- queue 场景（件 U80 · openQueueMore L1581-1626）：行集逐字按原型定稿 ----
+   * 这一屏只有「看这次要播什么 / 指定下一首 / 切过去听」三件事：
+   * 正在出声那行只有一项「这首从头再放」，其余三项「听这一首 / 下一曲播放 / 移出」。
+   * 收藏、加入歌单那些在别的入口都有，这里不重复铺（原型原话），故整份通用菜单让位给这一小份。 */
+  if (scene === 'queue' && queueActions != null) {
+    return (
+      <Sheet visible={visible} onClose={onClose} bottomInset={bottomInset}>
+        {songHead}
+        <View style={styles.list}>
+          {queueActions.isCurrent ? (
+            <OptionRow
+              icon="play"
+              name={NEW_UI_SHEET_QUEUE.again}
+              onPress={queueActions.onAgain}
+            />
+          ) : (
+            <>
+              <OptionRow
+                icon="play"
+                name={NEW_UI_SHEET_QUEUE.play}
+                onPress={queueActions.onPlay}
+              />
+              <OptionRow
+                icon="next"
+                name={NEW_UI_SHEET_QUEUE.next}
+                onPress={queueActions.onNext}
+              />
+              {/* 移不出去的那一行不给按钮（宁缺毋假）；.opt-row.warn 只把图标位取 dangerInk */}
+              {queueActions.remove != null && (
+                <OptionRow
+                  icon="close"
+                  warn
+                  name={queueActions.remove.label}
+                  onPress={queueActions.remove.onPress}
+                />
+              )}
+            </>
+          )}
+        </View>
+      </Sheet>
+    )
+  }
+
   return (
     <Sheet visible={visible} onClose={onClose} bottomInset={bottomInset}>
       {/* .more-song 头部（styles.css L523-527）：封面 44 / 歌名 14.5·800 / 徽标 + 歌手·专辑 */}
-      <View style={[styles.head, { borderBottomColor: theme.colors.line }]}>
-        <Art
-          width={MORE_SONG.artSize}
-          height={MORE_SONG.artSize}
-          radius={MORE_SONG.artRadius}
-          seed={display.artSeed}
-          imageUri={display.artUri}
-          scrim
-        />
-        <View style={styles.headBody}>
-          <Text
-            style={[styles.headTitle, { color: theme.colors.text }]}
-            numberOfLines={1}
-          >
-            {display.title}
-          </Text>
-          <View style={styles.headSub}>
-            <SrcBadge label={display.sourceLabel} tint={display.sourceTint ?? theme.colors.text3} />
-            <Text style={[styles.headArtist, { color: theme.colors.text3 }]} numberOfLines={1}>
-              {display.subtitle}
-            </Text>
-          </View>
-        </View>
-      </View>
+      {songHead}
 
       {/* .opt-list（styles.css L745，件 parts/common-control/opt-list.css U19）：
           收藏 / 下一曲 /（自建详情层）从本单移出 / 分组标题 + 逐自建歌单

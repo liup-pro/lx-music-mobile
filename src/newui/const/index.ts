@@ -100,6 +100,7 @@ export {
 export { NEW_UI_NICK_PICKS, NEW_UI_SHEET_NAME } from './nameSheet'
 export { NEW_UI_SHEET_CONFIRM } from './confirmSheet'
 export { NEW_UI_SHEET_MORE } from './moreSheet'
+export { NEW_UI_SHEET_QUEUE, newUiPlayerQueueAria } from './queueSheet'
 export { NEW_UI_SHEET_PL_ID } from './plIdSheet'
 export {
   NEW_UI_BOARD_LIST_ID_PREFIX,

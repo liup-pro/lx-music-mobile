@@ -377,6 +377,10 @@ export const SONG_ROW = {
   eqMinHeight: 3,
   eqHeight: 11,
   eqGap: 1.5,
+  /** 播放列表面板那一列（件 U80，`#psBody .song-list`，styles.css L760）：gap 4px / margin-top 12px。
+   *  同屏另一条 `#psBody .song-row .rank{display:none}`（L759）在 RN 侧对应「不传 rank」，见 QueueSheet */
+  queueListGap: 4,
+  queueListMarginTop: 12,
 } as const
 
 /* ================= 按钮族 ================= */

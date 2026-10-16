@@ -41,12 +41,14 @@ import {
   getPlatformMeta,
   newUiPlayerApiSourceText,
   newUiPlayerLoopAria,
+  newUiPlayerQueueAria,
 } from '@/newui/const'
 import {
   useApiSourceName,
   useDesktopLyricToggle,
   useFavoriteToggle,
   useNewUiSystemBar,
+  usePlayQueue,
   useSafeArea,
 } from '@/newui/hooks'
 import {
@@ -58,7 +60,7 @@ import {
 } from '@/newui/theme'
 import { formatDuration, isOnlineMusic, showNewUiToast } from '@/newui/utils'
 
-import { CommentSheet, TimerSheet } from './sheets'
+import { CommentSheet, QueueSheet, TimerSheet } from './sheets'
 import {
   PlayerStageSwipe,
   type StageSwipeDirection,
@@ -97,6 +99,8 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
   const togglePlayMethod = useSettingValue('player.togglePlayMethod')
   const apiName = useApiSourceName()
   const { loved, toggle: toggleFav } = useFavoriteToggle()
+  // 工具行第 5 颗「播放列表」的条数（原型 paintQueueBtn：屏内不加文字，条数只写在 aria-label 上）
+  const { hasSong: queueHasSong, rows: queueRows } = usePlayQueue()
 
   const lrcLines = useLrcSet()
   const { line: lrcIndex } = useLrcPlay()
@@ -125,7 +129,8 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
     onPermissionDismiss,
   } = useDesktopLyricToggle()
   // 底部 sheets：一次只开一个（同原型 #sheet 单实例）
-  const [openSheet, setOpenSheet] = useState<'timer' | 'comment' | null>(null)
+  // 'queue' = 正在播放页的播放列表面板（件 U80，由工具行第 5 颗 #btnQueue 开）
+  const [openSheet, setOpenSheet] = useState<'timer' | 'comment' | 'queue' | null>(null)
   // 评论浮层取当前曲目的在线信息；本地曲目为 null（入口直接 toast）
   // playMusicInfo.musicInfo 类型为 PlayMusic | null，isOnlineMusic 只接 PlayMusic，先判空再收窄
   const currentMusic = playMusicInfo.musicInfo
@@ -280,8 +285,8 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
         <PcButton kind="ghost" name="next" onPress={() => { void playNext() }} accessibilityLabel="下一曲" />
       </View>
 
-      {/* .player-tools：定时 / 循环 / LRC 浮窗 / 评论（原型 index.html L346-351）——
-          纯图标四颗：无选中底色、无文字标签，状态只靠换图标（timer↔timerOn、float↔floatOn、循环五态五轮廓），
+      {/* .player-tools：定时 / 循环 / LRC 浮窗 / 评论 / 播放列表（原型 index.html L348-355，件 U60 五颗）——
+          纯图标：无选中底色、无文字标签，状态只靠换图标（timer↔timerOn、float↔floatOn、循环五态五轮廓），
           剩余倒计时不显示在按钮上，只进 aria 文案与定时面板副标题，逐秒回写（原型 app.js L1765-1776） */}
       <View style={styles.tools}>
         <PlayerToolButton
@@ -315,6 +320,14 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
             setOpenSheet('comment')
           }}
         />
+        {/* 第 5 颗「播放列表」（原型 #btnQueue，件 U60 index.html L348-355）：
+            图标复用 sprite 现成的 "list"，不新增 symbol；屏内不加文字、不给选中底色，
+            条数只写在无障碍名上（paintQueueBtn app.js L2289 逐字），随这一列的变动回写 */}
+        <PlayerToolButton
+          name="list"
+          accessibilityLabel={newUiPlayerQueueAria(queueHasSong ? queueRows.length : null)}
+          onPress={() => { setOpenSheet('queue') }}
+        />
       </View>
 
       {/* 阶段 9b 底部浮层：定时 / 评论（同原型单实例 #sheet） */}
@@ -327,6 +340,14 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
         visible={openSheet === 'comment'}
         musicInfo={commentMusic}
         onClose={() => setOpenSheet(null)}
+        bottomInset={bottom}
+      />
+      {/* 播放列表面板（件 U80）：一条按播放顺序平铺的列，行内「⋯」由它自己叠在本面板之上
+          （原型 #moreSheet 排在 #playerSheet 之后 —— 同 z-index，后声明的压上面）。
+          排在各面板之后、二次确认之前，与原型 index.html 的先后一致（L488 → L502 → L513） */}
+      <QueueSheet
+        visible={openSheet === 'queue'}
+        onClose={() => { setOpenSheet(null) }}
         bottomInset={bottom}
       />
       {/* 悬浮窗授权引导（阶段 3）：共通件 ConfirmSheet 承载，正文/键名对齐旧 UI 那条授权提示；
