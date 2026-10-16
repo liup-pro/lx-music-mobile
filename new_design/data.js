@@ -256,6 +256,14 @@ const PLAYLISTS = [
     tracks: ['s02', 's06', 's12', 's09'] },
 ];
 
+/* 「我的歌单」两种单子的数据口径（RN 侧对撞用，别只盯界面）：
+ * MY_PLAYLISTS —— 用户自建（含新建 / 试听这类本地单子）。<em>可写</em>：
+ *   「⋯」里的加入候选只从这一份来（app.js addablePlaylists），里面的歌也能移出。
+ *   条目没有 home / pid，也就是没有平台坐标 → 平台侧本就无图，卡面走内置版式（app.js listCover）。
+ * PLAYLISTS × state.favPl —— 从平台收藏来的单子（详情层右上角那颗心收的）。<em>只读</em>：
+ *   不进加入候选，里面的歌也不能挪进挪出（本地写不回平台），能动的只有「整份移出收藏」；
+ *   它们带 home / pid，卡面用平台那张真封面图，与 plCard 的写法同一套。
+ * 「我喜欢」是内置的歌曲收藏（state.fav），与这两类都不是一回事。 */
 const MY_PLAYLISTS = [
   { id: 'mp1', name: '通勤 · 半梦半醒', seed: 'mp1', desc: '早上七点的地铁', tracks: ['s01', 's07', 's11', 's02', 's16'] },
   { id: 'mp2', name: '深夜写代码', seed: 'mp2', desc: '不要人声，谢谢', tracks: ['s14', 's16', 's03', 's05', 's08'] },

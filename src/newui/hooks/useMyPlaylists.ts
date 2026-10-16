@@ -52,6 +52,15 @@ const toItems = (lists: AllLists, tallies: Record<string, ListTally>): MyPlaylis
   }))
 
 /**
+ * 这份单子有没有平台坐标（原型口径：`listCover` 判 `p.home`，app.js L894；
+ * 件 parts/mine/my-pl-mine.html U46 头注）。有坐标 = 从平台收藏/存榜来的那份，
+ * 封面用平台那张真图；没有 = 纯自建，封面位走内置版式，不画一张随机图冒充平台封面。
+ * 只做渲染分叉的判断，不碰数据源与存储。
+ */
+export const hasPlatformHome = (list: MyPlaylistItem): boolean =>
+  list.source != null && list.sourceListId != null
+
+/**
  * 歌单页「我的歌单」横排（原型 #myPlRow / MY_PLAYLISTS）= 仅用户自建（含平台导入），
  * 系统列表已在 toItems 源头剔除（D-03）。
  * 读既有 `@/store/list` 的 allList（启动时已填充），

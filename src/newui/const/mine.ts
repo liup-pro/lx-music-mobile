@@ -95,3 +95,20 @@ export const NEW_UI_MINE_TOAST = {
 
 /** 「我喜欢」预览行拼接前几首歌名（原型 liked.slice(0, 3)） */
 export const NEW_UI_MINE_LOVE_PREVIEW_COUNT = 3
+
+/**
+ * 「我的歌单」两种单子的副行（件 parts/mine/my-pl-mine.html U46；
+ * 原型 app.js plCardMine L1276 / plCardCollected L1292，两者都写进 .ps 行）。
+ * 口径差别在明面上：自建能加能移，副行报「几首 / 几首可播」；
+ * 收藏来的是平台只读的那份，副行只说清「收藏自哪家 · 几首」，不与自建的比可播数。
+ */
+export const NEW_UI_MINE_PL_SUB = {
+  /** 首数还没数出来时的如实一句（原内联在 MinePage，本轮收敛进常量） */
+  tallying: '还在数有几首',
+  /** 自建：原型 `${p.tracks.length} 首 · ${can} 首可播`；可播数没回时只报首数 */
+  mine: (count: number, playable: number | null): string =>
+    playable == null ? `${count} 首` : `${count} 首 · ${playable} 首可播`,
+  /** 收藏来的平台歌单：原型逐句 `收藏自 ${SOURCES[p.home].short} · ${p.tracks.length} 首` */
+  collected: (platformShort: string, count: number): string =>
+    `收藏自 ${platformShort} · ${count} 首`,
+} as const

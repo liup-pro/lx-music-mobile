@@ -24,6 +24,9 @@ export interface PlActionsProps {
  *（「播放全部」+ 可播数），固定文案与计数口径由容器传入。
  * 结构自 screens/SonglistDetail/SonglistDetailScreen 内联抽出（2026-10-15 拆件转正轮）：
  * 样式逐值照搬原内联定义（边距 18/16、gap 8 全在 PL_LAYER 令牌），渲染零变化。
+ * 「播放全部」走实心档（.ghost-btn.solid，parts/_base.css L202 / L204，源 styles.css
+ * L330-L331）：这一页唯一的主动作铺品牌渐变，旁边随机钮仍留次级控件底；
+ * `.ghost-btn` 原子默认档不动（首页与榜单页那两枚仍是灰底）。
  * 纯展示组件：文案与回调由容器传入，不读任何状态。
  */
 export const PlActions = memo(({ playAllLabel, onPlayAll, shuffleLabel, onShuffle }: PlActionsProps) => (
@@ -32,6 +35,7 @@ export const PlActions = memo(({ playAllLabel, onPlayAll, shuffleLabel, onShuffl
       label={playAllLabel}
       icon="play"
       fill={false}
+      solid
       style={styles.playAll}
       onPress={onPlayAll}
     />

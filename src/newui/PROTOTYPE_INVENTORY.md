@@ -167,7 +167,7 @@ Art、ArtistCard、Banner、BrandAvatar、CardGrid、ChartArt、Chip、ChipFlow�
 - RankPage → PageHeader/CardGrid/RankGroupHead/RankCard/EmptyTip/FootNote/PagingStatus/PagingEnd
 - MinePage → MineHeader(→BrandAvatar+PillButton)/StatRow/FavCard/Section/SongRow/CardGrid/PlCard/EmptyTip/FootNote
 - SettingPage → PageHeader/**SetHero**/SettingsGroup/SettingsRow/ConfirmSheet
-- Player/index → **PlayerBg/PlayerTop/PlayerMeta/PlayerSource/SeekTime**/PlayerStageSwipe/DiscArt/LyricList/StageDots/PcButton/SeekControl/PlayerToolButton/QTag/IconButton + sheets(Comment/Timer) + **useLrcFloatToggle（浮窗钮）**
+- Player/index → **PlayerBg/PlayerTop/PlayerMeta/PlayerSource/SeekTime**/PlayerStageSwipe/DiscArt/LyricList/StageDots/PcButton/SeekControl/PlayerToolButton/QTag/IconButton + sheets(Comment/Timer) + **useDesktopLyricToggle（浮窗钮 = 系统悬浮窗开关，阶段 3）** + ConfirmSheet(悬浮窗授权引导)
 - SonglistDetailScreen → CoverWash/**PlTop**/IconButton/GhostButton/**PlActions**/SongRow/PagingStatus/PagingEnd/EmptyTip/FootNote/ConfirmSheet/NewUiToastHost/MoreSheet + PlaylistHero
 - Search 屏 → **SearchTop**/Icon/Chip/GhostButton/PlCard/SongRow/ChipFlow
 - 浮层族 → Sheet(→Glass)/GroupLabel/OptionRow/ChipFlow/OpInputRow/Switch/QTag/Art/SrcBadge
@@ -246,7 +246,7 @@ Art、ArtistCard、Banner、BrandAvatar、CardGrid、ChartArt、Chip、ChipFlow�
 | U58 .seek-time | player/seek-time.html | **SeekTime**（L254） | 1:1（本轮转正） |
 | U59 .player-controls/.pc | player/player-controls.html | PcButton | 1:1 |
 | U60 .player-tools/.pt-btn | player/player-tools.html | PlayerToolButton | 1:1 |
-| U61 .lrc-float | player/lrc-float.html | **LrcFloat + hooks/useLrcFloat + Main/LrcFloatDock**（主屏挂点 Main/index.tsx L290） | 1:1（本轮落地；残余 z 层差见 R10） |
+| U61 .lrc-float | player/lrc-float.html | **LrcFloat**（视觉件，暂无宿主）；浮窗入口 = **useDesktopLyricToggle**（系统悬浮窗，见 R10） | 功能语义 1:1（宿主为系统级悬浮窗，窗口观感由 `desktopLyric.style.*` 在原生侧绘制，与本件玻璃气泡不同形——阶段 3 取「先保证是系统浮窗」） |
 | U62 .sc-top/.sc-box/.sc-cancel | search/sc-top.html | **SearchTop**（SearchScreen.tsx L252，forwardRef TextInput） | 1:1（本轮转正） |
 | U63 .sc-tabs | search/sc-tabs.html | SearchTabs（SearchResultPanel.tsx 屏内件） | 1:1（未入 components/ 桶，单屏单用合理） |
 | U64 .sc-label/.sc-clear | search/sc-body.html | SearchIdlePanel.tsx（屏级件整体承接 renderSearchIdle） | 1:1（屏级件=原型渲染函数粒度） |
@@ -285,11 +285,11 @@ PageViewport/PageListView/usePageEndReached/useViewportScroll（R1）、CatStick
 | R7 | Main/MinibarDock.tsx | 共通基础件 · 保留 | 挂载容器（谁在播、点去哪），原型由全局事件承担，RN 需壳件接 store 订阅；展示本体仍是 Minibar |
 | R8 | utils/newUiToast 投递总线 + 各屏根层 NewUiToastHost | 共通基础件 · 保留 | 原型 `#toast` 全站单例；RN 四屏导航独立，必须每台宿主 + 总线，原型 `.toast z-index:90` 层序语义靠「根层最后一子」维持 |
 | R9 | PageListView PoolRow（两列成行） | 自造抽象 · **保留但挂账** | numColumns FlatList 虚拟化必须成行喂数据（numColumns 1↔2 原地变更崩 RN 0.73 FlatList 的前车之鉴）；属虚拟化税，拆件时别把它当 UI 单元 |
-| R10 | hooks/useLrcFloat（模块级 store + useSyncExternalStore） + screens/Main/LrcFloatDock.tsx | **共通基础件 · 保留** | U61 气泡分属两棵挂载树：展示件在 components/LrcFloat，开关态因「主屏气泡 ↔ 播放页浮窗钮」跨屏共享收敛为独立模块（同 playlistTagSelection 款）；Dock 是主屏挂点（同 MinibarDock 口径），订阅歌词行只重渲染自己。**已知缺口（与原型不同）**：原型气泡 z-index 75 恒高于 `.pl-layer` z66（styles.css L667/L452），搜索/详情层打开时气泡仍浮着；RN 这两屏是 push 的独立整屏，会盖住主屏气泡——已在 LrcFloatDock 头注 L24-27 如实声明 |
+| R10 | ~~hooks/useLrcFloat（模块级 store） + screens/Main/LrcFloatDock.tsx~~ **阶段 3 下线** | **共通基础件 · 已拆除** | U61 气泡曾分属两棵挂载树：展示件在 components/LrcFloat，开关态跨屏共享收敛为独立模块（同 playlistTagSelection 款），Dock 是主屏挂点。**feature.md【newui】「歌词浮窗要是系统浮窗，不是应用内浮窗」→ 浮窗宿主改为 core/desktopLyric 的原生悬浮窗**，这条应用内链路（useLrcFloat + LrcFloatDock）整体拆除，components/LrcFloat 视觉件与 theme/LRC_FLOAT token 按原型留存未挂载（宿主等原型口径回来）。原记「RN 两屏 push 会盖住主屏气泡」的已知缺口随宿主下线一并消失 |
 
 **疑似过度设计：无一件判死。** 最接近线的是 R2 CatStickerBar（同一 UI 两处存在），有平台硬约束背书，判「保留 + 维护时按单例对待」。
 
-**观察项（非 RN 多件，不在 R 表）**：`hooks/useDesktopLyricToggle` 在本轮换线后新 UI 内无活跃消费者（原唯一入口「播放页浮窗钮」按原型改接 useLrcFloat；系统桌面歌词链路本身仍由设置键 `desktopLyric.enable` 与 `core/desktopLyric` 承担）。按零破坏原则**代码保留未删**，两处注释（const/player.ts L68-71、Player/index.tsx L110-111）均已同步说明，供未来常驻入口回归。
+**观察项（非 RN 多件，不在 R 表）**：`hooks/useDesktopLyricToggle` 自阶段 3 起是新 UI 唯一的「LRC 浮窗」入口接线（播放页 #btnFloat），它不承载视觉、只把开关转给 `core/desktopLyric` 的系统悬浮窗 + 设置键 `desktopLyric.enable`，因此不属拆件对撞的 UI 单元；窗口内容体的观感由设置项 `desktopLyric.style.*` 在原生侧绘制，与原型 U61 的玻璃气泡不同形，属「功能语义（系统浮窗）优先」的既定取舍（feature.md【newui】）。设定页（SettingPage）尚未铺桌面歌词样式项，属后续轮次。
 
 ---
 

@@ -8,6 +8,8 @@ import { MUSIC_TOGGLE_MODE } from '@/config/constant'
 
 import type { IconName } from '@/newui/components'
 
+import { NEW_UI_APP_NAME } from './app'
+
 /** 播放页顶栏面包屑 */
 export const NEW_UI_PLAYER_CRUMB = '正在播放'
 
@@ -66,8 +68,9 @@ export const PLAYER_PLAY_MODE_META: Record<string, { icon: IconName, label: stri
  *  旧文案「进入播放页自动隐藏」全项目无实现，属假承诺，已整体删除（对应语义要么实现、
  *  要么不出现在文案里——本轮取后者，播放页本就有全屏歌词，浮窗只在 App 外有意义）。
  *  未播放任何曲目时窗口没有可见内容，开启必须先有在播曲目（见 useDesktopLyricToggle）。
- *  U61 轮补记：App 内歌词气泡已落地，「进入播放页自动隐藏」这句语义在气泡线上真实成立
- *  （见下方 NEW_UI_PLAYER_LRC_FLOAT_TOAST）；本组系统桌面歌词文案与行为维持原样、未删改。 */
+ *  U61 轮曾把它换成 App 内气泡的文案、本组退回后台；**阶段 3（feature.md【newui】）已把
+ *  浮窗入口重新接回这条系统悬浮窗线**，本组文案即当前生效文案（needPermission 是
+ *  权限缺失时的提示，紧随其后弹的引导层见 NEW_UI_PLAYER_LRC_PERMISSION_ASK）。 */
 export const NEW_UI_PLAYER_LRC_TOAST = {
   on: 'LRC 浮窗已开启 · 回到桌面查看',
   off: 'LRC 浮窗已关闭',
@@ -75,11 +78,23 @@ export const NEW_UI_PLAYER_LRC_TOAST = {
   needPermission: '开启歌词浮窗需要先在系统设置里允许悬浮窗权限',
 } as const
 
+/** 「LRC 浮窗」缺悬浮窗权限时的引导层（载体 = 共通件 ConfirmSheet，原型 #confirmSheet 同族）。
+ *  语义逐条对齐旧 UI 那条授权流程（components/DesktopLyricEnable + src/lang/zh-cn.json）：
+ *  正文 = `setting_lyric_desktop_permission_tip`（L318「…需要在系统权限设置中授予 … 显示悬浮窗口的
+ *  权限才能使用，是否去相关界面授予该权限？」），右键 = `agree_go`「去开启」（L4），
+ *  左键 = `disagree`「我就不」（L45）；旧句里的旧产品名按新 UI 品牌名落（NEW_UI_APP_NAME）。
+ *  授权动作本身仍走旧 UI 既有的两条 core 函数，不另写机制。 */
+export const NEW_UI_PLAYER_LRC_PERMISSION_ASK = {
+  title: '要给歌词浮窗开权限吗',
+  body: `歌词浮窗需要在系统权限设置中授予 ${NEW_UI_APP_NAME} 显示悬浮窗口的权限才能使用 · 是否去相关界面授予该权限`,
+  okLabel: '去开启',
+  cancelLabel: '我就不',
+} as const
+
 /** 「LRC 浮窗」App 内气泡的开关反馈（U61 轮落地；原型 app.js toggleFloat L1900-1905）。
- *  播放页工具行浮窗钮（#btnFloat）现控制主屏上可拖动的歌词气泡（原型 #lrcFloat，
- *  组件 components/LrcFloat + 容器 screens/Main/LrcFloatDock），与上一组系统桌面歌词
- *  不是同一条功能线（后者 = core/desktopLyric 系统悬浮窗，代码与设置键保留未删，新 UI 暂无常驻入口）。
- *  开启 / 关闭两文案逐字取自原型 toast 原文（L1904），不许顺口语改写。 */
+ *  阶段 3 换线记录：播放页工具行浮窗钮（#btnFloat）已改回系统级悬浮窗（core/desktopLyric），
+ *  App 内那条线（hooks/useLrcFloat + screens/Main/LrcFloatDock）整体拆除；本组文案与下面的
+ *  关闭钮 aria 只服务于原型视觉留存件 components/LrcFloat（暂无宿主，等原型口径回来再用）。 */
 export const NEW_UI_PLAYER_LRC_FLOAT_TOAST = {
   on: 'LRC 浮窗已开启 · 可拖动，进入播放页时自动隐藏',
   off: 'LRC 浮窗已关闭',

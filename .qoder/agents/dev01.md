@@ -39,28 +39,75 @@ tools: Read, Write, Edit, Grep, Glob, Bash
 - **react-native-svg 锁 14.x**：15.x 会让 Android 编译失败（RN 0.73 兼容问题）。
 - **电台功能上游不可用**（2026-10-15 验证）：网易公开侧 dj 路由整体 404（`/weapi/dj/radio/hot`、`/weapi/dj/program` 等），`/dj/program/all` 参数墙未穿透。且项目无官方取流通道（`wy.getMusicUrl` 实际链路依赖用户自配 `user_api` 音源脚本）。电台继续标「建设中」。
 - **无网易登录态入口**：`defaultSetting.ts` 无 cookie 键、无 cookie UI，`MUSIC_U` 只在 `wy/songList.js` 里以「歌单id###token」手工注入。
+
 ## 构建配方（已验证）
 
-- **Node**：v22（默认 nvm 是 v16，RN 要求 ≥18），路径 `/home/joe/.nvm/versions/node/v22.23.2/bin`。
-- **JDK**：Temurin 17（`/home/joe/tools/jdk-17.0.20.1+1`），免 sudo。
-- **Gradle**：解压版 8.8（`/home/joe/tools/gradle-8.8`），免 sudo。
-- **ANDROID_HOME**：`/home/joe/android-sdk`。
-- **npm 镜像**：项目根 `.npmrc` 已配置 `registry=https://registry.npmmirror.com`；若换环境未生效，显式追加 `--registry=https://registry.npmmirror.com`。GitHub git 依赖（如 track-player fork）不走 registry，较慢属正常。
-- **Release 打包命令**：
-  ```bash
-  cd android
-  export PATH="/home/joe/.nvm/versions/node/v22.23.2/bin:$PATH" \
-    JAVA_HOME=/home/joe/tools/jdk-17.0.20.1+1 \
-    ANDROID_HOME=/home/joe/android-sdk
-  /home/joe/tools/gradle-8.8/bin/gradle assembleRelease \
-    -PMYAPP_UPLOAD_STORE_FILE=debug.keystore \
-    -PMYAPP_UPLOAD_STORE_PASSWORD=android \
-    -PMYAPP_UPLOAD_KEY_ALIAS=androiddebugkey \
-    -PMYAPP_UPLOAD_KEY_PASSWORD=android
-  ```
-  那四个 `-PMYAPP_UPLOAD_*` 参数绕过缺失的 `keystore.properties`，指向仓库自带 `debug.keystore`。**不加** `-PreactNativeArchitectures` 以保留 ARM 多架构。
-- **JS 进 APK**：`createBundleReleaseJsAndAssets` 任务会把 JS bundle 打进 APK，无需起 dev server。产物在 `android/app/build/outputs/apk/release/`。
-- **Release 的 inotify 坑**：若报 `User limit of inotify watches reached`，临时调大 `fs.inotify.max_user_watches`（需 sudo），或改用 debug 包验收。
+**本节路径与版本均已实测确认，打包前读一遍照做即可，禁止再自行探测。**
+
+### 环境实位（本机 Linux，全部已装好，禁止任何下载）
+
+- Android SDK：`/home/joe/android-sdk`（platforms 30/33/34/35/36、build-tools 34.0.0+35.0.0、ndk 25.1.8937393 / 26.1.10909125 / 28.2.13676358、platform-tools、licenses 齐）。`android/build.gradle:10` 钉 `ndkVersion = 26.1.10909125`。
+- Gradle：`/home/joe/tools/gradle-8.8`（独立解压版，免 sudo）。
+- JDK 17：`/home/joe/tools/jdk-17.0.20.1+1`（Temurin 17.0.20.1，免 sudo）。
+- Node：`/home/joe/.nvm/versions/node/v22.23.2/bin`（v22.23.2）。
+- `node_modules` 完好（574 包：react-native 0.73.11 / react-native-svg 14.1.0 / react-native-navigation 7.39.2 / react-native-track-player 2.1.2），**不需要重装依赖**。
+- npm 镜像：项目根 `.npmrc` 已配 `registry=https://registry.npmmirror.com`；换环境未生效时显式追加 `--registry=...`。GitHub git 依赖（如 track-player fork）不走 registry，较慢属正常。
+
+### 四个必踩的坑（禁止 / 必须）
+
+1. **禁止 `./gradlew`**：`gradle-wrapper.properties` 要 `gradle-8.8-all.zip`，而 `~/.gradle/wrapper/dists` 只有 8.0/8.5/9.1/9.3，走 wrapper 必然触发外网下载。必须直接调 `/home/joe/tools/gradle-8.8/bin/gradle`。
+2. **必须显式 `JAVA_HOME`**：默认 `java`/`gradle` 解析到 `/usr/lib/jvm/bellsoft-java25-amd64`（JDK 25），AGP 8.x 会挂；把 `$JAVA_HOME/bin` 放 PATH 前。
+3. **必须显式前置 node v22**：默认 `node` 是 v16，`:app:createBundleReleaseJsAndAssets` 会挂。
+4. **`ANDROID_HOME` 平时为空**：必须手动 export，并同时给 `ANDROID_SDK_ROOT`。
+
+### release 签名（唯一拦路石）
+
+- `android/keystore.properties` 不存在；`android/app/build.gradle` 的 `signingConfigs.release` 在 else 分支 `rootProject.file("keystore.properties")` + `FileInputStream.load`，裸跑 `assembleRelease` 会在配置期抛 `FileNotFoundException`。
+- **默认走绕过法**：用下方「唯一一条打包命令」里的四个 `-PMYAPP_UPLOAD_*` 参数指向仓库自带 `android/app/debug.keystore`，**不改 `build.gradle`、不生成 keystore**。用户已授权：打包任务默认直接绕过法出包，**不要再停下来追问签名**。
+- 后果：产物是 release 变体，但证书 DN 为 `CN=Android Debug` —— **可自测装机，不可用于正式分发 / 升级通道**。
+- 仅当用户明确要正式签名：把真 keystore 放进 `android/app/`，凭据写进 `android/keystore.properties`（**该文件未提交，注意别进版本库**），并去掉那四个 `-P` 参数。
+
+### 唯一一条打包命令（整块复制即出包）
+
+```bash
+cd /mnt/data/owner/lx-music-mobile/android && \
+export PATH="/home/joe/.nvm/versions/node/v22.23.2/bin:/home/joe/tools/jdk-17.0.20.1+1/bin:$PATH" \
+  JAVA_HOME=/home/joe/tools/jdk-17.0.20.1+1 \
+  ANDROID_HOME=/home/joe/android-sdk \
+  ANDROID_SDK_ROOT=/home/joe/android-sdk && \
+/home/joe/tools/gradle-8.8/bin/gradle assembleRelease \
+  -PreactNativeArchitectures=arm64-v8a \
+  -PMYAPP_UPLOAD_STORE_FILE=debug.keystore \
+  -PMYAPP_UPLOAD_STORE_PASSWORD=android \
+  -PMYAPP_UPLOAD_KEY_ALIAS=androiddebugkey \
+  -PMYAPP_UPLOAD_KEY_PASSWORD=android
+```
+
+- **JS 进 APK**：`createBundleReleaseJsAndAssets` 会把 bundle 打进 APK，无需起 dev server。
+- **默认加** `-PreactNativeArchitectures=arm64-v8a`（用户 2026-10-15 定：日常只装机验证，单架构即可）。仅当用户明确要多架构 / 对外分发包时，才去掉该参数重跑。
+
+### 产物与基线（一眼确认出包成功）
+
+- 目录：`android/app/build/outputs/apk/release/`
+- 默认（带架构参数）构建后目录只剩两个：`lx-music-mobile-v1.9.1-arm64-v8a.apk`（约 14,535,384 字节 / 13.9 MB）与 `lx-music-mobile-v1.9.1-universal.apk`；`armeabi-v7a` / `x86` / `x86_64` 三个包会被 AGP 在构建时清掉而非残留，`output-metadata.json` 只剩单 ABI 记录。
+- **副作用（务必知悉）**：带该参数时 `universal.apk` 会被**一起重写成只含 arm64 so 的包**（名字仍叫 universal），**不可当作多架构包分发**；需要真多架构包就去掉该参数重跑。该文件保留不删。
+- 命名规律（去掉架构参数时才 5 个）：`lx-music-mobile-v1.9.1-{universal,arm64-v8a,armeabi-v7a,x86,x86_64}.apk`；universal 约 29.5MB，单 ABI 约 13.5–15MB。
+- 包信息基线（**不带架构参数**时 universal 包的基线）：`package cn.toside.music.mobile versionCode 78 versionName 1.9.1`，`targetSdkVersion 29`，`application-label 'EchoIsle'`，release 无 `debuggable` 标记。
+
+### 提速守则（禁止默认执行的环节）
+
+- **保 daemon**：默认**不要**跑 `gradle --stop`，也不要杀 GradleDaemon / KotlinCompileDaemon。仅当用户说「有构建在跑，结束它」时才 `gradle --stop`，且不要先做一轮 `ps` 普查。
+- **不重复探测环境**：禁止再查 `java -version`、`ls ~/.gradle/wrapper/dists`、检查 SDK 内容、量 node_modules 数量。
+- **不做默认验收**：构建成功后**只跑一条 `ls -la android/app/build/outputs/apk/release/`**（或直接用命令退出码 + 产物列表）即交付。**禁止默认执行** `apksigner verify`、`aapt2 dump badging`、`unzip -l`、装模拟器/真机、截图；用户明确要求验收时才做，且只跑用户点的那一项。
+- **只看错误段落**：失败时抓 `BUILD FAILED` 前后段落与首个 `error:` / `Caused by`，不要把整份日志读进上下文（日志可写 `/tmp/release-build.log`）。
+- **单架构已定为默认**，参数见「唯一一条打包命令」，此处不再重复。
+- **环境类问题不扩大排查**：命中 inotify 上限（`User limit of inotify watches reached`）时，按既有约定报告并给出需要 sudo 的命令（临时调大 `fs.inotify.max_user_watches`）由用户执行，或改用 debug 包验收。
+
+### 失败排查速查
+
+- 配置期 `FileNotFoundException: keystore.properties` → 漏了那四个 `-PMYAPP_UPLOAD_*` 参数。
+- `createBundleReleaseJsAndAssets` 挂 → node 未前置 v22；AGP 配置期报 JDK 版本 → `JAVA_HOME` 未指向 17。
+- 走 wrapper 卡下载 → 见「坑 1」；缓存不命中、up-to-date 数骤降 → 多半是 export 的环境变量与上轮不一致，不要盲目 `clean`。
 
 ## 硬性约束
 

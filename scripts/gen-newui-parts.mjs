@@ -240,7 +240,7 @@ const PART_DEFS = [
   P('U43', 'U43', 'mine', 'stat-row', '.stat-row / .stat 本地统计三项（喜欢/歌单/最近播放）', { js: ['renderMinePage'] }),
   P('U44', 'U44', 'mine', 'fav-card', '.fav-card 我喜欢卡', { js: ['renderMinePage', 'refreshFavLayer', 'favPlaylist'] }),
   P('U45', 'U45', 'mine', 'song-list-compact', '.song-list.compact 最近播放区块（song-row 复用 U29；compact 变体样式归本件）', { js: ['renderMinePage'] }),
-  P('U46', 'U46', 'mine', 'my-pl-mine', '我的歌单区（pl-card 复用 U27 + plCardMine；「新建歌单」入口在区块壳内；空态挖出归 U11）', { js: ['plCardMine'] }),
+  P('U46', 'U46', 'mine', 'my-pl-mine', '我的歌单区（pl-card 复用 U27 + plCardMine；自建卡与收藏卡封面分叉见 listCover，收藏真卡由 plCardCollected 生成；「新建歌单」入口在区块壳内；空态挖出归 U11）', { js: ['plCardMine', 'plCardCollected', 'collectedPlaylists', 'listCover'] }),
 
   P('U48', 'U48', 'setting', 'set-hero', '.set-hero / .sh-sub 设定页说明头（RN 缺件·内联，转正候选；副句文案见 renderSettings）', { js: ['renderSettings'] }),
   P('U49', 'U49', 'setting', 'settings-group', '.set-group / .set-list / .set-row / .set-ic / st-l / st-r 设定分组行族（组由 renderSettings() 灌入 #setBody）', { js: ['renderSettings', 'setGroup', 'setRow', 'setToggle', 'THEME_ICON', 'setInfo'] }),
@@ -269,7 +269,7 @@ const PART_DEFS = [
   P('U66', 'U66', 'songlist-detail', 'pl-bg', '.pl-bg 封面氛围层（blur64+saturate150；RN 侧 CoverWash 是降级共通件）', { js: ['openPlaylist'] }),
   P('U67', 'U67', 'songlist-detail', 'pl-top', '.pl-top / .pl-crumb / .pl-fav-btn 顶排（RN 缺件·内联，转正候选；面包屑文案见 PLD_CRUMB）', { js: ['PLD_CRUMB', 'togglePlFav'] }),
   P('U68', 'U68', 'songlist-detail', 'pl-hero', '.pl-hero 头图区（ph-body/ph-sub/ph-meta/sep；「N/M 首可播」等文案在 openPlaylist）', { js: ['openPlaylist', 'chartArt'] }),
-  P('U69', 'U69', 'songlist-detail', 'pl-actions', '.pl-actions 播放全部 + 随机钮（RN 缺件·内联，转正候选；PLD_LABELS 文案见符号行）', { js: ['PLD_LABELS'] }),
+  P('U69', 'U69', 'songlist-detail', 'pl-actions', '.pl-actions 播放全部 + 随机钮（RN 缺件·内联，转正候选；PLD_LABELS 文案见符号行；「播放全部」实心 .ghost-btn.solid 实例在 openPlaylist 内生成，样式本体在 _base）', { js: ['PLD_LABELS', 'openPlaylist'] }),
   P('U70', 'U70', 'songlist-detail', 'pl-tracks', '#plTracks 曲目表（song-list 复用 U29；分页状态行 .pl-status/.pl-end 样式在 _base——三页共用；PLD_STATUS 文案见符号行）', { js: ['renderPlTracks', 'plStatusRow', 'loadPlPage', 'plEndRow', 'PLD_STATUS', 'PLD_EMPTY', 'PL_PAGE_SIZE'] }),
 
   P('U72', 'U72', 'sheets', 'source-sheet', 'sourceSheet 音源浮层实例（chrome 见 U17；「音源只负责一件事…」sheetSub 与 q-note 三句由 renderSheet 生成，文案见符号行）', { js: ['renderSheet', 'renderImportRow', 'handleImport'] }),
@@ -277,7 +277,7 @@ const PART_DEFS = [
   P('U74', 'U74', 'sheets', 'create-sheet', 'createSheet 新建歌单浮层实例（CREATE_TXT 见符号行；本件持有「创建」与校验提示）', { js: ['openCreateSheet', 'submitCreateList', 'doCreate', 'CREATE_TXT', 'CREATE_NAME_MAX', 'createListError'] }),
   P('U75', 'U75', 'sheets', 'tags-sheet', 'plTagsSheet 全部分类浮层实例（分组由 renderTagGroups() 灌入；「正在从平台获取分类…」见符号行）', { js: ['openTagSheet', 'renderTagGroups', 'plGroups', 'PL_TAG_ALL'] }),
   P('U47', 'U47', 'sheets', 'name-sheet', 'nameSheet 改昵称浮层实例（NICK_PICKS 见符号行；本件持有「想叫什么/保存/换个快的」与收尾提示全文）', { js: ['openNameSheet', 'saveNick', 'NICK_PICKS'] }),
-  P('U76', 'U76', 'sheets', 'more-sheet', 'moreSheet 单曲操作面板实例（.more-song 头 + opt-list 动作；「收藏到「我喜欢」」等文案见 openMore）', { js: ['openMore', 'actRow', 'moreSong'] }),
+  P('U76', 'U76', 'sheets', 'more-sheet', 'moreSheet 单曲操作面板实例（.more-song 头 + opt-list 动作；「收藏到「我喜欢」」等文案见 openMore；加入候选组头「加入自建歌单」与空态句见 MORE_TXT，候选名单即 addablePlaylists）', { js: ['openMore', 'actRow', 'moreSong', 'MORE_TXT', 'addablePlaylists'] }),
   P('U78_79', 'U78+U79', 'sheets', 'player-sheet', '#playerSheet 播放页子面板宿主：定时与评论两种实例共用这一只 DOM（内容件见 timer-sheet / comment-sheet；钉住规则归 U17 chrome）', { js: ['openSheet', 'closeLayer'] }),
   P('U78', 'U78', 'sheets', 'timer-sheet', 'timer 浮层内容件（renderTimerSheet() 灌入 player-sheet；「不开启」「N 分钟」「等当前这首放完再停」见符号行；开关本体归 U22）', { doc: true, js: ['renderTimerSheet', 'paintTimerTag', 'sleepSub', 'stopAtEdge'] }),
   P('U79', 'U79', 'sheets', 'comment-sheet', 'comment 浮层内容件（renderCommentSheet()/cmtItem() 嵌套树灌入 player-sheet；cmt-total/cmt-item/cmt-reply/cmt-to 样式归本件；164dfa4：cmt-total 钉在 #psMeta、仅 #psBody 滚——钉住规则本体在 U17）', { doc: true, js: ['renderCommentSheet', 'paintComments', 'cmtItem', 'loadCmtPage', 'CMT_TXT', 'CMT_PAGE_SIZE', 'commentTotal'] }),
@@ -455,6 +455,7 @@ const CSS_EXC = [
   [/^\.sr-sub \.src-badge,\.sr-sub \.q-tag$/, '_base'],
   [/^\.opt-row\.on \.radio$/, 'U19'],
   [/^\.pl-layer \.empty-tip$/, 'U70'],
+  [/^#moreActions \.group-label,#moreActions \.q-note$/, 'U76'],
 ]
 const CSS_MATCHERS = [
   ['_chrome', ['.pad ', '.land ', '.phone.pad', '.phone.land', 'body.pad', '.stage', '.phone', '.screen', '.island', '.statusbar', '.sb-time', '.sb-right', '.sb-signal', '.sb-batt', '.viewer-bar', '.vb-label', '.vb-seg', '.vb-btn', '.vb-note', '.nav-brand', '.nav-sep', '.nav-label', '.nav-foot', '.notes', '.swatches', '.sw']],

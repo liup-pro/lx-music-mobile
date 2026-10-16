@@ -1095,9 +1095,12 @@ export const PLAYER = {
 
 /* ================= LRC 浮窗（.lrc-float，styles.css L666-681 + app.js syncFloat / bindFloatDrag） ================= */
 
-// 播放页工具行「LRC 浮窗」钮控制的**App 内可拖动歌词气泡**（原型 #lrcFloat）。逐值提取自
+// 原型 #lrcFloat 的**App 内可拖动歌词气泡**视觉。逐值提取自
 // styles.css L666-681（8 条规则，件：new_design/parts/player/lrc-float.*）；拖动边界 / 点按判定
-// 来自 app.js bindFloatDrag（L1907-1932），开关行为见 hooks/useLrcFloat 与 screens/Main/LrcFloatDock。
+// 来自 app.js bindFloatDrag（L1907-1932）。
+// 阶段 3（feature.md【newui】）换线记录：歌词浮窗改走系统级悬浮窗（core/desktopLyric），
+// 这条应用内气泡的宿主（旧 hooks/useLrcFloat + screens/Main/LrcFloatDock）已下线，
+// 本组 token 与视觉件 components/LrcFloat 一并留存，等原型口径回来再用。
 export const LRC_FLOAT = {
   /** left:16px / top:520px 初始位（原型 .screen 内绝对坐标；RN 按窗口坐标落同值） */
   initialLeft: 16,
@@ -1644,7 +1647,7 @@ export const MOTION = {
 // CSS box-shadow 含负 spread，RN 无法完全表达，取视觉近似；
 // 原型主张以「表面色 + 1px 描边 + 模糊」分层，阴影仅少量场景使用
 export const SHADOW: Record<
-  'card' | 'float' | 'knob' | 'chrome' | 'glow' | 'playerMain' | 'miniPrimary' | 'lrcFloat',
+  'card' | 'float' | 'knob' | 'chrome' | 'glow' | 'playerMain' | 'miniPrimary' | 'lrcFloat' | 'ghostSolid',
   ShadowSpec
 > = {
   /** --shadow 0 18px 44px -18px rgba(0,0,0,.75) */
@@ -1710,6 +1713,15 @@ export const SHADOW: Record<
     shadowOffset: { width: 0, height: 14 },
     shadowOpacity: 0.5,
     shadowRadius: 32,
+    elevation: 10,
+  },
+  /** .ghost-btn.solid 0 14px 28px -16px rgba(255,92,138,.9)（styles.css L330，_base L202；
+   *  负 spread 无法表达，同 playerMain 口径折算：radius 28-16=12、alpha .9 → .5 档） */
+  ghostSolid: {
+    shadowColor: '#FF5C8A',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
     elevation: 10,
   },
 }

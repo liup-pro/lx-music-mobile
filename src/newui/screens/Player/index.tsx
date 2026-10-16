@@ -12,6 +12,7 @@ import { useIsPlay, usePlayMusicInfo, usePlayerMusicInfo, useProgress } from '@/
 import { useSettingValue } from '@/store/setting/hook'
 
 import {
+  ConfirmSheet,
   DiscArt,
   LyricList,
   NewUiToastHost,
@@ -28,6 +29,7 @@ import {
 } from '@/newui/components'
 import {
   NEW_UI_PLAYER_CRUMB,
+  NEW_UI_PLAYER_LRC_PERMISSION_ASK,
   NEW_UI_PLAYER_LYRIC_EMPTY,
   NEW_UI_PLAYER_LYRIC_NOTE,
   NEW_UI_PLAYER_NO_SONG,
@@ -42,8 +44,8 @@ import {
 } from '@/newui/const'
 import {
   useApiSourceName,
+  useDesktopLyricToggle,
   useFavoriteToggle,
-  useLrcFloatToggle,
   useNewUiSystemBar,
   useSafeArea,
 } from '@/newui/hooks'
@@ -72,6 +74,9 @@ export interface PlayerScreenProps {
  * 界面层容器：全部数据只读订阅既有 store/player 与 plugins/lyric，
  * 动作全部转发现有 core/player、core/common、app_event —— 不触碰播放逻辑。
  * 阶段 9b：定时 / 评论 / LRC 浮窗入口接真浮层与真逻辑（sheets/）。
+ * 阶段 3（feature.md【newui】「歌词浮窗要是系统浮窗，不是应用内浮窗」）：浮窗钮接回
+ * core/desktopLyric 那条系统级悬浮窗线（设置键 desktopLyric.enable，与旧 UI 同一个开关），
+ * U61 的应用内气泡线下线；无悬浮窗权限时以共通件 ConfirmSheet 引导跳系统授权界面。
  * 2026-10-13（清单第 4 条）：均衡器为假能力（播放内核无频段增益通道），已整体移除。
  * 2026-10-12（原型同步轮 6）：主行改三颗居中（定时移出）、工具行四颗纯图标（状态只换图标）、
  * 舞台下方新增唱片/歌词指示点。
@@ -104,12 +109,21 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
   // —— 阶段 9b：入口的真接线（定时 / 评论 / LRC 浮窗）——
   // 休眠定时剩余秒数（到点行为由 core/player/timeoutExit 决定）
   const { time: timerTime } = useTimeoutExitTimeInfo()
-  // LRC 浮窗 = App 内可拖动歌词气泡（原型 #lrcFloat，U61 轮）：气泡本体渲染在主屏
-  // （screens/Main/LrcFloatDock），本钮只是它的开关入口之一（另一个是气泡上的关闭钮）；
-  // 开关态经 hooks/useLrcFloat 共享模块回显（i-float ↔ i-float-on）。
-  // 系统桌面歌词（core/desktopLyric）另有开关链路（旧 useDesktopLyricToggle + 设置键
-  // desktopLyric.enable，代码保留未删，新 UI 暂无常驻入口），本钮不再控制它，两者互不影响
-  const { enabled: floatEnabled, toggle: toggleFloat } = useLrcFloatToggle()
+  // LRC 浮窗 = **系统级悬浮窗**（feature.md【newui】阶段 3：不是应用内浮窗，参考旧 UI）。
+  // 接线整条复用旧 UI 既有链路 core/desktopLyric + 设置键 desktopLyric.enable（同一开关，
+  // 与旧 UI 设定页 / 播放详情页的桌面歌词钮共享状态）：开 = 校验悬浮窗权限 → showDesktopLyric，
+  // 关 = hideDesktopLyric；逐行歌词、拖动与位置记忆都由原生窗口与 core/init 承担，本钮只管入口与回显。
+  // 窗口内容体的观感由设置项 desktopLyric.style.* 决定（原生侧绘制），原型 U61 那套 App 内气泡玻璃
+  // 视觉在这里无从落地——本轮按「先保证是系统浮窗」取舍，U61 视觉件留在 components/LrcFloat 待用。
+  // 无权限时由本 hook 弹出共通件 ConfirmSheet 征求，同意即走旧 UI 既有授权流程
+  // （openDesktopLyricOverlayPermissionActivity 跳系统悬浮窗授权界面），不另造机制。
+  const {
+    enabled: floatEnabled,
+    toggle: toggleFloat,
+    askPermission,
+    onPermissionConfirm,
+    onPermissionDismiss,
+  } = useDesktopLyricToggle()
   // 底部 sheets：一次只开一个（同原型 #sheet 单实例）
   const [openSheet, setOpenSheet] = useState<'timer' | 'comment' | null>(null)
   // 评论浮层取当前曲目的在线信息；本地曲目为 null（入口直接 toast）
@@ -313,6 +327,19 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
         visible={openSheet === 'comment'}
         musicInfo={commentMusic}
         onClose={() => setOpenSheet(null)}
+        bottomInset={bottom}
+      />
+      {/* 悬浮窗授权引导（阶段 3）：共通件 ConfirmSheet 承载，正文/键名对齐旧 UI 那条授权提示；
+          确认后跳系统「显示悬浮窗口」授权界面（旧 UI 同一 core 函数），本屏不写权限机制。
+          挂在提示胶囊之前（原型 .sheet z-index 80 < .toast 90，提示仍压在浮层之上） */}
+      <ConfirmSheet
+        visible={askPermission}
+        title={NEW_UI_PLAYER_LRC_PERMISSION_ASK.title}
+        body={NEW_UI_PLAYER_LRC_PERMISSION_ASK.body}
+        okLabel={NEW_UI_PLAYER_LRC_PERMISSION_ASK.okLabel}
+        cancelLabel={NEW_UI_PLAYER_LRC_PERMISSION_ASK.cancelLabel}
+        onConfirm={onPermissionConfirm}
+        onClose={onPermissionDismiss}
         bottomInset={bottom}
       />
       {/* 提示胶囊（QA D-09 观感）：屏幕根层最后一子——原型 .toast z-index:90 压在浮层之上 */}

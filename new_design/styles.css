@@ -324,6 +324,11 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 }
 .ghost-btn:active{transform:scale(.98);background:var(--fill-3)}
 .ghost-btn .ic{width:15px;height:15px}
+/* 实心档：一格里只有一个主动作时（歌单详情的「播放全部」）铺品牌渐变，
+   与「我喜欢」卡的实心块同一套写法；原子本身默认还是 --fill-2 的控件底，
+   首页与榜单页那两枚「播放全部 N 首」不受影响 */
+.ghost-btn.solid{background:var(--grad);color:#0a0a0f;box-shadow:0 14px 28px -16px rgba(255,92,138,.9)}
+.ghost-btn.solid:active{background:var(--grad);filter:brightness(.9);transform:scale(.98)}
 
 /* ============ artists ============ */
 .artist-card{flex:none;width:76px;display:flex;flex-direction:column;align-items:center;gap:8px;transition:.2s var(--ease)}
@@ -757,6 +762,11 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 .opt-ic{width:30px;height:30px;flex:none;border-radius:10px;display:grid;place-items:center;
   background:var(--fill-2);color:var(--text-2);box-shadow:inset 0 0 0 1px var(--line)}
 .opt-ic .ic{width:16px;height:16px}
+/* 「⋯」面板：加入候选上方的那句范围说明，Pad 双列下整行占满，别掉进左半格 */
+#moreActions .group-label,#moreActions .q-note{grid-column:1/-1}
+#moreActions .group-label{margin:4px 0 0}
+/* 「从本歌单移出」这一行：图标位用报错墨色，与上面「加入」那一批一眼分开 */
+.opt-row.warn .opt-ic{color:var(--danger-ink)}
 .q-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .q-note{font-size:11px;color:var(--text-3);width:100%;line-height:1.6}
 /* ============ 打开歌单（贴链接 / 填 ID） ============ */

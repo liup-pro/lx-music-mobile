@@ -538,6 +538,13 @@ export const SonglistDetailScreen = ({
   // 试听 / 我的收藏这类系统列表不在 userList 里，删不掉也不该出现入口）。
   const canDeleteList = isLocal && isDeletableUserListId(listId)
 
+  // —— 单曲「⋯」面板的宿主单口径（件 U76，需求 2）——
+  // 原型 openMore L1559 判的是 `plNow.kind === 'local'` 且能在 MY_PLAYLISTS 里命中这张单，
+  // RN 侧这两个条件本屏就拿得到：kind==='local' 只由纯自建 / 本地单子推入（平台导入的走 'mine'/'rank'，
+  // 内置「我喜欢」走 'fav'），isDeletableUserListId 与旧 MyList/ListMenu 同口径认「在 userList 里」。
+  // 命中就把这张单的 id + 名字传给面板，面板据此插一行「从「该单」移出」；其余形态一概不传。
+  const isHostLocalList = kind === 'local' && isDeletableUserListId(listId)
+
   const handleDeletePress = useCallback(() => {
     if (!canDeleteList || deleteBusyRef.current) return
     // 二次确认走共通件 ConfirmSheet（原型 #confirmSheet，app.js L1010-1014 askDeleteList；
@@ -729,12 +736,16 @@ export const SonglistDetailScreen = ({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={listContentStyle}
       />
-      {/* 单曲操作面板（原型 #moreSheet）：与主屏同一组件，本屏行内 ⋯ 的目标曲在这里 */}
+      {/* 单曲操作面板（原型 #moreSheet）：与主屏同一组件，本屏行内 ⋯ 的目标曲在这里。
+          自建 / 本地形态（isHostLocalList）额外把宿主单报给它，面板据此插「从「该单」移出」一行
+          （件 U76 需求 2）；平台歌单 / 榜单 / 内置「我喜欢」不传，那一行就不出现 */}
       <MoreSheet
         visible={moreMusic != null}
         musicInfo={moreMusic}
         onClose={closeMore}
         bottomInset={bottom}
+        hostListId={isHostLocalList ? listId : undefined}
+        hostListName={isHostLocalList ? headerInfo.name || listName : undefined}
       />
       {/* 删单二次确认（原型 #confirmSheet，app.js L1010-1014；QA D-09 换掉系统 Alert） */}
       <ConfirmSheet

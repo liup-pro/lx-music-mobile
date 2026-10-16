@@ -54,8 +54,11 @@ export interface LrcFloatProps {
  * 拖动手法沿用本仓既有 PanResponder 路线（同 PlayerStageSwipe / SeekControl，
  * 不引 gesture-handler / reanimated 原生依赖）：按下即接管（原型 touch-action:none 同义），
  * 移动只用 gestureState.dx/dy 做相对位移（Android move 事件坐标不可靠，同进度条教训）。
- * 纯展示组件：显隐 / 文字 / 颜色 / 动作全部由容器（screens/Main/LrcFloatDock）传入，
- * 本件只维护「位置 + 拖动态」这一组纯视觉状态。
+ * 纯展示组件：显隐 / 文字 / 颜色 / 动作全部由容器传入，本件只维护「位置 + 拖动态」这一组纯视觉状态。
+ * ⚠ 阶段 3（feature.md【newui】「歌词浮窗要是系统浮窗，不是应用内浮窗」）换线记录：
+ * 浮窗入口已改接 core/desktopLyric 的**系统级悬浮窗**（窗口宿主在原生侧，内容观感由设置项
+ * desktopLyric.style.* 决定），原主屏容器 screens/Main/LrcFloatDock 随之下线，本件按原型 U61
+ * 的视觉留存（未挂载），等原型口径回来再接宿主。
  */
 export const LrcFloat = memo(({ visible, text, tint, onOpenPlayer, onClose }: LrcFloatProps) => {
   const theme = useTheme()

@@ -24,7 +24,7 @@ export const NEW_UI_PLD_FOOT_NOTE: Record<NewUiSonglistDetailKind, string> = {
   rank: '整份榜单按该平台的排名排列 · 每首可直接播',
   mine: '这份歌单只存在这台设备上',
   pl: '整份歌单先列出曲目 · 能否播放以点开那一刻为准',
-  local: '这份歌单只存在这台设备上 · 队列即歌单本身，点开即听',
+  local: '这份歌单只存在这台设备上 · 队列即歌单本身，点开即听 · 想撤哪首就在它的「⋯」里移出',
   fav: '这份收藏只存在这台设备上 · 取消收藏在歌曲行的「⋯」里',
 }
 
@@ -99,7 +99,8 @@ export const NEW_UI_PLD_TAG_EMPTY_FAV = '还没有收藏'
  * 「歌单是空的」有三种对象，措辞必须分开（2026-10-14 第 10b 轮，bug-fix.md L58 走查遗留；
  * fav 一档为 QA D04 补，原型 PLD_EMPTY 表里本就单列一项）：
  * - localEmpty：kind='local' 的本地歌单（用户刚建的空单子）——问题不是「换一份」，是还没往里放歌，
- *   要说清对象并给出加歌的路（⋯ 面板「加入此单」是真实入口，非假动作）；
+ *   要说清对象并给出加歌的路（⋯ 面板「加入自建歌单」是真实入口，非假动作）。
+ *   2026-10-27 件 U76 连带：自建歌单已能逐首移出，被移空也仍走这句，原型 PLD_EMPTY.local（app.js L839）逐字；
  * - fav：kind='fav' 的内置「我喜欢」——空的是收藏本身，要说清去哪收（原型 PLD_EMPTY.fav）；
  * - end：平台歌单（pl/mine/rank 形态）明细取回来是空的——那是平台侧给的就空，如实请用户换一份。
  * localError = 本地整单没读出来（读取失败，不是空），与上面三种再分开。
@@ -107,7 +108,7 @@ export const NEW_UI_PLD_TAG_EMPTY_FAV = '还没有收藏'
 export const NEW_UI_PLD_EMPTY = {
   error: '这份歌单暂时取不到内容 · 网络或音源不稳定，稍后再试',
   localError: '这份歌单暂时打不开 · 稍后再试',
-  localEmpty: '这张歌单还没有歌 · 听到喜欢的点行尾 ⋯ 加进来',
+  localEmpty: '这份歌单还是空的 · 在歌曲右侧的「⋯」里加入',
   end: '这份歌单还是空的 · 换一份听听',
   /** 内置「我喜欢」空态（原型 PLD_EMPTY.fav 逐字，QA D04） */
   fav: '还没有收藏 · 点歌曲右侧的爱心，收进来的都会留在这里',

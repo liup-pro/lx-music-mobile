@@ -12,12 +12,14 @@ import {
   FavCard,
   FootNote,
   MineHeader,
+  pickArtPalette,
   PlCard,
   Section,
   SongRow,
   StatRow,
 } from '@/newui/components'
 import {
+  getPlatformMeta,
   NEW_UI_BOARD_LIST_ID_PREFIX,
   NEW_UI_MINE_EDIT,
   NEW_UI_MINE_EMPTY,
@@ -25,6 +27,7 @@ import {
   NEW_UI_MINE_HEAD_SUB,
   NEW_UI_MINE_LOVE_PREVIEW_COUNT,
   NEW_UI_MINE_MORES,
+  NEW_UI_MINE_PL_SUB,
   NEW_UI_MINE_STAT_LABELS,
   NEW_UI_MINE_TITLES,
   NEW_UI_MINE_TOAST,
@@ -34,6 +37,7 @@ import {
 import {
   useApiSupport,
   useGridItemWidth,
+  hasPlatformHome,
   useLoveSongs,
   useMyPlaylistCovers,
   useMyPlaylists,
@@ -51,6 +55,19 @@ import type { NewUiPageProps } from '../../types'
 const RECENT_LIMIT = 30
 
 /**
+ * 「我的歌单」卡副行（件 parts/mine/my-pl-mine.html U46，原型 plCardMine L1276 /
+ * plCardCollected L1292）：收藏来的那份只说「收藏自 某平台 · N 首」（那份是平台只读的，
+ * 卡面不与自建的比曲目数谁多）；自建那份才是「N 首 · M 首可播」。
+ * 首数还没数出来时两种单子都先如实报「还在数有几首」。
+ */
+const plCardMeta = (list: MyPlaylistItem, collected: boolean): string => {
+  if (list.count == null) return NEW_UI_MINE_PL_SUB.tallying
+  return collected
+    ? NEW_UI_MINE_PL_SUB.collected(getPlatformMeta(list.source as LX.OnlineSource).short, list.count)
+    : NEW_UI_MINE_PL_SUB.mine(list.count, list.playable)
+}
+
+/**
  * 「我的」页（原型 #page-mine）容器：头部（.mine-head）+ 统计（.stat-row）+
  * 我喜欢（.fav-card）+ 最近播放（.song-list.compact）+ 我的歌单（.pl-grid）。
  * 数据来源：收藏 = @/store/list 的「我喜欢」列表（useLoveSongs）；
@@ -61,6 +78,10 @@ const RECENT_LIMIT = 30
  * 播放统一走 utils/play。我喜欢卡双动作（2026-10-14 用户条目）：整卡 = 打开内置歌单详情
  * （新 UI 详情层 local 形态，与「我的歌单」卡同一入口），圆钮 = 播放全部（原整卡动作保留，
  * 播放链阶段 9a 已换线新 UI 播放页）。
+ * 「我的歌单」这一格列两种单子（件 parts/mine/my-pl-mine.html U46）：卡面按有没有平台坐标
+ * 分叉（见 plCardMeta 与下面的 collected 分支）——收藏来的走平台真封面 +「收藏自 某平台 · N 首」，
+ * 纯自建的走内置版式封面 +「N 首 · M 首可播」。分叉只发生在渲染层，取数仍是 useMyPlaylists
+ * 那一份 allList（顺序、数据源、存储都不动）。
  */
 export const MinePage = ({ componentId, onOpenNameSheet, onOpenMore, onOpenCreateListSheet }: NewUiPageProps) => {
   const { nickName, initial } = useNickName()
@@ -237,30 +258,37 @@ export const MinePage = ({ componentId, onOpenNameSheet, onOpenMore, onOpenCreat
         {myLists.length
           ? (
             <CardGrid>
-              {myLists.map(list => (
-                <PlCard
-                  key={list.id}
-                  width={cardWidth}
-                  title={list.name}
-                  artSeed={`${NEW_UI_PLAYLIST_ART_SEED.mine}:${list.id}`}
-                  artUri={listCovers[list.id]}
-                  meta={
-                    // meta 口径按原型 plCardMine（app.js L1262 `${n} 首 · ${can} 首可播`，QA D17）：
-                    // 可播数取 useMyPlaylists 同一份曲目的真实计数，还没数出来时先只报首数
-                    list.count == null
-                      ? '还在数有几首'
-                      : list.playable == null
-                        ? `${list.count} 首`
-                        : `${list.count} 首 · ${list.playable} 首可播`
-                  }
-                  tint={
-                    list.source
-                      ? PLATFORM_TINTS[list.source as PlatformTintKey]
-                      : undefined
-                  }
-                  onPress={() => handleListPress(list)}
-                />
-              ))}
+              {myLists.map(list => {
+                const artSeed = `${NEW_UI_PLAYLIST_ART_SEED.mine}:${list.id}`
+                // 件 parts/mine/my-pl-mine.html U46：这一格列的是两种单子，卡面按
+                // 有没有平台坐标分叉（原型 listCover app.js L894 判 p.home）。
+                // 只改渲染分支，数据源与存储一概不动。
+                const collected = hasPlatformHome(list)
+                return (
+                  <PlCard
+                    key={list.id}
+                    width={cardWidth}
+                    title={list.name}
+                    artSeed={artSeed}
+                    // 收藏来的那份用平台那张真封面图（与【歌单】页推荐卡同一套写法：走 Art 的
+                    // imageUri，图取不到时 Art 自己回落种子底）；自建那张平台侧本就无图，
+                    // 封面位走内置版式，不画一张随机图冒充平台封面
+                    artUri={collected ? listCovers[list.id] : undefined}
+                    // 播放角标只在收藏卡封面上（原型 plCardCollected L1295 追加 .play-badge，
+                    // plCardMine 的内置版式封面不叠）
+                    badge={collected}
+                    meta={plCardMeta(list, collected)}
+                    tint={
+                      // 圆点色：收藏卡 = 平台 tint（原型 SOURCES[p.home].tint）；
+                      // 自建卡 = 内置版式色板首色（原型 palette(p.seed)[0]）
+                      collected
+                        ? PLATFORM_TINTS[list.source as PlatformTintKey]
+                        : pickArtPalette(artSeed)[0]
+                    }
+                    onPress={() => handleListPress(list)}
+                  />
+                )
+              })}
             </CardGrid>
           )
           : <EmptyTip text={NEW_UI_PLAYLIST_EMPTY.mine} />}

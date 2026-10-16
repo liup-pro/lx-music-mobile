@@ -5,8 +5,8 @@
 
 ## 无损校验数字（本次生成实测，运行时断言）
 
-- index.html 元素：原件 **824** = 各件持有之和 **824**（重复 0 / 丢失 0 / 无归属 0）。
-- styles.css 规则：原件 **654** 条 = 各件收纳之和 **654**；选择器 **675** 个，逐条唯一归属（@media 2 块整体归 _chrome，@keyframes 按登记表归属）。
+- index.html 元素：原件 **842** = 各件持有之和 **842**（重复 0 / 丢失 0 / 无归属 0）。
+- styles.css 规则：原件 **659** 条 = 各件收纳之和 **659**；选择器 **681** 个，逐条唯一归属（@media 2 块整体归 _chrome，@keyframes 按登记表归属）。
 - app.js：只读；件头注释的符号行号在运行时实探，符号缺失即报错退出。
 - 四个原型文件（index.html / styles.css / app.js / data.js）零改动。
 
@@ -15,7 +15,7 @@
 | 单元 | 件（相对 parts/） | 持有元素 | 收纳规则 | 一句话 |
 |---|---|---|---|---|
 | 壳层 | `_shell` | 16 | 3 | 文档壳与页面骨架：html/head/body、#viewport、五只 .page |
-| V1–V4 | `_chrome` | 387 | 233 | 查看器 chrome |
+| V1–V4 | `_chrome` | 404 | 233 | 查看器 chrome |
 | U01 | `common-control/topbar` | 12 | 8 | .topbar 吸顶头部 |
 | U02 | `common-control/icon-btn` | 0 | 0 | .icon-btn 圆钮原子 |
 | U03 | `common-control/pulse-dot` | 0 | 3 | .pulse-dot 音源告警呼吸点 |
@@ -33,8 +33,8 @@
 | U15 | `common-control/src-badge` | 0 | 0 | .src-badge 平台来源角标原子 |
 | U16 | `common-control/hscroll-recent` | 7 | 7 | .hscroll + .recent-card 继续收听横滚 |
 | U17 | `common-control/sheet-chrome` | 0 | 14 | .sheet 浮层 chrome 定义 |
-| U18 | `common-control/group-label` | 0 | 1 | .group-label 浮层分组标题 |
-| U19 | `common-control/opt-list` | 0 | 15 | .opt-list / .opt-row |
+| U18 | `common-control/group-label` | 0 | 2 | .group-label 浮层分组标题 |
+| U19 | `common-control/opt-list` | 0 | 16 | .opt-list / .opt-row |
 | U20 | `common-control/op-box` | 0 | 8 | .op-box / .op-input / .op-go / .op-err 输入行族 |
 | U21 | `common-control/q-chips` | 0 | 2 | .q-chips |
 | U22 | `common-control/toggle` | 0 | 4 | .toggle / .sw-row 开关行唯一定义 |
@@ -48,7 +48,7 @@
 | U27 | `home/pl-card` | 7 | 7 | .pl-grid / .pl-card 推荐歌单区块 |
 | U29 | `home/song-list` | 8 | 20 | .song-list 热门单曲区块 |
 | U31 | `home/artist-card` | 4 | 4 | .artist-card 热门歌手横滚 |
-| U32 | `home/section-note` | 1 | 1 | .section-note 区块说明灰字 |
+| U32 | `home/section-note` | 2 | 1 | .section-note 区块说明灰字 |
 | U33 | `home/radio-card` | 4 | 7 | .radio-grid / .radio-card / .wip-tag 随手听 |
 | U36 | `playlist/my-pl` | 7 | 7 | .my-pl-row 我的歌单一排 |
 | U37 | `playlist/pl-count` | 1 | 1 | .pl-count「已列出 N / M 个」计数行 |
@@ -92,7 +92,7 @@
 | U74 | `sheets/create-sheet` | 11 | 0 | createSheet 新建歌单浮层实例 |
 | U75 | `sheets/tags-sheet` | 7 | 0 | plTagsSheet 全部分类浮层实例 |
 | U47 | `sheets/name-sheet` | 13 | 0 | nameSheet 改昵称浮层实例 |
-| U76 | `sheets/more-sheet` | 6 | 5 | moreSheet 单曲操作面板实例 |
+| U76 | `sheets/more-sheet` | 6 | 6 | moreSheet 单曲操作面板实例 |
 | U78+U79 | `sheets/player-sheet` | 8 | 0 | #playerSheet 播放页子面板宿主：定时与评论两种实例共用这一只 DOM |
 | U78 | `sheets/timer-sheet` | 0 | 1 | timer 浮层内容件 |
 | U79 | `sheets/comment-sheet` | 0 | 15 | comment 浮层内容件 |

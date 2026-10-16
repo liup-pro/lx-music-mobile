@@ -40,6 +40,12 @@ export interface OptionRowProps {
    * 不传保持音源浮层的单选圈（.radio）。与 active 互斥语义，同传时图标优先。
    */
   icon?: IconName
+  /**
+   * .opt-row.warn（styles.css L769，件 parts/common-control/opt-list.css L46）：
+   * 只把图标位取色换成报错墨色 dangerInk（`_base.css` 两套主题各一档），行本体不动——
+   * 「从本歌单移出」这类破坏性动作与「加入」那批一眼分开。仅在传 icon 时有意义。
+   */
+  warn?: boolean
   onPress?: () => void
   style?: StyleProp<ViewStyle>
 }
@@ -83,6 +89,7 @@ export const OptionRow = memo(
     active = false,
     dimmed = false,
     icon,
+    warn = false,
     onPress,
     style,
   }: OptionRowProps) => {
@@ -122,7 +129,11 @@ export const OptionRow = memo(
               { backgroundColor: theme.colors.fill2, borderColor: theme.colors.line },
             ]}
           >
-            <Icon name={icon} size={OPTION_ROW.iconBoxIcon} color={theme.colors.text2} />
+            <Icon
+              name={icon}
+              size={OPTION_ROW.iconBoxIcon}
+              color={warn ? theme.colors.dangerInk : theme.colors.text2}
+            />
           </View>
         ) : (
           <Radio active={active} />

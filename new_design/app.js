@@ -740,7 +740,7 @@ function renderPlaylistPage() {
   $('#myPlEmpty').hidden = mine.hidden = MY_PLAYLISTS.length > 0;
   MY_PLAYLISTS.forEach((p) => {
     const c = el('button', 'my-pl');
-    c.appendChild(coverArt(p.seed, '16px', 240));
+    c.appendChild(listCover(p, '16px', 240));
     c.appendChild(el('div', 'mp-n', p.name));
     c.appendChild(el('div', 'mp-s', `${p.tracks.length} 首 · ${p.desc}`));
     /* 纯自建的单子没有平台坐标，走详情层的「本地歌单」形态（能删），不是「自建歌单」壳 */
@@ -828,13 +828,15 @@ const PLD_FOOT = {
   rank: '整份榜单按该平台的排名排列 · 每首可直接播',
   mine: '这份歌单只存在这台设备上',
   pl: '整份歌单先列出曲目 · 能否播放以点开那一刻为准',
-  local: '这份歌单只存在这台设备上 · 队列即歌单本身，点开即听',
+  local: '这份歌单只存在这台设备上 · 队列即歌单本身，点开即听 · 想撤哪首就在它的「⋯」里移出',
   fav: '这份收藏只存在这台设备上 · 取消收藏在歌曲行的「⋯」里',
 };
 const PLD_EMPTY = {
   error: '这份歌单暂时取不到内容 · 网络或音源不稳定，稍后再试',
   localError: '这份歌单暂时打不开 · 稍后再试',
   end: '这份歌单还是空的 · 换一份听听',
+  /* 自建歌单被移空时不该说「换一份听听」——这张单子是用户自己的，下一句得告诉他怎么往里加 */
+  local: '这份歌单还是空的 · 在歌曲右侧的「⋯」里加入',
   fav: '还没有收藏 · 点歌曲右侧的爱心，收进来的都会留在这里',
 };
 /* 列表尾部只按需出现三行：取下一批的「转圈 + 文字」、取失败的可点重试、列完的终点行——
@@ -875,6 +877,21 @@ const plAllTracks = () => (plNow ? plTracksOf(plNow) : []);
 /* 「我喜欢」是一份内置歌单：不能改名、不能删，但详情层形态与其它歌单完全一致 ——
  * 点位卡打开的就是它，曲目按收藏先后排列；id 固定，重开才保得住已滚动到的页数 */
 const favPlaylist = () => ({ id: 'fav__builtin', name: '我喜欢', seed: 'fav-builtin', desc: '', tracks: [...state.fav] });
+
+/* 「我的歌单」里其实是两种单子，长得像但能力不一样：
+ * 自建（MY_PLAYLISTS）—— 能加歌，也能把歌移出去；平台侧没有这张单，也就没有它的封面图
+ * 收藏自平台（state.favPl 在 PLAYLISTS 目录里命中的那些）—— 只读，封面就是平台那张真图，
+ *   整份单子能移出收藏，但里面的歌不能挪进挪出（本地写不回平台） */
+const collectedPlaylists = () => PLAYLISTS.filter((p) => state.favPl.has(p.id));
+
+/* 「⋯」里能被加入的只有自建歌单：收藏来的那份是平台只读的，往里塞歌平台不认，
+ * 所以这份候选名单根本不碰 collectedPlaylists() */
+const addablePlaylists = () => MY_PLAYLISTS;
+
+/* 卡面与详情头图走哪一路，看这份单子有没有平台坐标（.home）：
+ * 有 → 上平台给的真封面图（和【歌单】页推荐卡同一套写法，取不到图 art() 自己回落）；
+ * 没有 → 内置版式占位，不画一张随机图冒充平台封面 */
+const listCover = (p, radius, w, h) => (p.home ? coverArt(p.seed, radius, w, h) : art(p.seed, { radius }));
 
 /* 收藏被改的那一刻（歌曲行的「⋯」或播放页爱心）：层开着就就地重铺，
  * 页数与滚动位置都不跳；层没开则什么都不做 */
@@ -926,7 +943,7 @@ function openPlaylist(p, kind) {
   /* 「我喜欢」沿用点位卡那张心形渐变块（入口用图标不用照片），一进详情就认得出 */
   hero.appendChild(k === 'rank' ? chartArt(plNow)
     : k === 'fav' ? artIcon(plNow.seed, 'i-heart-fill', '20px')
-      : coverArt(plNow.seed, '20px', 340));
+      : listCover(plNow, '20px', 340));
   const body = el('div', 'ph-body');
   body.appendChild(el('h3', '', plNow.name));
   body.appendChild(el('div', 'ph-sub', plNow.desc || plNow.author || ''));
@@ -959,7 +976,7 @@ function openPlaylist(p, kind) {
 
   const acts = $('#plActions');
   acts.innerHTML = '';
-  const all = el('button', 'ghost-btn', `<svg class="ic"><use href="#i-play"/></svg>播放全部 ${playable.length} 首`);
+  const all = el('button', 'ghost-btn solid', `<svg class="ic"><use href="#i-play"/></svg>播放全部 ${playable.length} 首`);
   all.onclick = () => (playable[0] ? play(playable[0], playable) : toast(PLD_TOAST.playAllEmpty));
   acts.appendChild(all);
   const shuf = el('button', 'icon-btn', '<svg class="ic"><use href="#i-shuffle"/></svg>');
@@ -991,7 +1008,9 @@ function renderPlTracks() {
     /* missing = 没定位到这份单子（真实侧是取数/读库失败），与「单子真的是空的」分开说；
      * 「我喜欢」空态再单独一档：怎么往里收，就写在原地 */
     box.appendChild(el('div', 'empty-tip',
-      plNow.missing ? PLD_EMPTY.error : plNow.kind === 'fav' ? PLD_EMPTY.fav : PLD_EMPTY.end));
+      plNow.missing ? PLD_EMPTY.error
+        : plNow.kind === 'fav' ? PLD_EMPTY.fav
+          : plNow.kind === 'local' && !plNow.home ? PLD_EMPTY.local : PLD_EMPTY.end));
     return;
   }
   tracks.slice(0, plShown).forEach((s, i) => box.appendChild(songRow(s, i + 1, playable)));
@@ -1247,13 +1266,16 @@ function renderMinePage() {
 
   const grid = $('#minePlGrid');
   grid.innerHTML = '';
+  const collected = collectedPlaylists();
   MY_PLAYLISTS.forEach((p) => grid.appendChild(plCardMine(p)));
-  $('#minePlEmpty').hidden = grid.hidden = MY_PLAYLISTS.length > 0;
+  collected.forEach((p) => grid.appendChild(plCardCollected(p)));
+  $('#minePlEmpty').hidden = grid.hidden = MY_PLAYLISTS.length + collected.length > 0;
 }
 
+/* 自建歌单卡：没有平台坐标，封面位就是内置版式（不画一张随机图冒充平台封面） */
 function plCardMine(p) {
   const card = el('button', 'pl-card');
-  card.appendChild(coverArt(p.seed, null, 340));
+  card.appendChild(listCover(p, null, 340));
   card.appendChild(el('div', 'pt', p.name));
   const tracks = p.tracks.map(songById);
   const can = tracks.filter((s) => supports(s.source)).length;
@@ -1262,6 +1284,22 @@ function plCardMine(p) {
   meta.innerHTML = `<i class="src-dot"></i>${p.tracks.length} 首 · ${can} 首可播`;
   card.appendChild(meta);
   card.onclick = () => openPlaylist(p, 'local');
+  return card;
+}
+
+/* 收藏来的平台歌单卡：封面用平台那张真图（与【歌单】页 plCard 同一套写法），
+ * 副行说清它是从哪家收藏来的 —— 它是只读的，卡面不与自建的去比曲目数谁多 */
+function plCardCollected(p) {
+  const card = el('button', 'pl-card');
+  const a = listCover(p, null, 340);
+  a.appendChild(el('span', 'play-badge', '<svg class="ic"><use href="#i-play"/></svg>'));
+  card.appendChild(a);
+  card.appendChild(el('div', 'pt', p.name));
+  const meta = el('div', 'ps');
+  meta.style.setProperty('--tint', SOURCES[p.home].tint);
+  meta.innerHTML = `<i class="src-dot"></i>收藏自 ${SOURCES[p.home].short} · ${p.tracks.length} 首`;
+  card.appendChild(meta);
+  card.onclick = () => openPlaylist(p, 'pl');
   return card;
 }
 
@@ -1471,6 +1509,14 @@ function setInfo(icon, label, hint, value) {
 /* ============ 歌曲「⋯」操作面板 ============ */
 let moreSong = null;
 
+const MORE_TXT = {
+  /* 加入候选的范围说明：收藏来的平台单子是只读的，写不进去，所以名单只有自建 */
+  addGroup: '加入自建歌单',
+  addEmpty: '还没有自建歌单 · 先去「我的」新建一份',
+  remove: (name) => `从「${name}」移出`,
+  removed: (list, title) => `已把「${title}」从「${list}」移出 · 歌还在这台设备的曲库里`,
+};
+
 function openMore(s, queue) {
   moreSong = s;
   const head = $('#moreSong');
@@ -1509,14 +1555,41 @@ function openMore(s, queue) {
     closeLayer($('#moreSheet'));
     toast(`已把「${s.title}」排在当前这首之后`);
   }));
-  MY_PLAYLISTS.forEach((p) => list.appendChild(actRow('i-plus', `加入「${p.name}」`, () => {
-    if (p.tracks.includes(s.id)) { toast('已经在这份歌单里了'); return; }
-    p.tracks.push(s.id);
-    closeLayer($('#moreSheet'));
-    if (!$('#page-mine').hidden) renderMinePage();
-    if (!$('#page-playlist').hidden) renderPlaylistPage();
-    toast(`已加入「${p.name}」`);   /* 两句反馈都不带计数：真实侧计数在异步写库之后才更新，按下瞬间报出的数不可信 */
-  })));
+  /* 自建歌单详情层里的这首歌，除了「再加入」还得能「从这里移出去」：
+   * 移掉的只是这张单子在本地列出的那条歌目记录，歌本身、别的单子、平台端的收藏都不动 */
+  const host = (plNow && plNow.kind === 'local') ? MY_PLAYLISTS.find((p) => p.id === plNow.id) : null;
+  if (host && host.tracks.includes(s.id)) {
+    const row = actRow('i-close', MORE_TXT.remove(host.name), () => {
+      host.tracks.splice(host.tracks.indexOf(s.id), 1);
+      closeLayer($('#moreSheet'));
+      /* 原地重铺这一层并保住滚动位置：刚移完就被弹回顶部，等于没让人接着往下挑 */
+      const top = $('#plLayer').scrollTop;
+      openPlaylist(host, 'local');
+      $('#plLayer').scrollTop = top;
+      if (!$('#page-mine').hidden) renderMinePage();
+      if (!$('#page-playlist').hidden) renderPlaylistPage();
+      toast(MORE_TXT.removed(host.name, s.title));
+    });
+    row.classList.add('warn');
+    list.appendChild(row);
+  }
+
+  /* 加入候选只有自建歌单（addablePlaylists）：收藏来的那份挂在平台侧，往里塞歌平台不认，
+   * 所以它根本不出现在这份名单里，范围就写在名单上方一句 */
+  const addable = addablePlaylists();
+  if (addable.length) {
+    list.appendChild(el('div', 'group-label', MORE_TXT.addGroup));
+    addable.forEach((p) => list.appendChild(actRow('i-plus', `加入「${p.name}」`, () => {
+      if (p.tracks.includes(s.id)) { toast('已经在这份歌单里了'); return; }
+      p.tracks.push(s.id);
+      closeLayer($('#moreSheet'));
+      if (!$('#page-mine').hidden) renderMinePage();
+      if (!$('#page-playlist').hidden) renderPlaylistPage();
+      toast(`已加入「${p.name}」`);   /* 两句反馈都不带计数：真实侧计数在异步写库之后才更新，按下瞬间报出的数不可信 */
+    })));
+  } else {
+    list.appendChild(el('div', 'q-note', MORE_TXT.addEmpty));
+  }
   openLayer($('#moreSheet'));
 }
 

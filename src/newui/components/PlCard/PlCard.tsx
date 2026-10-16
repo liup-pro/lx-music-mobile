@@ -19,6 +19,11 @@ export interface PlCardProps {
   meta?: string
   /** 元信息前小圆点颜色（平台 tint）；不传则不渲染圆点 */
   tint?: string
+  /**
+   * 封面播放角标（.play-badge），默认 true（原型 plCard / plCardCollected 都带）。
+   * 自建歌单卡不带（原型 plCardMine app.js L1276：内置版式封面上不叠角标）。
+   */
+  badge?: boolean
   onPress?: () => void
 }
 
@@ -26,7 +31,7 @@ export interface PlCardProps {
  * 歌单卡（对应原型 .pl-card，styles.css L232-239）：封面 + 播放角标 + 两行标题 + 元信息。
  * 纯展示组件，摆位由 CardGrid 负责；「推荐歌单 / 我的歌单 / 榜单卡池」共用。
  */
-export const PlCard = memo(({ width, title, artSeed, artUri, meta, tint, onPress }: PlCardProps) => {
+export const PlCard = memo(({ width, title, artSeed, artUri, meta, tint, badge = true, onPress }: PlCardProps) => {
   const theme = useTheme()
   return (
     <Pressable
@@ -34,7 +39,7 @@ export const PlCard = memo(({ width, title, artSeed, artUri, meta, tint, onPress
       style={({ pressed }) => [styles.root, { width }, pressed && styles.pressed]}
     >
       <Art width={width} height={width} radius={RADIUS.s} seed={artSeed} imageUri={artUri} scrim>
-        <PlayBadge />
+        {badge ? <PlayBadge /> : null}
       </Art>
       <Text
         numberOfLines={PL_CARD.titleLines}
