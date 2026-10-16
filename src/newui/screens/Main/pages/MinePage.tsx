@@ -88,7 +88,10 @@ export const MinePage = ({ componentId, onOpenNameSheet, onOpenMore, onOpenCreat
   const loveSongs = useLoveSongs()
   const recentPlays = useRecentPlays()
   const myLists = useMyPlaylists()
-  // 走查现象 4：平台导入的歌单按坐标取真封面；纯自建与存榜条目取不到图，如实退回种子渐变底
+  // 走查现象 4（2026-10-27 复发修复）：收藏来的那份按平台坐标现查真封面。
+  // 本地库里没存封面字段（types/list.d.ts:3-11），唯一真图源是平台明细接口的 info.img，
+  // 取图走 hooks/useMyPlaylistCovers（限速 + 失败可重试 + 成功即入模块缓存）；
+  // 纯自建与「存整榜」那份本就无图可取，如实退回内置版式。
   const listCovers = useMyPlaylistCovers(myLists)
   const nowPlaying = useNowPlaying()
   const assertApiSupport = useApiSupport()

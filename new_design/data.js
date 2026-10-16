@@ -30,20 +30,26 @@ const PLAY_QUALITY_CHOICES = ['flac24bit', 'flac', '320k', '128k'];
 /* 所选档音源没有时，核心沿这条链往下探（core/music/utils.ts 的 TRY_QUALITYS_LIST），探不到落 128k */
 const TRY_QUALITYS = ['flac24bit', 'flac', '320k'];
 
-/* 已安装音源（LX Music 允许多脚本并存、单选生效）。野花为解码得到的真实能力，其余为原型占位 */
+/* 已安装音源（LX Music 允许多脚本并存、单选生效，真实侧最多同时留 20 份）。野花为解码得到的真实能力，其余为原型占位。
+ * 这一份名单是「导入到这台设备上的先后顺序」，状态故意打乱：面板会把它重排成「已就绪的在顶部」，
+ * 名单一长又能看出第二件事 —— 多余的整块折起来。所以这里既要够长（越过折叠阈值），也得留着不 ready 的那几份 */
 const SCRIPTS = [
   { key: 'yehua', name: '野花', version: '1.0.0', platforms: ['tx', 'wy', 'kw', 'kg', 'mg'], qualities: ['128k'], state: 'ready' },
-  { key: 'luoge', name: '落歌', version: '2.3.1', platforms: ['tx', 'wy', 'kw'], qualities: ['128k', '320k', 'flac'], state: 'ready' },
-  { key: 'full', name: '全家桶脚本', version: '1.4.0', platforms: ['tx', 'wy', 'kw', 'kg'], qualities: ['128k', '320k', 'flac', 'flac24bit'], state: 'ready' },
   { key: 'selfbuild', name: '自建脚本', version: '0.9.0', platforms: ['wy'], qualities: ['128k'], state: 'uninit' },
+  { key: 'luoge', name: '落歌', version: '2.3.1', platforms: ['tx', 'wy', 'kw'], qualities: ['128k', '320k', 'flac'], state: 'ready' },
+  { key: 'oldpack', name: '旧合集脚本', version: '0.7.2', platforms: ['tx', 'kw'], qualities: ['128k'], state: 'failed' },
+  { key: 'full', name: '全家桶脚本', version: '1.4.0', platforms: ['tx', 'wy', 'kw', 'kg'], qualities: ['128k', '320k', 'flac', 'flac24bit'], state: 'ready' },
+  { key: 'quick', name: '轻快脚本', version: '1.1.0', platforms: ['wy', 'mg'], qualities: ['128k'], state: 'initing' },
+  { key: 'beta', name: '测试脚本', version: '0.3.0-beta', platforms: ['tx'], qualities: ['128k', '320k'], state: 'uninit' },
 ];
 
-/* .or-state 四档：生效中的读真实加载状态，没生效的中性显示「未启用」 */
+/* .or-state 四档：生效中的读真实加载状态，没生效的中性显示「未启用」。
+ * rank 是列表排序用的「离能用还有多远」：就绪 → 初始化中 → 没就绪 → 未启用（同档保持导入先后） */
 const SCRIPT_STATE = {
-  ready: { label: '已就绪', tone: 'var(--ok)' },
-  initing: { label: '初始化中', tone: 'var(--brand-3)' },
-  failed: { label: '没就绪', tone: '#FF8B7E' },
-  uninit: { label: '未启用', tone: 'var(--text-3)' },
+  ready: { label: '已就绪', tone: 'var(--ok)', rank: 0 },
+  initing: { label: '初始化中', tone: 'var(--brand-3)', rank: 1 },
+  failed: { label: '没就绪', tone: '#FF8B7E', rank: 2 },
+  uninit: { label: '未启用', tone: 'var(--text-3)', rank: 3 },
 };
 
 const PALETTES = [
@@ -148,7 +154,8 @@ const RANK_CHARTS = Object.keys(SOURCES).flatMap((p) =>
 
 /* 歌单分类目录。真实侧来自 getTags(source).tags —— 各平台的分组名和条目都不一样，
  * 所以这里按平台各写一份（组名与标签取自各家 App 的实际分组，内容为示意）。
- * chip 行只放「全部 + 该平台热门」，全量收进「全部分类」浮层（#plTagsSheet） */
+ * chip 行只放「推荐 + 该平台热门」，全量收进「全部分类」浮层（#plTagsSheet）——
+ * 首位那颗「推荐」不在这份目录里：它不是平台给的一个分类词，而是「不挑分类、看整池」的那个默认入口 */
 const PL_TAG_GROUPS = {
   kw: [['语种', ['华语', '欧美', '日语', '韩语', '粤语']],
     ['风格', ['流行', '摇滚', '电子', '民谣', '说唱', '古风']],

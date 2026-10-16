@@ -114,6 +114,16 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.control,
     overflow: 'hidden',
   },
+  /**
+   * `.chip` 自身字号 12.5（FONT_SIZE.smallLg）。
+   * **原型 `.chip{line-height:1}`（styles.css L147-157 / 件 parts/_base.css「.chip」原子）在 RN 侧不能直译**：
+   * Android 上给一档与字号**等值**的 `lineHeight`，行盒比 CJK 粗体字形实际需要的还矮，字形会被行盒削掉，
+   * 再叠加 `root` 的固定高（CONTROL.chipHeight=28）+ `overflow:'hidden'`，就是 2026-10-21 实机截图那条
+   * 「分类标签胶囊里的中文只显示上半截」——那行 `lineHeight` 多余且有害，已撤。
+   * 垂直居中没有别的机关，全靠盒模型交叉轴对齐：`root` 的 `alignItems/justifyContent:'center'`，
+   * 以及 `ChipRow.contentCat` 的 `alignItems:'center'`（对应原型 `.cat-row{align-items:center}`）。
+   * 不用 translate / 负 margin / paddingVertical 位移凑数（原型设计说明口径同样如此）。
+   */
   label: {
     fontSize: FONT_SIZE.smallLg,
     letterSpacing: LETTER_SPACING.tight,

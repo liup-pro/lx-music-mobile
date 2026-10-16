@@ -14,6 +14,7 @@ import {
   FONT_WEIGHT,
   GRADIENTS,
   OPTION_ROW,
+  OR_DEL,
   useTheme,
 } from '@/newui/theme'
 
@@ -46,6 +47,15 @@ export interface OptionRowProps {
    * 「从本歌单移出」这类破坏性动作与「加入」那批一眼分开。仅在传 icon 时有意义。
    */
   warn?: boolean
+  /**
+   * 行尾移除钮 `.or-del`（styles.css L771-774，件 parts/common-control/opt-list.css L43-48；
+   * 原型 scriptRow L2383-2386 那棵垃圾桶）：传入即在行尾挂一枚 28×28 圆角钮，
+   * 按下只触发它自己（RN 里内层 Pressable 抢到 responder，行本体的 onPress 不会连带走——
+   * 与原型 `e.stopPropagation()` 同一件事）。不传保持原样，既有调用方零影响。
+   */
+  onRemove?: () => void
+  /** 移除钮的无障碍名（原型 `aria-label="移除音源 ${name}"`，件 opt-list.html 同句；文案由容器给） */
+  removeAriaLabel?: string
   onPress?: () => void
   style?: StyleProp<ViewStyle>
 }
@@ -90,6 +100,8 @@ export const OptionRow = memo(
     dimmed = false,
     icon,
     warn = false,
+    onRemove,
+    removeAriaLabel,
     onPress,
     style,
   }: OptionRowProps) => {
@@ -164,6 +176,29 @@ export const OptionRow = memo(
             <View style={[styles.stateDot, { backgroundColor: tone }]} />
             <Text style={[styles.stateText, { color: tone }]}>{stateLabel}</Text>
           </View>
+        ) : null}
+        {onRemove ? (
+          /* .or-del：常态 text-3 墨色，按下才转 dangerInk（件 opt-list.css L43-48，
+             原型 :active{color:var(--danger-ink)} —— 不做常驻红钮，删除这件事只在按下的那一刻显形） */
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={removeAriaLabel}
+            onPress={onRemove}
+            hitSlop={OR_DEL.hitSlop}
+            style={({ pressed }) => [
+              styles.del,
+              { backgroundColor: theme.colors.fill2, borderColor: theme.colors.hairline },
+              pressed && styles.delPressed,
+            ]}
+          >
+            {({ pressed }) => (
+              <Icon
+                name="trash"
+                size={OR_DEL.iconSize}
+                color={pressed ? theme.colors.dangerInk : theme.colors.text3}
+              />
+            )}
+          </Pressable>
         ) : null}
       </Pressable>
     )
@@ -248,5 +283,19 @@ const styles = StyleSheet.create({
   stateText: {
     fontSize: FONT_SIZE.tiny,
     fontWeight: FONT_WEIGHT.extraBold,
+  },
+  /** .or-del：28×28 圆角 9 居中，底色 fill-2 + 1px hairline 描边（CSS inset 转真实 border） */
+  del: {
+    width: OR_DEL.size,
+    height: OR_DEL.size,
+    borderRadius: OR_DEL.radius,
+    borderWidth: 1,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  /** .or-del:active scale(.9)（墨色转 dangerInk 在 Icon 上做） */
+  delPressed: {
+    transform: [{ scale: OR_DEL.pressScale }],
   },
 })

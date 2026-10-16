@@ -33,7 +33,7 @@ import {
   plPoolCountLabel,
 } from '@/newui/const'
 import {
-  NEW_UI_PLAYLIST_ALL_TAG,
+  NEW_UI_PLAYLIST_REC_TAG,
   selectPlaylistTag,
   useGridItemWidth,
   useMyPlaylistCovers,
@@ -97,16 +97,17 @@ export const PlaylistPage = ({
 }: NewUiPageProps) => {
   const cats = usePlaylistCategories()
   // 选中分类走共享模块（chip 行与「全部分类」浮层都可写）：切 Tab 页面重挂载后也从这里取回当前选择；
-  // 切平台时该共享模块自行把选择复位回「全部」（各平台分类目录互不相通，见 hooks/playlistTagSelection）
+  // 切平台时该共享模块自行把选择复位回首位「推荐」（各平台分类目录互不相通，见 hooks/playlistTagSelection）
   const selection = usePlaylistTagSelection()
   const pool = usePlaylistPool(cats.source, selection.key, cats.sortId)
   const myLists = useMyPlaylists()
   // 2026-10-15 收口：「我的歌单」横排接补图 hook（与「我的」页 PlCard 同一口径，见 useMyPlaylistCovers）——
-  // 平台导入的歌单按 source+sourceListId 走 core/songlist 取真封面；纯自建 / 存榜条目本就无图，如实留种子占位
+  // 平台收藏的单子按 source+sourceListId 现查真封面（本机库不存封面字段）；
+  // 纯自建 / 存榜条目本就无图，如实留内置版式
   const listCovers = useMyPlaylistCovers(myLists)
   const cardWidth = useGridItemWidth()
 
-  // chip 行 = 「全部」+ 平台热门 + 行尾「全部分类」入口（trailing，另行接线）；
+  // chip 行 = 首位「推荐」+ 平台热门 + 行尾「全部分类」入口（trailing，另行接线）；
   // 装配逻辑已抽共通 hook（QA D-06：原位与主屏吸顶层两处同一口径，见 hooks/playlistChipItems）
   const chipItems = usePlaylistChipItems(cats.items, selection)
 
@@ -120,9 +121,9 @@ export const PlaylistPage = ({
   // 重取在途时由 hook 内部拦住（busyRef），旧经 usePageEndReached 总线时的那道闸不变
   // ——本页不再注册总线监听（总线仍服务于走主屏 PageViewport 的其余三页：排行榜 / 我的 / 设定）
 
-  // 原型 #plPoolTitle：全部 → 「推荐歌单」；选中分类 → 「{分类} · 歌单」
+  // 原型 #plPoolTitle（app.js L764）：选中首位「推荐」→ 「推荐歌单」（整池原样）；选中分类 → 「{分类} · 歌单」
   const poolTitle = useMemo(() => {
-    if (selection.key === NEW_UI_PLAYLIST_ALL_TAG) return NEW_UI_PLAYLIST_TITLES.pool
+    if (selection.key === NEW_UI_PLAYLIST_REC_TAG) return NEW_UI_PLAYLIST_TITLES.pool
     return `${selection.label} · 歌单`
   }, [selection])
 
@@ -214,7 +215,7 @@ export const PlaylistPage = ({
         after={<PillButton icon="link" onPress={onOpenPlIdSheet} />}
       />
 
-      {/* 原型 #catRow：分类 chips = 全部 + 当前平台热门（hotTag）+ 行尾「全部分类」入口；
+      {/* 原型 #catRow：分类 chips = 首位「推荐」+ 当前平台热门（hotTag）+ 行尾「全部分类」入口；
           全量目录来自 getTags().tags，由末尾入口开 PlTagsSheet 浮层逐组选择。
           QA 2026-10-14 D-06：外层 View 把本条在滚动内容里的纵坐标上报主屏（onCatLayoutY），
           分类条越过顶栏下沿时主屏根层 CatStickerBar 接手显示（原型 .cat-row sticky 的等价物）。

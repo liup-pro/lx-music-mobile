@@ -11,7 +11,7 @@ import {
   PLATFORM_SOURCE_KEYS,
   getPlatformMeta,
 } from '@/newui/const'
-import { NEW_UI_PLAYLIST_ALL_TAG, usePlaylistCategories, usePlaylistPool } from '@/newui/hooks'
+import { NEW_UI_PLAYLIST_REC_TAG, usePlaylistCategories, usePlaylistPool } from '@/newui/hooks'
 import { FONT_SIZE, OP_BOX, OPTION_ROW, useTheme } from '@/newui/theme'
 import { looksLikeLink, resolvePlIdSource, showNewUiToast } from '@/newui/utils'
 
@@ -39,7 +39,7 @@ const SAMPLE_LIMIT = 4
  * - **裸 ID 必须显式选平台**：新 UI 没有全局「当前平台」状态可猜（搜索页自带来源 tab），
  *   未选就点「打开」走 .op-err 如实报错，禁止默认猜平台、不造「自动识别」假能力；
  * - 样本 chips 用真实数据源 = 本页「推荐歌单」池（与 PlaylistPage 同一 usePlaylistCategories +
- *   usePlaylistPool 默认「全部」分类，core/songlist.getList 内部按页缓存，同参重开秒回不重复请求）；
+ *   usePlaylistPool 首位「推荐」分类（= 不传分类的整池），core/songlist.getList 内部按页缓存，同参重开秒回不重复请求）；
  *   池子为空（还在加载 / 取数失败）时整组连同 .group-label 隐藏，不留空组、不写死示例 id；
  * - 打开动作 = 关浮层 → pushNewUiSonglistDetail（**不在本层预取详情再传**，info 只带真实拿得到的
  *   坐标，name 留空走详情屏自己的头部兜底，取不到由详情屏 NEW_UI_PLD_EMPTY.error 空态承担）；
@@ -73,7 +73,7 @@ const PlIdSheetBody = ({ componentId, onClose }: Pick<PlIdSheetProps, 'component
 
   // 样本 chips：歌单页同款真实推荐池（见头部注释；随子件挂载才取数，走 core 缓存）
   const cats = usePlaylistCategories()
-  const pool = usePlaylistPool(cats.source, NEW_UI_PLAYLIST_ALL_TAG, cats.sortId)
+  const pool = usePlaylistPool(cats.source, NEW_UI_PLAYLIST_REC_TAG, cats.sortId)
 
   // 原型 tryOpenByPid L525-526：关浮层 → 开详情层；toast 如实（不含数量，见 const 注释）
   const openTarget = useCallback((source: LX.OnlineSource, listId: string) => {

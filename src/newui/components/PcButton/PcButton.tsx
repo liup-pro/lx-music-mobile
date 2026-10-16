@@ -166,12 +166,14 @@ const styles = StyleSheet.create({
   toolIcon: {
     marginTop: 'auto',
   },
-  /** .pc.tool em：9.5px / 700 / letter-spacing .3 / 行高 1 */
+  /** .pc.tool em：9.5px / 700 / letter-spacing .3。
+   *  原型那句 `line-height:1` **不直译**（与 Chip.tsx 同一颗雷，见其注释）：等值于字号的 `lineHeight`
+   *  在 Android 上把 CJK 字形削半，而 `base` 还带固定高 + `overflow:'hidden'`，削完再被盒边裁一次。
+   *  竖排居中的活由 `base` 的 `alignItems/justifyContent:'center'` 与 `toolIcon` 的 `marginTop:'auto'` 承担。 */
   toolLabel: {
     fontSize: PLAYER.pcToolLabelSize,
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: LETTER_SPACING.normal,
-    lineHeight: PLAYER.pcToolLabelSize,
   },
   fav: {
     width: PLAYER.favSize,

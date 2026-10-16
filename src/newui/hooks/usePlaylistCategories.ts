@@ -2,14 +2,23 @@ import { useEffect, useRef, useState } from 'react'
 
 import { getTags } from '@/core/songlist'
 
+import { NEW_UI_PLAYLIST_TAG_SHEET } from '@/newui/const'
 import type { ChipRowItem } from '@/newui/components'
 
 import { useContentPlatform } from './useContentPlatform'
 
-/** 「全部」chip 的 tagId（对齐旧 UI：歌单目录默认页不传分类） */
-export const NEW_UI_PLAYLIST_ALL_TAG = ''
-/** 「全部」chip 的文案（chip 行与全部分类浮层共用） */
-export const NEW_UI_PLAYLIST_ALL_LABEL = '全部'
+/**
+ * 首位分类 chip 的 tagId：'' 即「不掺口味、看整池」（对齐旧 UI：歌单目录默认页不传分类）。
+ * 原型 app.js 里这颗是 `PL_TAG_REC`（原名 `PL_TAG_ALL`，2026-10 随原型一起改名），RN 侧沿用其语义：
+ * tagId 是实现细节、文案是「推荐」。
+ */
+export const NEW_UI_PLAYLIST_REC_TAG = ''
+/**
+ * 首位分类 chip 的文案（原型 app.js L658 常量 `PL_TAG_REC = '推荐'` 原名 `PL_TAG_ALL`／「全部」）。
+ * 唯一来源收在 const/playlist.ts 的浮层文案表里，chip 行、选中态复位、「全部分类」浮层三处共用同一个字符串，
+ * 避免两处各写一份「推荐」而漏改其中一处。
+ */
+export const NEW_UI_PLAYLIST_REC_LABEL = NEW_UI_PLAYLIST_TAG_SHEET.rec
 /** hotTag 为空时，从全量目录扁平化兜底取前若干条进 chip 行 */
 const HOT_FALLBACK_LIMIT = 12
 
@@ -25,7 +34,7 @@ export interface PlaylistCategoriesState {
   source: LX.OnlineSource | null
   /** 该平台的默认排序 id（取池子时用，与旧设置一致） */
   sortId: string
-  /** chip 行分类：首位「全部」+ 平台热门（hotTag 空时从全量目录兜底） */
+  /** chip 行分类：首位「推荐」+ 平台热门（hotTag 空时从全量目录兜底） */
   items: ChipRowItem[]
   /** 该平台全量分类目录（分组），供「全部分类」浮层逐组渲染 */
   groups: PlaylistTagGroup[]
@@ -38,10 +47,10 @@ export interface PlaylistCategoriesState {
  * 歌单页分类条（原型 #catRow / .cat-row）+ 全量分类目录（供 #plTagsSheet 新浮层）。
  * 数据复用既有 `@/core/songlist` 的 getTags（内部自带 store 缓存），不另造目录层：
  * - 平台跟随 useContentPlatform（音源浮层「音乐平台」组是唯一写入口），切平台经脉冲自动重取；
- * - chip 行 = 「全部」+ tagInfo.hotTag（平台热门）；hotTag 为空时取 tags 扁平前 12 条兜底，
- *   避免只剩一枚「全部」；
+ * - chip 行 = 「推荐」+ tagInfo.hotTag（平台热门）；hotTag 为空时取 tags 扁平前 12 条兜底，
+ *   避免只剩一枚「推荐」；
  * - groups = tagInfo.tags 逐组映射（各平台组名与条目天然不同，平台差异由 getTags(source) 保证）。
- * 取不到分类目录的平台走 error 口径如实降级（歌单页表现为「只剩不出分类条」，池子照常按平台取全部）。
+ * 取不到分类目录的平台走 error 口径如实降级（歌单页表现为「只剩不出分类条」，池子照常按平台整池取）。
  */
 export const usePlaylistCategories = (): PlaylistCategoriesState => {
   const platform = useContentPlatform()
@@ -95,7 +104,7 @@ export const usePlaylistCategories = (): PlaylistCategoriesState => {
         if (__DEV__) {
           console.log(`[newui] playlist tags · ${platform.source}: ${nextGroups.length} 组 / ${totalTags} 个标签`)
         }
-        setItems([{ key: NEW_UI_PLAYLIST_ALL_TAG, label: NEW_UI_PLAYLIST_ALL_LABEL }, ...hotItems])
+        setItems([{ key: NEW_UI_PLAYLIST_REC_TAG, label: NEW_UI_PLAYLIST_REC_LABEL }, ...hotItems])
         setGroups(nextGroups)
         setLoading(false)
       })

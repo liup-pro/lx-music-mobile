@@ -1,3 +1,5 @@
+import { USER_API_SOURCE_FILE_EXT_RXP } from '@/config/constant'
+
 import { QUALITY_LABEL } from './quality'
 
 /**
@@ -33,6 +35,45 @@ export const PLAY_QUALITY_CHOICES = [
 /** 版本号小字（照抄旧 UserApiEditModal/List.tsx L17-19：数字开头才补 v，避免「vbeta」） */
 export const formatApiVersion = (version: string): string =>
   /^\d/.test(version) ? `v${version}` : version
+
+/**
+ * 音源一份的四种可见状态（原型 data.js L48-52 的 SCRIPT_STATE，逐字对应屏上那三个标签）。
+ * rank = 「离能用还有多远」，就绪置顶排序只认这个档位。
+ */
+export type NewUiSourceStateKey = 'ready' | 'initing' | 'failed' | 'uninit'
+
+/**
+ * .or-state 档位序（原型 data.js：已就绪 0 → 初始化中 1 → 没就绪 2 → 未启用 3）。
+ * 真实侧的判定见 SourceSheet 头注释：只有当前生效那一份能判档，其余恒按未启用（方案 A 的降级点）。
+ */
+export const NEW_UI_SOURCE_STATE_RANK: Record<NewUiSourceStateKey, number> = {
+  ready: 0,
+  initing: 1,
+  failed: 2,
+  uninit: 3,
+}
+
+/**
+ * 折叠阈值（原型 SCRIPT_FOLD_LIMIT，app.js L2260）：4 条及以内不折，超过 4 条默认折。
+ * 两头都是真实情况——切音源是这屏的第一件事，量少还让人多戳一下是找活干；
+ * 而份数顶到硬上限时全展开会把「音乐平台 / 音质 / 导入」整块挤出首屏。
+ * ⚠️ 折叠态是这一屏的排版、不是用户配置，按件内口径**不写本机存储**（原型 app.js L2258-2259 明写）。
+ */
+export const NEW_UI_SOURCE_FOLD_LIMIT = 4
+
+/**
+ * 份数硬闸（原型 SCRIPT_MAX，app.js L2262）：与真实侧既有 i18n `user_api_max_tip`
+ * （src/lang/zh-cn.json L490「最多只能同时存在 20 个源哦」）同一个上限；
+ * 旧导入入口那条判例见 UserApiEditModal/ImportBtn.tsx L34。屏内说人话，见 NEW_UI_SHEET_SOURCE.importErrMax。
+ */
+export const NEW_UI_SOURCE_MAX = 20
+
+/**
+ * 本机导入可选的脚本类型（只读引用既有常量 src/config/constant.ts L113
+ * USER_API_SOURCE_FILE_EXT_RXP = ['js']，与旧 ScriptImportExport 同口径）。
+ * 这个数组只进选择器的过滤参数，屏内不出现扩展名。
+ */
+export const NEW_UI_SOURCE_FILE_EXTS = USER_API_SOURCE_FILE_EXT_RXP
 
 /**
  * 切源后等新音源「能力表」落定的等待上限（QA D49）。
@@ -110,8 +151,52 @@ export const NEW_UI_SHEET_SOURCE = {
     `你之前选的${QUALITY_LABEL[q]}这档现在的音源没有，听歌时会自动按${QUALITY_LABEL[fallback]}播，不用重选`,
   /** 没选出任何档位（未接源 / 脚本没声明）时的说明 */
   qualityEmptyHint: '选好或导入音源后，这里会列出它真正支持的档位。',
-  /** 一条都没装时的引导（本项目内置音源表为空，导入是唯一起点） */
-  scriptsEmptyHint: '还没有安装音源 · 贴一个脚本链接导入，就能开始听。',
+  /** 一条都没装时的引导（原型 renderSheet L2278 的 .empty-tip 逐字 —— 本轮起屏上确实有两条导入路） */
+  scriptsEmptyHint: '一个音源都没有 · 用下面的两种方式导入一份',
+  /* ---- 已安装音源列表折叠（原型 #scriptFold / .fold-more，app.js L2275-2287） ---- */
+  /** 折着时开关上的字（原型 #scriptFoldLabel：`展开全部 ${rows.length} 个`） */
+  foldExpandAll: (n: number): string => `展开全部 ${n} 个`,
+  /** 摊开时开关上的字（原型 #scriptFoldLabel 另一态：'收起列表'） */
+  foldCollapse: '收起列表',
+  /** 列表尾行（原型 app.js L2285 逐字；「其中 M 个已就绪」那半句只在 M>0 时才跟，同原型三元） */
+  foldMore: (hidden: number, ready: number): string =>
+    `还有 ${hidden} 个音源没显示 · 点这里看全${ready > 0 ? `（其中 ${ready} 个已就绪）` : ''}`,
+  /* ---- 行尾移除（原型 scriptRow 的 .or-del / askRemoveScript L2391 / removeScript L2401） ---- */
+  /** 移除钮无障碍名（原型 scriptRow L2384 `aria-label="移除音源 ${s.name}"`，不上屏） */
+  removeAria: (name: string): string => `移除音源 ${name}`,
+  /** 二次确认标题（原型 askRemoveScript 的 title 逐字，载体是共通件 #confirmSheet） */
+  removeTitle: (name: string): string => `要移除「${name}」吗`,
+  /** 确认正文（原型 askRemoveScript 的 body 逐字：先说清这份脚本从设备上消失） */
+  removeBody: '移除后这台设备上就没有这份音源了 · 已经听过的歌曲不受影响，之后要再用得重新导入一次。',
+  /** 删的正是当前生效那一份时补的半句（原型同段 body 尾句逐字，容器按情况拼接） */
+  removeBodyActive: '它正是现在生效的那一份，移除后会自动接着用列表里第一份已就绪的音源。',
+  /** 确认右键（原型 askRemoveScript 的 okLabel 逐字） */
+  removeOk: '移除音源',
+  /** 移除成功 toast 主句（原型 removeScript L2405） */
+  removed: (name: string): string => `已移除「${name}」`,
+  /** 删的是生效那份、已经落到下一位（原型 removeScript L2412 逐字，接在「已移除「X」」之后） */
+  removedSwitched: (name: string): string => ` · 已自动切到「${name}」`,
+  /** 删完不剩（原型 removeScript L2412 另一支逐字） */
+  removedEmpty: ' · 这台设备上暂时没有音源了',
+  /* ---- 本机导入（原型 .op-file / #importFile / #importHint / .sc-hint，index.html L410-415） ---- */
+  /** 次级整宽钮闲时文案（原型 #importFileLabel 逐字） */
+  importFile: '从本机选择一份音源文件',
+  /** 同一枚钮的进行中文案（原型 renderImportRow L2429 逐字） */
+  importFileBusy: '正在读取…',
+  /** 进行中回显那一句（原型 #importHint 逐字，件 sheets/source-sheet.html L32） */
+  importHint: '正在读刚进来的那一份 · 读通了就会出现在上面列表的顶上。',
+  /** 常驻说明（原型 .sc-hint 逐字，件 sheets/source-sheet.html L33）：两条路的差别 + 就绪的时机 */
+  importHintTwoPaths: '在线导入要设备联网把脚本取回来，本机导入直接读设备上已有的文件 · 两种都要等它初始化完才标「已就绪」。',
+  /** 份数闸（原型 importGate L2443 逐字，上限数字同真实侧既有 i18n user_api_max_tip） */
+  importErrMax: (max: number): string => `这台设备上最多同时留 ${max} 份音源 · 先移除一些再导入`,
+  /** 挑错了东西（原型 handleImportFile L2484 逐字，不报扩展名、不报路径） */
+  importErrBadFile: '这份文件读不出音源 · 请选一个音源文件',
+  /**
+   * 系统选取器这一步失败（口径同真实侧既有 i18n storage_file_no_select_file_failed_tip
+   * 「使用系统文件选择器选择文件失败」；那句后面还挂着「是否回退到内置文件选择器」的问话，
+   * 本轮定的方案 A 只有 SAF 一条路、没有回退，所以那半句不写进屏内）。
+   */
+  importErrNoPicker: '没能打开选文件的那一步 · 可以再试一次',
   /* ---- 导入行（.op-box 同款控件，index.html L396-399；语义按旧 ScriptImportOnline） ---- */
   importPlaceholder: '音源脚本链接',
   importGo: '导入',

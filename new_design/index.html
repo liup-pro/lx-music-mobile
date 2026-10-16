@@ -394,7 +394,10 @@
           <div class="sheet-handle"></div>
           <h3 class="sheet-title">音源设置</h3>
           <div class="sheet-sub" id="sheetSub"></div>
-          <div class="group-label">已安装音源</div>
+          <div class="group-label fold" id="scriptGroup">
+            <span>已安装音源</span>
+            <button class="fold-toggle" id="scriptFold" hidden><span id="scriptFoldLabel">展开</span><svg class="ic"><use href="#i-chevron"/></svg></button>
+          </div>
           <div class="opt-list" id="scriptList"></div>
           <div class="group-label">音乐平台</div>
           <div class="opt-list" id="platformList"></div>
@@ -405,7 +408,11 @@
             <input class="op-input" id="importInput" placeholder="音源脚本链接" autocomplete="off" spellcheck="false">
             <button class="op-go" id="importGo">导入</button>
           </div>
+          <label class="op-file" for="importFile"><svg class="ic"><use href="#i-plus"/></svg><span id="importFileLabel">从本机选择一份音源文件</span></label>
+          <input type="file" id="importFile" accept=".js" hidden>
           <div class="op-err" id="importErr" hidden></div>
+          <p class="q-note" id="importHint" hidden>正在读刚进来的那一份 · 读通了就会出现在上面列表的顶上。</p>
+          <p class="sc-hint">在线导入要设备联网把脚本取回来，本机导入直接读设备上已有的文件 · 两种都要等它初始化完才标「已就绪」。</p>
         </div>
       </div>
 
@@ -530,7 +537,7 @@
         <tr><td>各平台 ID 取值不同（kg 用 <code>hash</code>，mg 用 <code>songmid+'d'</code>）</td><td>不暴露给用户。取哪个字段、拼什么串是脚本的事，界面上只留「这个来源能不能播」</td></tr>
         <tr><td>没有 <code>getPlaylistUrls</code>，歌单号不能直接换成内容</td><td>页头「打开歌单」收的是用户自己从平台分享出来的那串号，只当「去哪份歌单」的坐标；打开之后仍然逐首判能不能播</td></tr>
         <tr><td><code>s = "xx|128k&..."</code> 全平台仅 128k</td><td>音质选择器只在音源声明多档时才出现可选项，野花下只读 + 一句说明；不做假 HQ 开关</td></tr>
-        <tr><td>脚本可多份共存、单选生效（LX 音源模型）</td><td>面板顶部「已安装音源」列表，切换后平台覆盖范围、音质档位与三个 Tab 的「可播」数字同时刷新</td></tr>
+        <tr><td>脚本可多份共存、单选生效（LX 音源模型），真实侧最多同时留 20 份</td><td>面板顶部「已安装音源」列表，切换后平台覆盖范围、音质档位与三个 Tab 的「可播」数字同时刷新；每条右侧可直接移除（过二次确认），条数一多整块折叠、已就绪的钉在顶部，导入分「在线」与「本机文件」两条路</td></tr>
         <tr><td>初始化拉取 <code>/urlinfo/</code> 返回 <code>u</code>、<code>h</code></td><td>只保留右上状态灯；「检查更新」撤掉——不连真实接口的更新按钮是假按钮，设定页里也不放</td></tr>
         <tr><td>请求带 md5 签名、跨域受限</td><td>原型不真连接口；签名与取址模板完全不出现在界面上</td></tr>
       </table>
@@ -599,6 +606,17 @@
         <li>任意歌曲行 → 迷你播放条（喜欢 / 播停 / 下一曲三颗）→ 点开播放页</li>
       </ul>
 
+      <h2>音源设置浮层</h2>
+      <p class="notes-body">入口是顶栏那颗波纹图标（Pad 上是侧栏底部那一行）。面板原本只干三件事：切音源、切内容平台、切音质；这一轮补上的是<em>管音源</em>本身 —— 移除、本机导入、过长折叠、就绪置顶。这几样真实侧都已经有：旧 UI 的自定义源管理（<code>src/screens/Home/Views/Setting/settings/Basic/UserApiEditModal/</code>）里 <code>List.tsx</code> 每行右侧就有一颗移除钮、<code>ImportBtn.tsx</code> 分「本地导入 / 在线导入」两条、份数顶到 20 先弹一句提示。原型只是把它们搬进新 UI 的浮层里，不新造能力，也不复用旧 UI 的组件与主题。</p>
+      <ul class="notes-list">
+        <li><b>移除</b>：每条已安装音源行尾一颗垃圾桶（<code>.or-del</code>，只在这份列表里出现），按下必过 <code>#confirmSheet</code> 那道二次确认 —— 与删歌单、清缓存共用同一个 <code>askConfirm()</code>，不另起一套确认交互。确认正文如实说清「移除后这台设备上就没有这份音源了 · 之后要再用得重新导入一次」；移除的又正是当前生效的那一份时，同一句里补上「会自动接着用列表里第一份已就绪的音源」，落地在 <code>removeScript()</code>（真实侧同样是移除后回落到一个还能用的源）。名单被删空时给一句「一个音源都没有 · 用下面的两种方式导入一份」，同时 <code>script()</code> 退化成一份「谁都没接入」的空脚本 —— 屏面上不许出现读不出来的空白，也不许整屏报错</li>
+        <li><b>两条导入路</b>：在线那条沿用原来的「贴地址 + 导入」，新加的一条是「从本机选择一份音源文件」（<code>.op-file</code> 那枚次级控件包着一个隐藏的 file input；RN 侧对应 <code>ChoosePath</code> + <code>readFile</code>，按扩展名过滤，与 <code>USER_API_SOURCE_FILE_EXT_RXP</code> 同口径）。两条路共用同一个收尾 <code>receiveScript()</code>：先进列表并标「初始化中」，一拍之后解码出平台与档位才转「已就绪」——真实侧 <code>store/userApi</code> 的 status 就是这一前一后两个状态，所以屏上也该把「导入了」与「能用了」分成两件事说，不让一份还没跑通的脚本冒充「已就绪」。屏内不出现扩展名、路径、字段名，这些都留在本文档</li>
+        <li><b>折叠的默认态</b>：4 条及以内<em>不折</em>，超过 4 条<em>默认折</em>（<code>SCRIPT_FOLD_LIMIT</code>）。两头都是真实的情况：切音源是这个面板的第一件事，量少还让人多戳一下是给自己找活；可真实侧最多同时留 20 份，全展开会把「音乐平台 / 音质 / 导入」整块挤出首屏，而导入这件事恰好压在面板最底下。收起态仍然把<em>正在生效的那一份留在屏上</em>——「现在用的是谁」是最要紧的信息，不能跟着一起藏。末尾那一行「还有 N 个音源没显示 · 点这里看全（其中 M 个已就绪）」本身可点，与标题行右侧那颗开关（<code>.fold-toggle</code>，箭头靠 <code>rotate(90deg)↔rotate(270deg)</code> 分收合）做的是同一件事，两条入口都通向展开。开关只有条数越过阈值、或用户亲手折过才露面，不给一屏一颗永远用不上的钮；折叠态<em>不写本机存储</em>——它是这一屏的排版，不是用户配置，面板里持久化的仍然只有音源 / 内容平台 / 音质那三项</li>
+        <li><b>就绪置顶</b>：<code>sortedScripts()</code> 按 <code>SCRIPT_STATE.rank</code> 排：已就绪 → 初始化中 → 没就绪 → 未启用，口径是「离能用还有多远」；同一档内保持导入的先后（<code>Array.prototype.sort</code> 稳定）。<code>data.js</code> 里那份名单按<em>导入顺序</em>写、状态打乱（7 份：3 就绪 / 1 初始化中 / 1 没就绪 / 2 未启用），排序结果与折叠默认态在同一屏里就看得见。刚导入的那一份转正时会顺手把折叠摊开 —— 否则 toast 说「点击该行即可切换」而屏上根本没有那行</li>
+        <li><b>20 份这道闸</b>两条路一起拦（<code>importGate()</code>），屏内一句人话「这台设备上最多同时留 20 份音源 · 先移除一些再导入」；真实侧是在导入入口点下去之前弹一句提示，原型把它落在既有的错误行（<code>.op-err</code>）里，不另加一层弹窗</li>
+        <li>顺带接上一根断线：在线导入那颗「导入」钮此前<em>只有函数没有接线</em>（<code>handleImport()</code> 没人调用），这一轮连同回车一起挂上；本机那条挂 <code>change</code>，读完就把 input 清空，好让同一份文件还能再选一次</li>
+      </ul>
+
       <h2>搜索</h2>
       <p class="notes-body">音源没有 <code>search</code> 事件，所以搜索是「平台曲库」能力，原型里在本地对 mock 曲库做匹配。原来点热词只弹一句占位 toast，现在是一整页：没输入时是历史 + 热搜，<em>回车或点词才发搜索</em>（真实侧一次搜索要同时打单曲和歌单两个接口），中间亮一句「正在搜索…」，结果回来才铺列表。</p>
       <ul class="notes-list">
@@ -616,7 +634,8 @@
       <h2>歌单</h2>
       <p class="notes-body">歌单目录来自平台曲库，音源给不了任何 playlist 事件，所以这一页只做「浏览 + 判断能不能播」：分类 chips 横向滚动、我的歌单前置、推荐池按分类过滤后给出每份歌单的 <code>N/N 首可播</code>，页头留给「按 ID 打开别处分享出来的歌单」。</p>
       <ul class="notes-list">
-        <li>分类首位是「全部」并默认选中：不让用户进场就先替他被预设一种口味。分类目录<em>逐平台不同</em>（真实侧是 <code>getTags(source)</code>），chip 行只放得下「全部 + 该平台热门」，行尾一枚「全部分类」开 <code>#plTagsSheet</code> 看全量分组，取不到时写「这个平台暂时没找到分类」；切平台会把选中的分类退回「全部」，上一家的分类在这一家目录里可能根本不存在</li>
+        <li>分类首位是「<em>推荐</em>」并默认选中。这颗<em>不是</em>「不加过滤」的技术兜底：下面那一池子的标题本来就叫「推荐歌单」，它的内容就是平台推荐目录本身，所以名字与行为对得上——选中「推荐」= 整池原样、不掺口味，其余 chip = 在这池子里挑一类。<code>app.js</code> 里常量随之叫 <code>PL_TAG_REC</code>（原名 <code>PL_TAG_ALL</code>／「全部」，会让人以为还存在「别的分类之外还有一类」）。分类目录<em>逐平台不同</em>（真实侧是 <code>getTags(source)</code>），chip 行只放得下「推荐 + 该平台热门」，行尾一枚「全部分类」开 <code>#plTagsSheet</code> 看全量分组，取不到时写「这个平台暂时没找到分类」；切平台会把选中的分类退回「推荐」，上一家的分类在这一家目录里可能根本不存在。「全部分类」浮层里这颗也一起改口，并单列在「不挑分类」那一行下——它不是目录里的一类，不该混进分组里</li>
+        <li>chips 的<em>交叉轴居中</em>现在写死了：<code>.cat-row</code> 与 <code>.hot-words</code> 都补 <code>align-items:center</code>（原来靠默认 <code>stretch</code>，一旦行里出现不等高的胶囊就变成按顶沿对齐，看着就是「标签没在条里居中」，口径与早已写了 <code>align-items:center</code> 的 <code>.q-chips</code> 对齐），<code>.chip</code> 自己补 <code>line-height:1</code> 与 <code>justify-content:center</code>——归一行高之后，字面不会因 normal 行高多出的半行距在 28px 的胶囊里偏下，行内含两段小字时也不会顶上去；全是盒模型声明，没有用 <code>translate</code>／负 margin 去凑</li>
         <li>分类标签与歌单是多对多（一首歌可挂多个 <code>cats</code>）；分类下确实没有推荐时给空态「这个分类下暂时没有推荐 · 换一个分类试试」，不硬凑内容</li>
         <li>推荐池也是<em>上滑加载更多</em>：一次只铺 10 份（真实侧歌单列表同样是一页一页来），滚到列表底部自动取下一批，载入中一行是转圈 +「正在载入下一批…」；某一批失败时这一行变成「这一批没有载入 · 点击重试」的可点重试，重试即成功。原型里第 3 批故意先失败一次，好让这条真实路径看得见。计数在没取完前写「已列出 N / M 个」，取完收敛成总数并把列表尾收上「没有更多了」——不是原来那种「一屏铺满就没了」的静态 30 条。切平台或换分类会把已铺的批次重置回第一批（<code>renderPlaylistPage</code> 对比 <code>plCat</code> / <code>activeSource</code>）</li>
         <li>chips 吸顶用 <code>top:0</code> 而不是 <code>top:110px</code>——sticky 的参照系是滚动容器的内容盒，而 <code>.viewport</code> 已经有 <code>padding-top</code>，再加偏移就会在顶栏下面留出空隙；<code>padding-top</code> 也从 112 收到 110 与顶栏同高，条内上内边距 3px，实测吸住后胶囊离顶栏下沿只有 3px</li>

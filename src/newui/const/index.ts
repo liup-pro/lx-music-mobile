@@ -28,6 +28,7 @@ export {
 } from './home'
 export {
   NEW_UI_PLAYLIST_ART_SEED,
+  NEW_UI_PLAYLIST_COVER,
   NEW_UI_PLAYLIST_EMPTY,
   NEW_UI_PLAYLIST_FOOT_NOTE,
   NEW_UI_PLAYLIST_MANAGE,
@@ -85,11 +86,16 @@ export {
 } from './sheet'
 export {
   NEW_UI_SHEET_SOURCE,
+  NEW_UI_SOURCE_FILE_EXTS,
+  NEW_UI_SOURCE_FOLD_LIMIT,
   NEW_UI_SOURCE_INIT_TIMEOUT_MS,
+  NEW_UI_SOURCE_MAX,
+  NEW_UI_SOURCE_STATE_RANK,
   PLAY_QUALITY_CHOICES,
   QUALITY_ORDER,
   formatApiVersion,
   formatQualityList,
+  type NewUiSourceStateKey,
 } from './sourceSheet'
 export { NEW_UI_NICK_PICKS, NEW_UI_SHEET_NAME } from './nameSheet'
 export { NEW_UI_SHEET_CONFIRM } from './confirmSheet'

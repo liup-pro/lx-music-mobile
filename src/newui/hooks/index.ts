@@ -21,8 +21,8 @@ export {
 export { useNowPlaying, type NewUiNowPlaying } from './useNowPlaying'
 export {
   usePlaylistCategories,
-  NEW_UI_PLAYLIST_ALL_TAG,
-  NEW_UI_PLAYLIST_ALL_LABEL,
+  NEW_UI_PLAYLIST_REC_TAG,
+  NEW_UI_PLAYLIST_REC_LABEL,
   type PlaylistCategoriesState,
   type PlaylistTagGroup,
 } from './usePlaylistCategories'

@@ -115,7 +115,10 @@ let activeScript = 'yehua';
 let activeSource = 'kw';
 let activeQuality = '128k';
 
-const script = () => SCRIPTS.find((s) => s.key === activeScript);
+/* 一份音源都不剩时的兜底（列表被清空是可达的：每条都能删）：真实侧此时回落到内置的源名单，
+ * 原型没有内置源，就给一份「谁都没接入」的空脚本 —— 界面照样读得下去，只是到处都写「暂不能播」 */
+const NO_SCRIPT = { key: '', name: '还没有音源', version: '', platforms: [], qualities: ['128k'], state: 'failed' };
+const script = () => SCRIPTS.find((s) => s.key === activeScript) || NO_SCRIPT;
 const supports = (platform) => script().platforms.includes(platform);
 /* 所选档位当前音源没有时，核心会沿 TRY_QUALITYS 往下探，探不到落 128k。
  * 屏内一律显示降到之后的那一档，不是用户点的那一档 —— 眼睛听到的才是真的 */
@@ -648,12 +651,14 @@ function rankCard(c) {
 }
 
 /* ============ 歌单页 ============ */
-/* chip 行 = 「全部」+ 当前平台热门 + 行尾「全部分类」入口；全量目录按平台分组收在 #plTagsSheet。
- * （原型旧版是一排 11 个硬编码分类、五个平台共用，真实侧目录逐平台不同且远比 11 个多） */
-const PL_TAG_ALL = '全部';
-let plCat = PL_TAG_ALL;
+/* chip 行 = 「推荐」+ 当前平台热门 + 行尾「全部分类」入口；全量目录按平台分组收在 #plTagsSheet。
+ * （原型旧版是一排 11 个硬编码分类、五个平台共用，真实侧目录逐平台不同且远比 11 个多）
+ * 首位这颗不是「不加过滤」的技术兜底，它就是平台推荐目录本身 —— 下面那池子的标题也叫「推荐歌单」，
+ * 选中它 = 整池原样、不掺口味；其余分类 = 在这池子里挑一类，名字与行为对得上 */
+const PL_TAG_REC = '推荐';
+let plCat = PL_TAG_REC;
 
-const plHotCats = () => [PL_TAG_ALL, ...PL_HOT_TAGS[activeSource]];
+const plHotCats = () => [PL_TAG_REC, ...PL_HOT_TAGS[activeSource]];
 const plGroups = () => PL_TAG_GROUPS[activeSource];
 
 /* 推荐目录和歌单详情一样是分页取的：真实侧「发现」页一页一页往下翻，翻到平台给完为止。
@@ -667,7 +672,7 @@ let plPoolFailed = false;
 let plPoolFailedOnce = false;
 
 function plPool() {
-  const list = plCat === PL_TAG_ALL ? PLAYLISTS : PLAYLISTS.filter((p) => p.cats.includes(plCat));
+  const list = plCat === PL_TAG_REC ? PLAYLISTS : PLAYLISTS.filter((p) => p.cats.includes(plCat));
   /* 当前在看的平台排最前：分类条给的就是这个平台的热门词，先让它自己的结果露在首屏 */
   return [...list.filter((p) => p.home === activeSource), ...list.filter((p) => p.home !== activeSource)];
 }
@@ -756,7 +761,7 @@ function renderPlaylistPage() {
 function paintPlPool() {
   const pool = plPool();
   const shown = Math.min(plPoolShown, pool.length);
-  $('#plPoolTitle').textContent = plCat === PL_TAG_ALL ? '推荐歌单' : `${plCat} · 歌单`;
+  $('#plPoolTitle').textContent = plCat === PL_TAG_REC ? '推荐歌单' : `${plCat} · 歌单`;
   $('#plPoolCount').textContent = shown < pool.length ? `已列出 ${shown} / ${pool.length} 个` : `${pool.length} 个`;
   $('#plPoolEmpty').hidden = shown > 0;
   const grid = $('#plPoolGrid');
@@ -786,7 +791,9 @@ function renderTagGroups(body) {
     return;
   }
   const top = el('div', 'hot-words');
-  top.appendChild(tagChip(PL_TAG_ALL));
+  /* 首位那颗现在叫「推荐」，它就是 chip 行第一颗的那个入口，不是目录里的一类，所以单独一行并给一句「不挑分类」 */
+  body.appendChild(el('div', 'group-label', '不挑分类'));
+  top.appendChild(tagChip(PL_TAG_REC));
   body.appendChild(top);
   flat.forEach(([label, items]) => {
     body.appendChild(el('div', 'group-label', label));
@@ -2242,6 +2249,21 @@ function repaintAll() {
   paintPlayer();
 }
 
+/* 已安装音源这条列表的两个开关：
+ * - 排序：就绪的钉在顶上，其余按「离能用还有多远」往下排（初始化中 → 没就绪 → 未启用），
+ *   同一档里保持导入的先后 —— 用户要的是「点哪一行都能播」，不是「我记得哪个是第几个装的」
+ * - 折叠：面板下面还压着「音乐平台 / 音质 / 导入」三组，全展开会把它们挤出首屏；
+ *   但切音源是这个面板的第一件事，所以量少时不折（不该让人多戳一下），只有越过阈值才默认收起。
+ *   收起态仍然把正在生效的那一份留在屏上 —— 「现在用的是谁」是最要紧的信息，不能跟着一起藏
+ *   （scriptFolded 为 null 表示没人动过开关，此时按条数决定默认态；点过一次就听用户的，且不写本机存储：
+ *   它是这一屏的排版，不是用户配置） */
+const SCRIPT_FOLD_LIMIT = 4;
+/* 真实侧硬上限（src/lang/zh-cn.json 的 user_api_max_tip：最多同时存在 20 个源） */
+const SCRIPT_MAX = 20;
+let scriptFolded = null;
+const scriptFoldedNow = () => (scriptFolded === null ? SCRIPTS.length > SCRIPT_FOLD_LIMIT : scriptFolded);
+const sortedScripts = () => [...SCRIPTS].sort((a, b) => SCRIPT_STATE[a.state].rank - SCRIPT_STATE[b.state].rank);
+
 function renderSheet() {
   const sc = script();
   renderNav();
@@ -2250,31 +2272,30 @@ function renderSheet() {
 
   const sl = $('#scriptList');
   sl.innerHTML = '';
-  SCRIPTS.forEach((s) => {
-    const st = SCRIPT_STATE[s.state];
-    const q = s.qualities.map((k) => QUALITY[k].label + ' ' + k).join(' / ');
-    const r = el('button', 'opt-row' + (s.key === activeScript ? ' on' : ''));
-    r.innerHTML = `<i class="radio"></i>
-      <span class="or-body"><b>${s.name}<small>v${s.version}</small></b>
-      <em>能播 ${s.platforms.length} 个平台 · ${q}</em></span>
-      <span class="or-state" style="--tone:${st.tone}">${st.label}</span>`;
-    r.onclick = () => {
-      if (s.key === activeScript) return;
-      activeScript = s.key;
-      lsSave({ script: s.key });
-      /* 切源不把音质、内容平台重置：音质由核心按新档表自动降，平台目录与音源无关，
-       * 这里替用户改值反而会让「我选的档」和屏幕上写的档不一致 */
-      let msg = `已切到「${s.name}」${/^\d/.test(s.version) ? 'v' + s.version : s.version}`;
-      if (state.song && !supports(state.song.source)) {
-        state.playing = false;
-        stopTimer();
-        msg += ' · 当前这首不可播，已暂停';
-      }
-      repaintAll();
-      toast(msg);
-    };
-    sl.appendChild(r);
-  });
+  const rows = sortedScripts();
+  const foldable = rows.length > SCRIPT_FOLD_LIMIT;
+  /* 阈值只决定「默认折不折」；真折不折还要看是不是还藏得住别的东西 —— 只剩一份时按谁的意愿都没得折 */
+  const folded = rows.length > 1 && scriptFoldedNow();
+  const fold = $('#scriptFold');
+  /* 折叠开关只在「量多到值得折」或「用户亲手折过」时露面，且手里至少还得有两份 —— 不然就是个点了没反应的钮 */
+  fold.hidden = !(rows.length > 1 && (foldable || scriptFolded !== null));
+  fold.classList.toggle('open', !folded);
+  $('#scriptFoldLabel').textContent = folded ? `展开全部 ${rows.length} 个` : '收起列表';
+
+  if (!rows.length) {
+    sl.appendChild(el('div', 'empty-tip', '一个音源都没有 · 用下面的两种方式导入一份'));
+  } else {
+    /* 收起态只露在用的那一份（万一它被删了正在回落，就退回露列表头一份） */
+    const shown = folded ? rows.filter((s) => s.key === activeScript) : rows;
+    (shown.length ? shown : rows.slice(0, 1)).forEach((s) => sl.appendChild(scriptRow(s)));
+    if (folded && shown.length < rows.length) {
+      const hidden = rows.filter((s) => !shown.includes(s));
+      const ready = hidden.filter((s) => s.state === 'ready').length;
+      const more = el('button', 'fold-more', `还有 ${hidden.length} 个音源没显示 · 点这里看全${ready ? `（其中 ${ready} 个已就绪）` : ''}`);
+      more.onclick = () => { scriptFolded = false; renderSheet(); };
+      sl.appendChild(more);
+    }
+  }
 
   const pl = $('#platformList');
   pl.innerHTML = '';
@@ -2293,8 +2314,8 @@ function renderSheet() {
       if (isCurrent) return;
       activeSource = key;
       lsSave({ source: key });
-      /* 分类目录逐平台不同，上一家选中的分类在目录里可能根本不存在，切平台就回到「全部」 */
-      plCat = PL_TAG_ALL;
+      /* 分类目录逐平台不同，上一家选中的分类在目录里可能根本不存在，切平台就退回「推荐」这一整池 */
+      plCat = PL_TAG_REC;
       repaintAll();
       toast(`首页、歌单与排行榜内容已切换为${v.label}${ok ? '' : '（可浏览，暂不可播）'}`);
     };
@@ -2331,33 +2352,137 @@ function renderSheet() {
   renderImportRow();
 }
 
-/* 导入音源：本项目内置音源表为空，贴脚本链接导入是唯一起点 */
+/* 一行已安装音源：整行还是「切到这一份」，行尾多一颗移除钮。
+ * 所以它不再是 <button> 套 <button>（HTML 不允许交互元素嵌套），改成 role="button" 的 div，
+ * 视觉与点按逻辑与原来那一版逐字相同，只是删除那颗自己把事件拦下来 */
+function scriptRow(s) {
+  const st = SCRIPT_STATE[s.state];
+  const q = s.qualities.map((k) => QUALITY[k].label + ' ' + k).join(' / ');
+  const r = el('div', 'opt-row' + (s.key === activeScript ? ' on' : ''));
+  r.setAttribute('role', 'button');
+  r.innerHTML = `<i class="radio"></i>
+    <span class="or-body"><b>${s.name}<small>v${s.version}</small></b>
+    <em>能播 ${s.platforms.length} 个平台 · ${q}</em></span>
+    <span class="or-state" style="--tone:${st.tone}">${st.label}</span>`;
+  r.onclick = () => {
+    if (s.key === activeScript) return;
+    activeScript = s.key;
+    lsSave({ script: s.key });
+    /* 切源不把音质、内容平台重置：音质由核心按新档表自动降，平台目录与音源无关，
+     * 这里替用户改值反而会让「我选的档」和屏幕上写的档不一致 */
+    let msg = `已切到「${s.name}」${/^\d/.test(s.version) ? 'v' + s.version : s.version}`;
+    if (state.song && !supports(state.song.source)) {
+      state.playing = false;
+      stopTimer();
+      msg += ' · 当前这首不可播，已暂停';
+    }
+    repaintAll();
+    toast(msg);
+  };
+  const del = el('button', 'or-del', '<svg class="ic"><use href="#i-trash"/></svg>');
+  del.setAttribute('aria-label', `移除音源 ${s.name}`);
+  del.onclick = (e) => { e.stopPropagation(); askRemoveScript(s); };
+  r.appendChild(del);
+  return r;
+}
+
+/* 移除音源：删的是这台设备上的本机文件，删之前必过 confirmSheet 那道二次确认（与删歌单、清缓存同一套），
+ * 正文如实说清「这份脚本从设备上消失，之后再要用得重新导入」，删的又正是在用的那份时把回落也讲明白 */
+function askRemoveScript(s) {
+  askConfirm({
+    title: `要移除「${s.name}」吗`,
+    body: '移除后这台设备上就没有这份音源了 · 已经听过的歌曲不受影响，之后要再用得重新导入一次。' +
+      (s.key === activeScript ? '它正是现在生效的那一份，移除后会自动接着用列表里第一份已就绪的音源。' : ''),
+    okLabel: '移除音源',
+    onOk: () => removeScript(s.key),
+  });
+}
+
+function removeScript(key) {
+  const i = SCRIPTS.findIndex((s) => s.key === key);
+  if (i < 0) return;
+  const [gone] = SCRIPTS.splice(i, 1);
+  let msg = `已移除「${gone.name}」`;
+  if (key === activeScript) {
+    /* 真实侧移除当前源之后同样要挑一个回落到能用上的（UserApiEditModal 里是 find 一个没禁用的） */
+    const rest = sortedScripts();
+    const next = rest.find((s) => s.state === 'ready') || rest[0];
+    activeScript = next ? next.key : '';
+    lsSave({ script: activeScript });
+    msg += next ? ` · 已自动切到「${next.name}」` : ' · 这台设备上暂时没有音源了';
+  }
+  if (state.song && !supports(state.song.source)) {
+    state.playing = false;
+    stopTimer();
+    msg += ' · 当前这首不可播，已暂停';
+  }
+  repaintAll();
+  toast(msg);
+}
+
+/* 导入音源：本项目内置音源表为空，贴脚本链接与选本机文件是并列的两条起点
+ * （真实侧就是 ScriptImportOnline 与 ScriptImportExport 两个入口，后者 ChoosePath 挑文件 + readFile 读内容） */
 function renderImportRow() {
   const go = $('#importGo');
   go.textContent = importing ? '导入中…' : '导入';
+  $('#importFileLabel').textContent = importing ? '正在读取…' : '从本机选择一份音源文件';
+  $('#importHint').hidden = !importing;
   $('#importErr').hidden = !importErr;
   $('#importErr').textContent = importErr;
 }
 
 let importing = false;
 let importErr = '';
+let scriptSeq = 0;
 
-function handleImport() {
-  if (importing) return;
-  const url = $('#importInput').value.trim();
-  if (!/^https?:\/\//.test(url)) { importErr = '请填写 http:// 或 https:// 开头的脚本地址'; renderImportRow(); return; }
+/* 两条导入路共用的两道闸：一次只让一份在飞，以及真实侧那条硬上限 */
+function importGate() {
+  if (importing) return false;
+  if (SCRIPTS.length >= SCRIPT_MAX) {
+    importErr = `这台设备上最多同时留 ${SCRIPT_MAX} 份音源 · 先移除一些再导入`;
+    renderImportRow();
+    return false;
+  }
   importErr = '';
+  return true;
+}
+
+/* 先进列表但标「初始化中」，一拍之后解码出平台与档位才转「已就绪」——
+ * 真实侧就是这一前一后两个状态（store/userApi 的 status），转正的那一份会跳到列表顶上 */
+function receiveScript(name) {
+  const item = { key: 'u' + ++scriptSeq, name, version: '—', platforms: [], qualities: ['128k'], state: 'initing' };
+  SCRIPTS.push(item);
   importing = true;
-  renderImportRow();
-  /* 原型不真的抓脚本：给一条导入成功的样子，脚本名从链接里那段读出来 */
+  renderSheet();
   setTimeout(() => {
     importing = false;
-    const name = (url.match(/\/([A-Za-z0-9_-]+)\.js/i) || [, '自定义音源'])[1];
-    SCRIPTS.push({ key: 'u' + SCRIPTS.length, name, version: '—', platforms: ['kw', 'tx'], qualities: ['128k', '320k'], state: 'ready' });
-    $('#importInput').value = '';
+    item.platforms = ['kw', 'tx'];
+    item.qualities = ['128k', '320k'];
+    item.state = 'ready';
+    /* 刚转正的这一份必须看得见：列表还折着就顺手摊开，否则 toast 说「点击该行」而屏上根本没那行 */
+    if (scriptFoldedNow()) scriptFolded = false;
     renderSheet();
-    toast(`已导入「${name}」· 点击该行即可切换`);
-  }, 700);
+    toast(`「${name}」已就绪 · 点击该行即可切换`);
+  }, 900);
+}
+
+function handleImport() {
+  if (!importGate()) return;
+  const url = $('#importInput').value.trim();
+  if (!/^https?:\/\//.test(url)) { importErr = '请填写 http:// 或 https:// 开头的脚本地址'; renderImportRow(); return; }
+  /* 原型不真的抓脚本：给一条导入成功的样子，脚本名从链接里那段读出来 */
+  const name = (url.match(/\/([A-Za-z0-9_-]+)\.js/i) || [, '自定义音源'])[1];
+  $('#importInput').value = '';
+  receiveScript(name);
+}
+
+/* 本机导入：真实侧按脚本文件的扩展名过滤，读到的内容走的还是同一套导入流程，
+ * 原型只拿到文件名，能力照旧按占位走；挑错了文件就一句人话，不静默 */
+function handleImportFile(file) {
+  if (!file || !importGate()) return;
+  if (!/\.js$/i.test(file.name)) { importErr = '这份文件读不出音源 · 请选一个音源文件'; renderImportRow(); return; }
+  receiveScript(file.name.replace(/\.js$/i, ''));
+  $('#importFile').value = '';
 }
 
 /* ============ 搜索 ============
@@ -2675,6 +2800,14 @@ function init() {
     if (e.key === 'Enter') submitCreateList();
     else if (!$('#createErr').hidden) $('#createErr').hidden = true;
   };
+  /* 音源面板：折叠开关 + 两条导入路（在线那条此前只有函数没有接线，这里一并补上） */
+  $('#scriptFold').onclick = () => { scriptFolded = !scriptFoldedNow(); renderSheet(); };
+  $('#importGo').onclick = handleImport;
+  $('#importInput').onkeydown = (e) => {
+    if (e.key === 'Enter') handleImport();
+    else if (!$('#importErr').hidden) $('#importErr').hidden = true;
+  };
+  $('#importFile').onchange = (e) => handleImportFile(e.target.files[0]);
 
   $('#miniPlay').onclick = (e) => { e.stopPropagation(); toggle(); };
   $('#miniHeart').onclick = (e) => { e.stopPropagation(); toggleFav(); };

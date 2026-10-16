@@ -30,7 +30,7 @@ import {
 export interface NewUiContentPlatform {
   /** 当前内容平台 */
   source: LX.OnlineSource
-  /** 歌单目录分类 id（切平台随目录整体换血重置为「全部」；读回时非法残留一并清掉） */
+  /** 歌单目录分类 id（切平台随目录整体换血重置回首位「推荐」= 空串不掺口味；读回时非法残留一并清掉） */
   tagId: string
   /** 歌单目录排序 id（切平台重置为目标平台合法默认档，见 defaultSortIdOf） */
   sortId: string

@@ -5,17 +5,18 @@ import {
   subscribeContentPlatform,
 } from '@/newui/utils/contentPlatform'
 
-import { NEW_UI_PLAYLIST_ALL_LABEL, NEW_UI_PLAYLIST_ALL_TAG } from './usePlaylistCategories'
+import { NEW_UI_PLAYLIST_REC_LABEL, NEW_UI_PLAYLIST_REC_TAG } from './usePlaylistCategories'
 
-/** 当前选中的歌单分类（key = tagId，'' 即「全部」；label 供 chip 行/浮层/池子标题回显） */
+/** 当前选中的歌单分类（key = tagId，'' 即首位「推荐」= 不掺口味看整池；label 供 chip 行/浮层/池子标题回显） */
 export interface PlaylistTagSelection {
   key: string
   label: string
 }
 
-const ALL_SELECTION: PlaylistTagSelection = { key: NEW_UI_PLAYLIST_ALL_TAG, label: NEW_UI_PLAYLIST_ALL_LABEL }
+/** 首位选中态（原型 app.js L658-L659：plCat 初值就是 PL_TAG_REC「推荐」） */
+const REC_SELECTION: PlaylistTagSelection = { key: NEW_UI_PLAYLIST_REC_TAG, label: NEW_UI_PLAYLIST_REC_LABEL }
 
-let current: PlaylistTagSelection = ALL_SELECTION
+let current: PlaylistTagSelection = REC_SELECTION
 const listeners = new Set<() => void>()
 
 const subscribe = (listener: () => void) => {
@@ -33,7 +34,8 @@ export const selectPlaylistTag = (next: PlaylistTagSelection) => {
 }
 
 /**
- * 切内容平台 = 分类目录整体换血（各平台分类互不相通）：选中态复位回「全部」，
+ * 切内容平台 = 分类目录整体换血（各平台分类互不相通）：选中态复位回首位「推荐」这一整池
+ * （原型 app.js L2317-2318 同口径：「上一家选中的分类在目录里可能根本不存在，切平台就退回『推荐』」），
  * 否则池子会拿上一个平台的分类号去问新平台要歌单（2026-10-12 真机走查现象 3 连带项）。
  * 复位收在本模块而不是页面里：歌单页切 Tab 会整页重挂载，页面级 effect 拦不住
  * 「人在别的页切平台、再进歌单页」的路径；同平台重挂载则不动用户的选择（9h 保持口径）。
@@ -44,7 +46,7 @@ subscribeContentPlatform(() => {
   const source = getContentPlatformSnapshot().source
   if (source === lastSource) return
   lastSource = source
-  selectPlaylistTag(ALL_SELECTION)
+  selectPlaylistTag(REC_SELECTION)
 })
 
 /**

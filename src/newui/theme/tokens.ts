@@ -1427,6 +1427,8 @@ export const OPTION_ROW = {
   labelLetterSpacing: 1.3,
   labelMarginTop: 20,
   labelMarginBottom: 9,
+  /** .group-label.fold：右槽（折叠开关）与组名的间距（styles.css L776，件 group-label.css L13） */
+  labelFoldGap: 10,
   /** .opt-list gap:7 */
   listGap: 7,
   /** .opt-row：gap 11 / padding 11 12 / radius 15 */
@@ -1542,6 +1544,65 @@ export const OP_BOX = {
   /** .op-err：margin-top 10 / 11.5 / 行高 1.65 / #FF8B7E（= 色板 err） */
   errMarginTop: 10,
   errLineHeight: 19,
+} as const
+
+/* ================= 本机导入钮（.op-file，styles.css L813-817，件 op-box.css L31-37） ================= */
+
+// 音源浮层「从本机选择一份音源文件」那枚次级整宽钮：与 .op-go 同族但降一档（无渐变、无投影），
+// 原型把它做成 label 包隐藏 file input，RN 侧对应 selectFile() 系统选取器（方案 A 单路）。
+export const OP_FILE = {
+  /** margin-top:9（贴在 .op-box 下面，比组标题的 16 近一档） */
+  marginTop: 9,
+  height: 40,
+  radius: 13,
+  /** 图标与文字间距 6；图标 15 */
+  gap: 6,
+  iconSize: 15,
+  /** .op-file:active scale(.99) */
+  pressScale: 0.99,
+} as const
+
+/* ================= 行尾移除钮（.or-del，styles.css L771-774，件 opt-list.css L43-48） ================= */
+
+// 「已安装音源」每行行尾那棵垃圾桶：只在带移除动作的列表行出现（原型 comment「只在这份列表里出现」）。
+// 常态取 text-3 墨色，按下才转 dangerInk（原型 :active{color:var(--danger-ink)}，不做常驻红钮）。
+export const OR_DEL = {
+  size: 28,
+  radius: 9,
+  iconSize: 14,
+  /** .or-del:active scale(.9) */
+  pressScale: 0.9,
+  /** RN 触控放大：28×28 低于系统最小热区，外扩 6 补足（件里 CSS 无对应物，属 RN 侧适配） */
+  hitSlop: 6,
+} as const
+
+/* ================= 列表折叠开关（.fold-toggle / .fold-more，styles.css L777-787，件 group-label.css L15-24 / opt-list.css L51-55） ================= */
+
+// 组标题右侧的折叠开关：文字 + 一颗 chevron，靠旋转分收合两态。
+// 件里 rotate(90deg)（合，箭头朝下＝「展开」）↔ rotate(270deg)（开，箭头朝上＝「收起」）；
+// RN 的 transform rotate 同为顺时针，角度直接照搬。
+export const FOLD_TOGGLE = {
+  gap: 2,
+  /** 件里 padding:2px 0 + margin:-2px -2px 是同一件事（扩热区不改布局）；RN 不认负 margin，
+   *  竖向留 padding、横向交给 hitSlop，两个用途共用这一个数 */
+  hitPadding: 2,
+  fontSize: 11,
+  iconSize: 13,
+  /** .fold-toggle .ic{opacity:.7} */
+  iconAlpha: 0.7,
+  /** 两态箭头角（件 L20 / L22） */
+  iconAngleCollapsed: '90deg',
+  iconAngleExpanded: '270deg',
+} as const
+
+// 列表尾「还有 N 个音源没显示」行：整行可点，与开关做的是同一件事（两条入口都通向展开）。
+export const FOLD_MORE = {
+  paddingY: 9,
+  paddingX: 12,
+  radius: 13,
+  fontSize: 11.5,
+  /** .fold-more:active scale(.99) */
+  pressScale: 0.99,
 } as const
 
 /* ================= 换行胶囊组（.q-chips styles.css L760 / .hot-words L804） ================= */

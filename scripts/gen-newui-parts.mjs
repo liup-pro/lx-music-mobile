@@ -209,14 +209,14 @@ const PART_DEFS = [
   P('U15', 'U15', 'common-control', 'src-badge', '.src-badge 平台来源角标原子（样式归 _base；songRow 生成）', { doc: true, occCls: ['.src-badge'] }),
   P('U16', 'U16', 'common-control', 'hscroll-recent', '.hscroll + .recent-card 继续收听横滚（含区块壳与「清空记录」钮）', { js: ['renderRecent', 'recentIds', 'clearRecent', 'RECENT_LIMIT'] }),
   P('U17', 'U17', 'common-control', 'sheet-chrome', '.sheet 浮层 chrome 定义（mask/body/handle/title/sub + 164dfa4 钉住规则 #playerSheet .sheet-body/#psBody——钉住归 chrome，不归评论件；八实例件继承）', { doc: true, sheetIds: ['sourceSheet', 'plIdSheet', 'createSheet', 'plTagsSheet', 'nameSheet', 'moreSheet', 'playerSheet', 'confirmSheet'], js: ['openSheet', 'openLayer', 'closeLayer'] }),
-  P('U18', 'U18', 'common-control', 'group-label', '.group-label 浮层分组标题（「已安装音源/音乐平台/音质/导入音源」等文案见符号行）', { doc: true, occCls: ['.group-label'], js: ['renderSheet', 'renderTagGroups'] }),
-  P('U19', 'U19', 'common-control', 'opt-list', '.opt-list / .opt-row（radio/or-body/or-state/opt-ic）选项行族', { doc: true, occCls: ['.opt-list'], js: ['renderSheet', 'actRow', 'openMore'] }),
-  P('U20', 'U20', 'common-control', 'op-box', '.op-box / .op-input / .op-go / .op-err 输入行族（打开/创建/保存钮文案在实例件内）', { doc: true, occCls: ['.op-box'], js: ['handleImport', 'submitCreateList', 'saveNick', 'tryOpenByPid'] }),
+  P('U18', 'U18', 'common-control', 'group-label', '.group-label 浮层分组标题（「已安装音源/音乐平台/音质/导入音源」等文案见符号行；.fold 变体 + .fold-toggle 折叠开关归本件，尾行 .fold-more 归 U19）', { doc: true, occCls: ['.group-label'], js: ['renderSheet', 'renderTagGroups', 'scriptFoldedNow'] }),
+  P('U19', 'U19', 'common-control', 'opt-list', '.opt-list / .opt-row（radio/or-body/or-state/opt-ic）选项行族；行尾移除钮 .or-del 与列表尾「还有 N 个没显示」行 .fold-more 归本件', { doc: true, occCls: ['.opt-list'], js: ['renderSheet', 'actRow', 'openMore', 'scriptRow'] }),
+  P('U20', 'U20', 'common-control', 'op-box', '.op-box / .op-input / .op-go / .op-err / .op-file 输入行族（.op-file 是本机导入那枚次级钮；打开/创建/保存钮文案在实例件内）', { doc: true, occCls: ['.op-box'], js: ['handleImport', 'handleImportFile', 'importGate', 'submitCreateList', 'saveNick', 'tryOpenByPid'] }),
   P('U21', 'U21', 'common-control', 'q-chips', '.q-chips（+ .q-note）chip 组行', { doc: true, occCls: ['.q-chips'], js: ['renderSheet', 'renderTimerSheet'] }),
   P('U22', 'U22', 'common-control', 'toggle', '.toggle / .sw-row 开关行唯一定义（静态元素在 sheets/player-sheet 件内；「等当前这首放完再停」文案见 renderTimerSheet）', { doc: true, occCls: ['.sw-row'], js: ['renderTimerSheet', 'setToggle'] }),
   P('U23', 'U23', 'common-control', 'sprite', 'SVG sprite（36 枚 symbol 全量归本件；RN 侧经 gen-newui-icons.mjs 生成 icons.ts，勿手改）', { js: ['setIcon'], jsNote: 'symbol 按名取用；本件与 RN 生成物 scripts/gen-newui-icons.mjs 同源。' }),
   P('U30', 'U30', 'common-control', 'eq-bars', '.sr-title .eq 播放中三柱均衡器（含 @keyframes eq；元素由 songRow 生成）', { doc: true, js: ['songRow'] }),
-  P('U28_35', 'U28+U35', 'common-control', 'chip-row', 'chip 行：首页 .rank-tabs 与歌单页 .cat-row(sticky) 合并为一件，不再拆细。CatStickerBar 是 RN 为平台缺 sticky 自造的复制层，属实现税，不进原型件', { js: ['renderRankTabs', 'homeBoards', 'renderPlaylistPage', 'tagChip', 'plHotCats'] }),
+  P('U28_35', 'U28+U35', 'common-control', 'chip-row', 'chip 行：首页 .rank-tabs 与歌单页 .cat-row(sticky) 合并为一件，不再拆细；歌单首位标签取 PL_TAG_REC「推荐」（交叉轴居中靠 _base .chip 的 line-height:1+justify-content:center）。CatStickerBar 是 RN 为平台缺 sticky 自造的复制层，属实现税，不进原型件', { js: ['renderRankTabs', 'homeBoards', 'renderPlaylistPage', 'tagChip', 'plHotCats', 'PL_TAG_REC'] }),
   P('U34', 'U34', 'common-control', 'page-head', '.page-head 公共页头（歌单/排行/设定三页；含 .pl-open-btn「打开歌单」）', { js: ['renderPlaylistPage'] }),
 
   P('U24', 'U24', 'home', 'banner', '.banner-wrap 轮播三条（track/dots；b-tag、veil 由 renderBanners 生成；电台条「建设中」文案见符号行）', { js: ['bannerItems', 'renderBanners', 'bannerPaint', 'startBannerCarousel', 'BANNER_ACTION'] }),
@@ -272,10 +272,10 @@ const PART_DEFS = [
   P('U69', 'U69', 'songlist-detail', 'pl-actions', '.pl-actions 播放全部 + 随机钮（RN 缺件·内联，转正候选；PLD_LABELS 文案见符号行；「播放全部」实心 .ghost-btn.solid 实例在 openPlaylist 内生成，样式本体在 _base）', { js: ['PLD_LABELS', 'openPlaylist'] }),
   P('U70', 'U70', 'songlist-detail', 'pl-tracks', '#plTracks 曲目表（song-list 复用 U29；分页状态行 .pl-status/.pl-end 样式在 _base——三页共用；PLD_STATUS 文案见符号行）', { js: ['renderPlTracks', 'plStatusRow', 'loadPlPage', 'plEndRow', 'PLD_STATUS', 'PLD_EMPTY', 'PL_PAGE_SIZE'] }),
 
-  P('U72', 'U72', 'sheets', 'source-sheet', 'sourceSheet 音源浮层实例（chrome 见 U17；「音源只负责一件事…」sheetSub 与 q-note 三句由 renderSheet 生成，文案见符号行）', { js: ['renderSheet', 'renderImportRow', 'handleImport'] }),
+  P('U72', 'U72', 'sheets', 'source-sheet', 'sourceSheet 音源浮层实例（chrome 见 U17；「音源只负责一件事…」sheetSub 与 q-note 三句由 renderSheet 生成，文案见符号行；含就绪置顶排序 sortedScripts、折叠开关 scriptFoldedNow/SCRIPT_FOLD_LIMIT、行尾移除 askRemoveScript/removeScript、在线+本机双路导入 importGate/receiveScript/handleImportFile）', { js: ['renderSheet', 'renderImportRow', 'handleImport', 'handleImportFile', 'importGate', 'receiveScript', 'scriptRow', 'askRemoveScript', 'removeScript', 'sortedScripts', 'scriptFoldedNow', 'SCRIPT_FOLD_LIMIT', 'SCRIPT_MAX', 'NO_SCRIPT'] }),
   P('U73', 'U73', 'sheets', 'plid-sheet', 'plIdSheet 打开歌单浮层实例（PLID 样例表与错误文案见符号行；本件持有「打开」按钮与三句固定提示）', { js: ['openPlIdSheet', 'PLID', 'pidOf', 'bareIdOf', 'renderPlIdPlats', 'renderPlIdSamples', 'plIdError'] }),
   P('U74', 'U74', 'sheets', 'create-sheet', 'createSheet 新建歌单浮层实例（CREATE_TXT 见符号行；本件持有「创建」与校验提示）', { js: ['openCreateSheet', 'submitCreateList', 'doCreate', 'CREATE_TXT', 'CREATE_NAME_MAX', 'createListError'] }),
-  P('U75', 'U75', 'sheets', 'tags-sheet', 'plTagsSheet 全部分类浮层实例（分组由 renderTagGroups() 灌入；「正在从平台获取分类…」见符号行）', { js: ['openTagSheet', 'renderTagGroups', 'plGroups', 'PL_TAG_ALL'] }),
+  P('U75', 'U75', 'sheets', 'tags-sheet', 'plTagsSheet 全部分类浮层实例（分组由 renderTagGroups() 灌入；「正在从平台获取分类…」见符号行）', { js: ['openTagSheet', 'renderTagGroups', 'plGroups', 'PL_TAG_REC'] }),
   P('U47', 'U47', 'sheets', 'name-sheet', 'nameSheet 改昵称浮层实例（NICK_PICKS 见符号行；本件持有「想叫什么/保存/换个快的」与收尾提示全文）', { js: ['openNameSheet', 'saveNick', 'NICK_PICKS'] }),
   P('U76', 'U76', 'sheets', 'more-sheet', 'moreSheet 单曲操作面板实例（.more-song 头 + opt-list 动作；「收藏到「我喜欢」」等文案见 openMore；加入候选组头「加入自建歌单」与空态句见 MORE_TXT，候选名单即 addablePlaylists）', { js: ['openMore', 'actRow', 'moreSong', 'MORE_TXT', 'addablePlaylists'] }),
   P('U78_79', 'U78+U79', 'sheets', 'player-sheet', '#playerSheet 播放页子面板宿主：定时与评论两种实例共用这一只 DOM（内容件见 timer-sheet / comment-sheet；钉住规则归 U17 chrome）', { js: ['openSheet', 'closeLayer'] }),
@@ -456,6 +456,10 @@ const CSS_EXC = [
   [/^\.opt-row\.on \.radio$/, 'U19'],
   [/^\.pl-layer \.empty-tip$/, 'U70'],
   [/^#moreActions \.group-label,#moreActions \.q-note$/, 'U76'],
+  // 音源浮层两条 ID 限定实例规则（判例 #plIdSamples→U73）：#importFile 是隐藏的原生 file input，
+  // #importHint 是导入进行时的回显间距，都只在 #sourceSheet 内出现，归实例件 U72。
+  [/^#importFile$/, 'U72'],
+  [/^#importHint$/, 'U72'],
 ]
 const CSS_MATCHERS = [
   ['_chrome', ['.pad ', '.land ', '.phone.pad', '.phone.land', 'body.pad', '.stage', '.phone', '.screen', '.island', '.statusbar', '.sb-time', '.sb-right', '.sb-signal', '.sb-batt', '.viewer-bar', '.vb-label', '.vb-seg', '.vb-btn', '.vb-note', '.nav-brand', '.nav-sep', '.nav-label', '.nav-foot', '.notes', '.swatches', '.sw']],
@@ -466,10 +470,13 @@ const CSS_MATCHERS = [
   ['U23', ['.sprite']],
   ['U16', ['.hscroll', '.recent-card']],
   ['U17', ['.sheet', '#playerSheet', '#psBody', '#psMeta']],
-  ['U18', ['.group-label']],
+  ['U18', ['.group-label', '.fold-toggle']],
   ['U33', ['.radio-grid', '.radio-card', '.wip-tag']],
-  ['U19', ['.opt-list', '.opt-row', '.radio', '.or-body', '.or-state', '.opt-ic']],
-  ['U20', ['.op-box', '.op-input', '.op-go', '.op-err']],
+  // .or-del：行尾移除钮（.opt-row 由 button 改 div[role=button] 后，这颗才是 button，与 .or-body/.or-state 同族）
+  // .fold-more：opt-list 尾部「还有 N 个没显示」整行，与 .opt-row 同层级同职责
+  ['U19', ['.opt-list', '.opt-row', '.radio', '.or-body', '.or-state', '.opt-ic', '.or-del', '.fold-more']],
+  // .op-file：本机导入那枚次级钮，与 .op-box/.op-input/.op-go/.op-err 同为「输入行族」
+  ['U20', ['.op-box', '.op-input', '.op-go', '.op-err', '.op-file']],
   ['U21', ['.q-chips', '.q-note']],
   ['U22', ['.sw-row', '.toggle']],
   ['U04', ['.tabbar', '.tab']],

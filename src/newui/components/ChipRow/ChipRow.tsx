@@ -38,7 +38,7 @@ export interface ChipRowProps {
 }
 
 /**
- * 横向胶囊选择条（对应原型 .rank-tabs，styles.css L242-243；.cat-row，L322-329）。
+ * 横向胶囊选择条（对应原型 .rank-tabs，styles.css L270；.cat-row，L380-386；件 parts/common-control/chip-row）。
  * 纯展示组件：数据与切换副作用由容器接线；超出宽度可横滑。
  * 已知近似：原型 .cat-row 是 sticky 吸顶 + 毛玻璃，本轮随页面普通滚动（README 已记录）。
  */
@@ -86,9 +86,20 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: CHIP_ROW.gap,
+    /**
+     * 这里**不写** alignItems：原型 `.rank-tabs`（styles.css L270）没有交叉轴声明，行内胶囊一律 28px 等高，
+     * 拉伸与居中在视觉上同解 —— 忠实原型，不替它补没写过的声明。
+     */
   },
-  /** .cat-row padding:3px 16px 8px */
+  /**
+   * .cat-row padding:3px 16px 8px（原型 styles.css L380-386，parts/common-control/chip-row.css）。
+   * 交叉轴（横向滚动条的竖向）居中按原型逐字补 `alignItems:'center'`：`.cat-row{align-items:center}`。
+   * 原型注释口径（index.html L638）：原来靠默认 stretch，行里一旦出现不等高的胶囊就按顶沿对齐，
+   * 看着就是「标签没在条里居中」——纯盒模型声明，不用 translate / 负 margin 去凑。
+   * 上 3 / 下 8 的不对称内边距是既有吸顶几何（sticky 盒实测值），此处不动。
+   */
   contentCat: {
+    alignItems: 'center',
     gap: CHIP_ROW.gap,
     paddingTop: CHIP_ROW.catPaddingTop,
     paddingBottom: CHIP_ROW.catPaddingBottom,

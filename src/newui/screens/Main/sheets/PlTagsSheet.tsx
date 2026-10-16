@@ -4,8 +4,8 @@ import { StyleSheet, Text } from 'react-native'
 import { ChipFlow, GroupLabel, Sheet } from '@/newui/components'
 import { NEW_UI_PLAYLIST_TAG_SHEET, NEW_UI_PLAYLIST_TITLES } from '@/newui/const'
 import {
-  NEW_UI_PLAYLIST_ALL_LABEL,
-  NEW_UI_PLAYLIST_ALL_TAG,
+  NEW_UI_PLAYLIST_REC_LABEL,
+  NEW_UI_PLAYLIST_REC_TAG,
   selectPlaylistTag,
   usePlaylistCategories,
   usePlaylistTagSelection,
@@ -20,9 +20,10 @@ export interface PlTagsSheetProps {
 }
 
 /**
- * 「全部分类」浮层（新版原创，原型 #catRow 只有横滚热门条）：
+ * 「全部分类」浮层（对应原型 #plTagsSheet / renderPlTags app.js L788-804）：
  * 数据 = usePlaylistCategories 的 groups（getTags(source).tags 全量目录，各平台分组天然不同），
  * 每组 GroupLabel + ChipFlow 流式排布，当前选中项高亮；
+ * 首位那颗「推荐」按原型单列在「不挑分类」一行下，不混进平台目录；
  * 点任一分组条目 = 写入共享选中态（selectPlaylistTag）→ 收起浮层 → 推荐池按该分类重拉（PlaylistPage 侧订阅）。
  * 入口 = 歌单页 chip 行末尾「全部分类」胶囊；浮层本体挂 MainScreen 根层（与其余 sheet 同构）。
  */
@@ -60,11 +61,13 @@ const PlTagsSheetBody = ({ onClose }: Pick<PlTagsSheetProps, 'onClose'>) => {
 
   return (
     <>
-      {/* 顶部「全部」：不筛任何分类（与 chip 行首项同一状态） */}
+      {/* 顶部这颗单列一行（原型 app.js L794-797）：它不是平台目录里的一类，不该混进下面的分组，
+          所以给它自己的组名「不挑分类」；状态与 chip 行首项同一个（key = ''） */}
+      <GroupLabel label={NEW_UI_PLAYLIST_TAG_SHEET.recGroup} />
       <ChipFlow
-        items={[{ key: NEW_UI_PLAYLIST_ALL_TAG, label: NEW_UI_PLAYLIST_ALL_LABEL }]}
+        items={[{ key: NEW_UI_PLAYLIST_REC_TAG, label: NEW_UI_PLAYLIST_REC_LABEL }]}
         activeKey={selection.key}
-        onSelect={key => pick(key, NEW_UI_PLAYLIST_ALL_LABEL)}
+        onSelect={key => pick(key, NEW_UI_PLAYLIST_REC_LABEL)}
       />
       {cats.groups.map(group => (
         <Group key={group.label} label={group.label}>

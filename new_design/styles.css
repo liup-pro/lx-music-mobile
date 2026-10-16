@@ -147,9 +147,13 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 .chip{
   flex:none;height:28px;padding:0 11px;border-radius:14px;
   font-size:12.5px;font-weight:600;letter-spacing:.2px;white-space:nowrap;
+  /* 行高一归一，字面才不会因为 normal 行高多出的半行距在 28px 的盒子里偏下；
+     justify-content 一起写上：chip 里偶尔是「文字 + 一段小字」两枚子项（榜单 tabs、打开歌单的样例），
+     交叉轴与主轴都该老实居中，不靠位移凑 */
+  line-height:1;
   color:var(--text-2);background:var(--fill-2);
   box-shadow:inset 0 0 0 1px var(--hairline);
-  display:flex;align-items:center;gap:6px;transition:.22s var(--ease);
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:.22s var(--ease);
 }
 .chip:active{transform:scale(.94)}
 .chip.on{color:#0a0a0f;background:var(--grad);box-shadow:none;font-weight:700}
@@ -370,10 +374,12 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 .pl-count{font-size:11px;color:var(--text-3);white-space:nowrap}
 .empty-tip{padding:22px 0 6px;text-align:center;font-size:12.5px;color:var(--text-3);line-height:1.7}
 
-/* 吸顶的分类切换条：贴住顶栏下沿（滚动容器上内边距 = 顶栏高度，sticky 基准是内容盒） */
+/* 吸顶的分类切换条：贴住顶栏下沿（滚动容器上内边距 = 顶栏高度，sticky 基准是内容盒）。
+ * 交叉轴显式居中：这一条里既有 chip 也可能有别的指针，默认 stretch 会让不等高的胶囊按顶沿对齐，
+ * 看上去就是「标签没在条里居中」——写死 align-items:center，跟 .q-chips 一个口径 */
 .cat-row{
   position:sticky;top:0;z-index:30;
-  display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;
+  display:flex;align-items:center;gap:7px;overflow-x:auto;scrollbar-width:none;
   margin:14px -16px 0;padding:3px 16px 8px;margin-bottom:14px;
   background:linear-gradient(to bottom,color-mix(in srgb,var(--bg) 94%,transparent),color-mix(in srgb,var(--bg) 70%,transparent));
   -webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%);
@@ -759,6 +765,26 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 .or-body em{font-size:11px;color:var(--text-3);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .or-state{font-size:10.5px;font-weight:800;color:var(--tone,var(--text-3));flex:none;display:flex;align-items:center;gap:5px}
 .or-state::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--tone,var(--text-3));box-shadow:0 0 7px var(--tone,var(--text-3))}
+.opt-row[role='button']{cursor:pointer}
+/* 行尾那颗移除钮：音源列表专用（HTML 不许 button 套 button，所以整行是 div[role=button]，这一颗才是 button）。
+   它比行小一圈、用中性墨色，按下才转报错墨色 —— 删除是个要认的动作，不该平时就在喊话 */
+.or-del{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;
+  color:var(--text-3);background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--hairline);transition:.2s var(--ease)}
+.or-del .ic{width:14px;height:14px}
+.or-del:active{transform:scale(.9);color:var(--danger-ink)}
+/* 分组标题行的折叠开关：复用 .section-more 那套「小字 + 一枚箭头」的写法，箭头靠 rotate 分收合 */
+.group-label.fold{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fold-toggle{display:flex;align-items:center;gap:2px;font-size:11px;font-weight:700;color:var(--text-3);
+  padding:2px 0;margin:-2px -2px;transition:.2s var(--ease)}
+.fold-toggle[hidden]{display:none}
+.fold-toggle .ic{width:13px;height:13px;opacity:.7;transform:rotate(90deg);transition:.2s var(--ease)}
+.fold-toggle.open .ic{transform:rotate(270deg)}
+.fold-toggle:active{color:var(--text-2)}
+/* 收起态末尾那一行「还有几个没显示」：整行可点，等于第二个展开入口 */
+.fold-more{width:100%;padding:9px 12px;border-radius:13px;text-align:center;
+  font-size:11.5px;font-weight:700;color:var(--text-3);background:var(--fill-1);
+  box-shadow:inset 0 0 0 1px var(--hairline);transition:.2s var(--ease)}
+.fold-more:active{background:var(--fill-3);transform:scale(.99)}
 .opt-ic{width:30px;height:30px;flex:none;border-radius:10px;display:grid;place-items:center;
   background:var(--fill-2);color:var(--text-2);box-shadow:inset 0 0 0 1px var(--line)}
 .opt-ic .ic{width:16px;height:16px}
@@ -782,6 +808,17 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 .op-go:active{transform:scale(.955)}
 .op-err{margin-top:10px;font-size:11.5px;font-weight:600;line-height:1.65;color:var(--danger-ink)}
 .op-err[hidden]{display:none}
+/* 本机导入：实心那枚是给「在线」那条路的主作，这一枚是并列的第二条路，所以走次级控件底（--fill-2），
+   label 直接套着隐藏的 file input，点了就开系统的文件挑选 */
+.op-file{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:9px;height:40px;
+  border-radius:13px;font-size:13px;font-weight:700;color:var(--text-2);
+  background:var(--fill-2);box-shadow:inset 0 0 0 1px var(--hairline);cursor:pointer;transition:.2s var(--ease)}
+.op-file:active{background:var(--fill-3);transform:scale(.99)}
+.op-file .ic{width:15px;height:15px}
+#importFile{display:none}
+/* 「正在读刚进来的那一份」这句是导入进行时的回显：.q-note 原本只在弹性行里用、没有自己的外边距，
+   这里按错误行那一档给间距，三行（按钮 / 进行中 / 报错）就不会挤成一坨 */
+#importHint{margin-top:10px}
 #plIdSamples .chip b{font-family:ui-monospace,SFMono-Regular,monospace;font-weight:700;font-size:11.5px}
 /* ============ 搜索页 ============ */
 .search-layer{padding:0;overflow:hidden}
@@ -811,7 +848,8 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 .sc-label b{color:var(--text-2);font-weight:700}
 .sc-clear{font-size:11.5px;color:var(--text-3);display:flex;align-items:center;gap:1px}
 .sc-clear .ic{width:13px;height:13px}
-.hot-words{display:flex;flex-wrap:wrap;gap:8px}
+/* 胶囊行（分类浮层 / 平台挑选 / 热搜）与吸顶条同一口径：交叉轴居中，别让不等高的胶囊顶到一行上沿 */
+.hot-words{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .hot-words .chip{font-weight:500}
 .sc-empty{padding:46px 0;text-align:center;font-size:12.5px;color:var(--text-3);line-height:1.9}
 .sc-empty b{display:block;font-size:14px;color:var(--text-2);font-weight:750;margin-bottom:4px}
