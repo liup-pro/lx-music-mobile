@@ -291,10 +291,287 @@ const ARTISTS = [
 
 const RECENT = ['s01', 's12', 's07', 's13', 's05'];
 
-const RADIO = [
-  { title: '私人 FM', sub: '按你的口味随机', seed: 'r1', kind: 'fm' },
-  { title: '赫兹电台', sub: '夜间 · 人声爵士', seed: 'r2', kind: 'live' },
+/* 首页的电台入口只剩快捷入口（QUICK）那一格：分类区下面那两张电台卡、轮播里的电台条都已收走，
+ * 所以这里不再有一份 RADIO 卡表 */
+
+/* ============ 电台（播客） ============
+ * 数据源就是这三条公共接口，屏上每个字段都能回溯到其中一条（实测口径，勿再臆造）：
+ *   ① 排行榜  https://rss.marketingtools.apple.com/api/v2/{country}/podcasts/top/50/podcasts.json
+ *      一条节目只有 id / name / artistName / genres[].name / artworkUrl100 / url 这五项，
+ *      固定 50 条；<em>没有简介、没有集数、没有发布日期、没有音频直链</em>。
+ *      字段对照：本 mock 的 by ← artistName，tags ← genres[].name。
+ *   ② 搜索    https://itunes.apple.com/search?term={关键词}&media=podcast
+ *      比①多给 artworkUrl600、trackCount（总集数）、primaryGenreName，以及一条订阅源地址
+ *      （feedUrl，RSS 入口；解析 RSS 不在这三条接口的能力里，本轮不上屏）。
+ *   ③ 详情    https://itunes.apple.com/lookup?id={id}&entity=podcastEpisode
+ *      results[0] 是节目本体：trackCount / genres / 封面 600 / 最近一集日期都有，<em>但没有节目简介</em>
+ *      （接口不给，所以详情屏不画简介位）；其后每条 podcast-episode 给
+ *      trackName / releaseDate / trackTimeMillis / shortDescription（一集简介，可能缺席）/ 音频直链。
+ *      entity 不支持翻页偏移：<em>一次请求给回的那一批就是这一屏的全部</em>，所以详情屏不分页、
+ *      也没有「加载更多」——给回多少集就上多少集，不做人为截断。
+ * 地区：①那个地址里的 {country} 就是地区抽屉里挑的这一个。抽屉给完整可选清单（见 POD_REGION_GROUPS），
+ * 默认档是中文区（cn）——每次进电台首页都从这一区开始，不改「记住上次看的区」那套。
+ * 实测口径：cn / us / gb 稳定可用，jp 偶发 502（重试即通）；其余区尚未逐一手测，取不到就走重试状态行。
+ * 下面这份名单是从①的真实返回里抄的（属示意 mock，同 BOARDS 的判例），本轮只抄了四区样本，
+ * 其余区运行时按接口取；一集标题与一集简介是原型占位文案（真实侧就是③的 trackName / shortDescription）。 */
+
+/* 地区抽屉的分组清单：key 就是①地址里那一格国家码，label 是屏上给人看的名字。
+ * 分组只为好找（屏上分组小标题就是这一份），不是接口给的概念 */
+const POD_REGION_GROUPS = [
+  { label: '中文地区', items: [
+    { key: 'cn', label: '国内' },
+    { key: 'tw', label: '中国台湾' },
+    { key: 'hk', label: '中国香港' },
+    { key: 'sg', label: '新加坡' },
+    { key: 'my', label: '马来西亚' },
+  ] },
+  { label: '亚太', items: [
+    { key: 'jp', label: '日本' },
+    { key: 'kr', label: '韩国' },
+    { key: 'in', label: '印度' },
+    { key: 'id', label: '印度尼西亚' },
+    { key: 'th', label: '泰国' },
+    { key: 'vn', label: '越南' },
+    { key: 'ph', label: '菲律宾' },
+    { key: 'au', label: '澳大利亚' },
+    { key: 'nz', label: '新西兰' },
+  ] },
+  { label: '欧洲', items: [
+    { key: 'gb', label: '英国' },
+    { key: 'ie', label: '爱尔兰' },
+    { key: 'de', label: '德国' },
+    { key: 'fr', label: '法国' },
+    { key: 'es', label: '西班牙' },
+    { key: 'it', label: '意大利' },
+    { key: 'pt', label: '葡萄牙' },
+    { key: 'nl', label: '荷兰' },
+    { key: 'se', label: '瑞典' },
+    { key: 'no', label: '挪威' },
+    { key: 'dk', label: '丹麦' },
+    { key: 'fi', label: '芬兰' },
+    { key: 'pl', label: '波兰' },
+    { key: 'ch', label: '瑞士' },
+    { key: 'at', label: '奥地利' },
+    { key: 'be', label: '比利时' },
+  ] },
+  { label: '美洲', items: [
+    { key: 'us', label: '美国' },
+    { key: 'ca', label: '加拿大' },
+    { key: 'br', label: '巴西' },
+    { key: 'mx', label: '墨西哥' },
+    { key: 'ar', label: '阿根廷' },
+    { key: 'co', label: '哥伦比亚' },
+  ] },
+  { label: '中东与非洲', items: [
+    { key: 'tr', label: '土耳其' },
+    { key: 'il', label: '以色列' },
+    { key: 'sa', label: '沙特阿拉伯' },
+    { key: 'ae', label: '阿联酋' },
+    { key: 'eg', label: '埃及' },
+    { key: 'za', label: '南非' },
+  ] },
 ];
+
+/* 展平一份用于查表（按 key 取 label / 校验 key 是否可选）；屏上分组渲染走 POD_REGION_GROUPS */
+const POD_REGIONS = POD_REGION_GROUPS.flatMap((g) => g.items);
+
+const POD_CHART = {
+  cn: [
+    { id: '1573189055', name: '声动早咖啡', by: '声动活泼', tags: ['商务'] },
+    { id: '1582119137', name: '岩中花述', by: 'GIADA', tags: ['艺术'] },
+    { id: '1668626930', name: '霓达播客', by: '霓达播台NidaMedia', tags: ['犯罪纪实', '休闲'] },
+    { id: '1455784513', name: '凹凸电波', by: '凹凸电波', tags: ['喜剧', '健康与健身'] },
+    { id: '1498170617', name: '自我进化论', by: '颜晓静Athena', tags: ['休闲', '教育'] },
+    { id: '751574016', name: 'All Ears English Podcast', by: 'Lindsay McMahon and Michelle Kaplan', tags: ['教育', '商务'] },
+    { id: '1676099257', name: '搞钱女孩', by: '搞钱女孩小辉', tags: ['社会与文化', '商务'] },
+    { id: '1731784296', name: '天真不天真', by: '杨天真本真', tags: ['休闲'] },
+    { id: '1559695855', name: '知行小酒馆', by: '有知有行', tags: ['商务'] },
+    { id: '262026947', name: '6 Minute English', by: 'BBC Radio', tags: ['教育'] },
+    { id: '1771401634', name: '谭立人', by: '谭立人', tags: ['休闲'] },
+    { id: '1696511339', name: '三个火呛手', by: '思宇_XgEd', tags: ['喜剧', '休闲'] },
+    { id: '1603580035', name: '肥话连篇', by: '肥杰', tags: ['喜剧', '休闲'] },
+    { id: '1615939013', name: '半拿铁 | 商业沉浮录', by: '潇磊&刘飞', tags: ['商务', '新闻'] },
+    { id: '1671490972', name: '纵横四海', by: '携隐Melody', tags: ['教育', '社会与文化'] },
+    { id: '1770731694', name: '重重电波', by: '小烘、王王', tags: ['犯罪纪实'] },
+    { id: '1796650777', name: 'English Learning Podcast', by: 'EnglishPod', tags: ['教育'] },
+    { id: '1581271335', name: '无人知晓', by: '孟岩', tags: ['商务', '宗教与心灵'] },
+    { id: '1770713549', name: '西西弗高速', by: '西西弗高速', tags: ['社会与文化'] },
+    { id: '1794422481', name: '资讯早7点', by: '王子Wz', tags: ['新闻', '社会与文化'] },
+    { id: '1581376691', name: '给女孩的商业第一课', by: '闪光少女斯斯', tags: ['社会与文化', '教育'] },
+    { id: '1553429497', name: '高效磨耳朵 | 最好的英语听力资源', by: '英语磨耳朵', tags: ['教育'] },
+    { id: '520986449', name: '潘吉Jenny告诉你|学英语聊美国|开言英语 · Podcast', by: 'OpenLanguage 英语', tags: ['教育'] },
+    { id: '1712894972', name: '美西螈与东方巨龙', by: '美西螈与东方巨龙', tags: ['艺术', '社会与文化'] }
+  ],
+  us: [
+    { id: '1200361736', name: 'The Daily', by: 'The New York Times', tags: ['News'] },
+    { id: '360084272', name: 'The Joe Rogan Experience', by: 'Joe Rogan', tags: ['Comedy'] },
+    { id: '1322200189', name: 'Crime Junkie', by: 'Audiochuck', tags: ['True Crime'] },
+    { id: '1192761536', name: 'Pod Save America', by: 'Pod Save America', tags: ['News'] },
+    { id: '1012570406', name: 'REAL AF with Andy Frisella', by: 'Andy Frisella', tags: ['Business'] },
+    { id: '1148175292', name: 'In The Dark', by: 'The New Yorker', tags: ['True Crime', 'Society & Culture'] },
+    { id: '1464919521', name: 'Dateline NBC', by: 'NBC News', tags: ['True Crime', 'News'] },
+    { id: '1795483480', name: 'Good Hang with Amy Poehler', by: 'The Ringer', tags: ['Comedy'] },
+    { id: '1089022756', name: 'Pardon My Take', by: 'Barstool Sports', tags: ['Sports'] },
+    { id: '1379959217', name: 'Morbid', by: 'Ash Kelley & Alaina Urquhart', tags: ['True Crime', 'Comedy'] },
+    { id: '1615637724', name: 'Betrayal Season 6', by: 'iHeartPodcasts | Glass Podcasts', tags: ['True Crime', 'Society & Culture'] },
+    { id: '1222114325', name: 'Up First from NPR', by: 'NPR', tags: ['News'] }
+  ],
+  gb: [
+    { id: '1718287198', name: 'The Rest Is Entertainment', by: 'Goalhanger', tags: ['TV & Film', 'News'] },
+    { id: '1611374685', name: 'The Rest Is Politics', by: 'Goalhanger', tags: ['News', 'Government'] },
+    { id: '1640878689', name: 'The News Agents', by: 'Global', tags: ['News'] },
+    { id: '1537788786', name: 'The Rest Is History', by: 'Goalhanger', tags: ['History'] },
+    { id: '1743030473', name: 'The Rest Is Politics: US', by: 'Goalhanger', tags: ['News', 'Government'] },
+    { id: '1838594107', name: 'The Romesh Ranganathan Show', by: 'Ranga Bee', tags: ['Comedy', 'Society & Culture'] },
+    { id: '1510251497', name: 'Parenting Hell with Rob Beckett and Josh Widdicombe', by: 'Keep It Light Media / Spotify Studios', tags: ['Comedy', 'Kids & Family'] },
+    { id: '6806979595', name: 'Bear Hunt', by: 'Goalhanger', tags: ['Fiction', 'Arts'] },
+    { id: '1853007888', name: 'The Rest Is Science', by: 'Goalhanger', tags: ['Science'] },
+    { id: '1560176558', name: 'My Therapist Ghosted Me', by: 'Global', tags: ['Comedy', 'Society & Culture'] },
+    { id: '1630722986', name: 'The Trial of Russell Brand', by: 'The Times', tags: ['News', 'True Crime'] },
+    { id: '1465739231', name: 'Russell Brand: On Trial', by: 'Sky News', tags: ['News', 'Society & Culture'] }
+  ],
+  jp: [
+    { id: '1575465539', name: 'マユリカのうなげろりん！！', by: 'ラジオ関西', tags: ['コメディ'] },
+    { id: '1647482386', name: '安住紳一郎の日曜天国', by: 'TBS RADIO', tags: ['レジャー', '社会／文化'] },
+    { id: '1450522865', name: '歴史を面白く学ぶコテンラジオ （COTEN RADIO）', by: 'COTEN inc.', tags: ['歴史'] },
+    { id: '1874531482', name: '朝井リョウ・加藤千恵 信頼できない語り手', by: 'ニッポン放送', tags: ['アート'] },
+    { id: '1572229955', name: '大久保佳代子とらぶぶらLOVE', by: 'TBS RADIO', tags: ['コメディ', '社会／文化'] },
+    { id: '1533649648', name: 'TBSラジオ『ジェーン・スーと堀井美香の「OVER THE SUN」』', by: 'TBS RADIO', tags: ['レジャー', '社会／文化'] },
+    { id: '400203229', name: 'NHKラジオニュース', by: 'NHK (Japan Broadcasting Corporation)', tags: ['ニュース'] },
+    { id: '1681528378', name: '紅しょうがは好きズキ！', by: 'ラジオ関西', tags: ['コメディ'] },
+    { id: '6820836192', name: '山添寛・渡辺銀次 惑 -まどい- 【オールナイトニッポンPODCAST】', by: 'ニッポン放送', tags: ['社会／文化'] },
+    { id: '1366187377', name: '飯田浩司のOK! Cozy up！ Podcast【最新回のみ】', by: 'ニッポン放送', tags: ['ニュース'] },
+    { id: '1601910075', name: 'ダイアンのTOKYO STYLE', by: 'TBS RADIO', tags: ['コメディ'] },
+    { id: '1651795950', name: '空気階段の踊り場', by: 'TBS RADIO', tags: ['コメディ'] }
+  ],
+};
+
+/* 节目本体在①里只有名单那几项，集数与「上次更新」要等③取回来。
+ * 这四档是详情屏的主推样本，手写；其余节目进详情屏时不写集数——接口没给的就是没给，不编数 */
+const POD_SHOW_META = {
+  '1573189055': { count: 1058, updated: '2026-10-15' },
+  '1582119137': { count: 118, updated: '2026-10-13' },
+  '1559695855': { count: 210, updated: '2026-10-12' },
+  '1200361736': { count: 2380, updated: '2026-10-15' },
+};
+
+/* 手写的那几行 = ③给回的那一批里排在最前面的几行（其余按这一档的更新间隔续满一批）：
+ * title / date / sec / intro 四项，intro 就是③里那一集简介的位置，短Description 缺席时整条不写 */
+const POD_EPISODES = {
+  /* 声动早咖啡 */
+  '1573189055': [
+    { title: '咖啡豆涨价这一年，咖啡店怎么把价格撑住', date: '2026-10-15', sec: 1086,
+      intro: '从期货价谈到门店定价，中间隔着多少层成本；这一期把账算了一遍。' },
+    { title: '环球影城为何押注「惊吓体验」', date: '2026-10-14', sec: 972,
+      intro: '限定项目做成常年项目，背后是客流结构的变化，不是一次节日营销。' },
+    { title: '一家做内容的公司，为什么要自己发手机', date: '2026-10-13', sec: 1140 },
+    { title: '把「会员」当成产品而不是促销', date: '2026-10-10', sec: 1015,
+      intro: '续费率这件事，运营说不上话，产品得自己回答。' },
+    { title: '出海的第一课：先把当地同事的时间表看懂', date: '2026-10-09', sec: 890 },
+    { title: '这期聊聊招人：简历之外的东西从哪看出来', date: '2026-10-08', sec: 1205,
+      intro: '面试聊得开心不等于合适，这一期请了两位招人踩过坑的朋友。' },
+  ],
+  /* 岩中花述 */
+  '1582119137': [
+    { title: '和一位舞者聊「练习」这件事', date: '2026-10-13', sec: 2510,
+      intro: '她说.repeat 的不是动作，是当天的心情。' },
+    { title: '花园里的第三种声音', date: '2026-10-06', sec: 2380 },
+    { title: '把一件旧家具留下来，需要几个理由', date: '2026-09-29', sec: 2605,
+      intro: '修复师、收藏者和一位嫌占地方的家属，三种立场放在一起聊。' },
+    { title: '关于「得体」的一次争论', date: '2026-09-22', sec: 2295 },
+    { title: '秋天适合重读的那两本书', date: '2026-09-15', sec: 2710,
+      intro: '一本书读了三遍，另一本读了三十页就放下了，都算读完。' },
+  ],
+  /* 知行小酒馆 */
+  '1559695855': [
+    { title: '把家庭账本重做一遍，只留三张表', date: '2026-10-12', sec: 3120,
+      intro: '不是记账，是把钱的去向看清楚；表格模板在节目说明里。' },
+    { title: '市场安静的那几周，人最容易做错决定', date: '2026-10-05', sec: 2860 },
+    { title: '一期关于「留多少现金」的讨论', date: '2026-09-28', sec: 3010,
+      intro: '答案不在收益率里，在你多久会用到这笔钱。' },
+    { title: '第一次买房时最容易忽略的四件事', date: '2026-09-21', sec: 3355 },
+    { title: '为什么我们总把「长期」说成一件轻松事', date: '2026-09-14', sec: 2680 },
+  ],
+  /* The Daily */
+  '1200361736': [
+    { title: 'The one big idea that could change your day', date: '2026-10-15', sec: 2630 },
+    { title: 'A story reported from the ground, twice', date: '2026-10-14', sec: 2510,
+      intro: 'Two reporters, two weeks, one disagreement about what mattered.' },
+    { title: 'What the numbers leave out', date: '2026-10-13', sec: 2415 },
+    { title: 'The interview that ran long', date: '2026-10-12', sec: 2890 },
+    { title: 'A Monday briefing', date: '2026-10-12', sec: 2380,
+      intro: 'Three stories to start the week, each under eight minutes.' },
+  ],
+};
+
+/* 没手写的节目也点得进详情：这里按①给得出的字段合成单集（集数与更新日期不给，就不显示）。
+ * 判例同 lyricFor()：形状是真的（按档期一集一集往前排、时长 20–90 分钟、标题长短不一），文字是占位 */
+const POD_EP_TITLES = [
+  '本期先把这件事说清楚',
+  '请来一位不太愿意自我介绍的嘉宾',
+  '上半段聊现象，下半段给方法',
+  '听众来信：你们问的那三件事',
+  '聊一个我们内部争了两天的话题',
+  '把上次没说完的那半句补上',
+  '从一个小问题聊开',
+  '这一期有点长，但每段都有用处',
+];
+
+/* ③一次请求给回的那一批，就是详情屏这一列的全部内容：给多少上多少，不人为截断、不分页、没有「加载更多」。
+ * 50 就是 entity=podcastEpisode 一次响应给得出的条数上限；总集数不到这个数的档，按它自己的集数取满 */
+const POD_EPISODE_BATCH = 50;
+
+/* 'YYYY-MM-DD' → 本地日期（不用 Date.parse，避免时区把日子挪前一天） */
+const podDay = (d) => new Date(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+const podIso = (t) => `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+
+const podEpisodesOf = (show) => {
+  const n = Math.min(POD_EPISODE_BATCH, show.count || POD_EPISODE_BATCH);
+  const out = (POD_EPISODES[show.id] || []).slice();
+  const hand = out.length;
+  /* 手写的那几行就是「这一批给回的最前面几行」，剩下的按这一档自己的更新间隔续排到位 */
+  const gap = hand > 1
+    ? Math.max(1, Math.min(14, Math.round((podDay(out[hand - 2].date) - podDay(out[hand - 1].date)) / 86400000)))
+    : 7;
+  const anchor = hand ? podDay(out[hand - 1].date) : new Date(2026, 9, 15);
+  for (let i = hand; i < n; i++) {
+    const h = hash(show.id + '-' + i);
+    out.push({
+      title: POD_EP_TITLES[(h >>> 3) % POD_EP_TITLES.length],
+      date: podIso(new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() - (i - hand + 1) * gap)),
+      sec: 1200 + (h % 4200),
+      /* 一集简介在③里就可能是空的：这里也留空，行少一行，不硬凑 */
+      intro: h % 3 === 0 ? `${show.name} 第 ${(h % 90) + 10} 期 · 这一期聊的是${(show.tags || ['这个话题'])[0]}。` : '',
+    });
+  }
+  return out;
+};
+
+/* 按号找节目：榜单与搜索都只给条目本身，详情要拿这个号再去打一次③。
+ * 订阅名单与收听进度存的是号（本机状态），所以这一份索引得跨地区查 */
+const podShowById = (id) => Object.keys(POD_CHART).reduce((hit, k) => hit
+  || POD_CHART[k].find((s) => s.id === String(id)), null);
+
+/* 详情屏要的东西一次凑齐：名单项 + ③才给得出的集数与更新日期 + 这一批给回的单集
+ * （集数要先并进去，podEpisodesOf 才知道这一档该排到几集） */
+const podDetailOf = (show) => {
+  const merged = { ...show, ...(POD_SHOW_META[show.id] || {}) };
+  return { ...merged, episodes: podEpisodesOf(merged) };
+};
+
+/* 订阅与收听进度：这三条接口<em>一条都给不出</em>（Apple 的订阅在账号侧、进度在播放器侧）。
+ * 所以它们是<em>本机状态</em>：下面两份种子只是「这台设备上已经有了的两条」，
+ * 运行时只在电台首页那一区取消收听（写本机 LS.podSub），不写回任何平台；
+ * 详情屏的操作行只有「继续播放」那一颗，本轮没有加进本机的入口（见 index.html 说明节） */
+const POD_SUB_SEED = ['1573189055', '1200361736'];
+const POD_PROGRESS_SEED = [
+  { id: '1573189055', idx: 2, left: 412 },
+  { id: '1200361736', idx: 4, left: 1830 },
+];
+
+/* 电台首页一次铺 10 张（①固定 50 条，落地时按 50 条分页取完） */
+const POD_CHART_PAGE = 10;
+
 
 /* 大家都在搜：真实侧是各平台合并的热搜榜，屏上截前 10 条（见 app.js 的 SEARCH_HOT_LIMIT） */
 const HOT_WORDS = ['晴天', '晚安钢琴曲', '孤勇者', '咪咕音乐', 'lofi 学习', '错位时空', '漠河舞厅', '反方向的钟', '起风了', '山丘', '晚风心里吹', '若月亮没来'];

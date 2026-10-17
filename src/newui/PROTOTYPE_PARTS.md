@@ -5,8 +5,8 @@
 
 ## 无损校验数字（本次生成实测，运行时断言）
 
-- index.html 元素：原件 **1049** = 各件持有之和 **1049**（重复 0 / 丢失 0 / 无归属 0）。
-- styles.css 规则：原件 **678** 条 = 各件收纳之和 **678**；选择器 **700** 个，逐条唯一归属（@media 2 块整体归 _chrome，@keyframes 按登记表归属）。
+- index.html 元素：原件 **1415** = 各件持有之和 **1415**（重复 0 / 丢失 0 / 无归属 0）。
+- styles.css 规则：原件 **739** 条 = 各件收纳之和 **739**；选择器 **765** 个，逐条唯一归属（@media 2 块整体归 _chrome，@keyframes 按登记表归属）。
 - app.js：只读；件头注释的符号行号在运行时实探，符号缺失即报错退出。
 - 四个原型文件（index.html / styles.css / app.js / data.js）零改动。
 
@@ -15,7 +15,7 @@
 | 单元 | 件（相对 parts/） | 持有元素 | 收纳规则 | 一句话 |
 |---|---|---|---|---|
 | 壳层 | `_shell` | 16 | 3 | 文档壳与页面骨架：html/head/body、#viewport、五只 .page |
-| V1–V4 | `_chrome` | 596 | 233 | 查看器 chrome |
+| V1–V4 | `_chrome` | 887 | 246 | 查看器 chrome |
 | U01 | `common-control/topbar` | 12 | 8 | .topbar 吸顶头部 |
 | U02 | `common-control/icon-btn` | 0 | 0 | .icon-btn 圆钮原子 |
 | U03 | `common-control/pulse-dot` | 0 | 3 | .pulse-dot 音源告警呼吸点 |
@@ -40,16 +40,15 @@
 | U22 | `common-control/toggle` | 0 | 4 | .toggle / .sw-row 开关行唯一定义 |
 | U23 | `common-control/sprite` | 100 | 1 | SVG sprite |
 | U30 | `common-control/eq-bars` | 0 | 5 | .sr-title .eq 播放中三柱均衡器 |
-| U28+U35 | `common-control/chip-row` | 2 | 4 | chip 行：首页 .rank-tabs 与歌单页 .cat-row(sticky) 合并为一件，不再拆细；歌单首位标签取 PL_TAG_REC「推荐」 |
+| U28+U35 | `common-control/chip-row` | 2 | 4 | chip 行：首页 .rank-tabs 与<em>一处</em> .cat-row(sticky) |
 | U34 | `common-control/page-head` | 9 | 5 | .page-head 公共页头 |
-| U24 | `home/banner` | 3 | 12 | .banner-wrap 轮播三条 |
+| U24 | `home/banner` | 3 | 12 | .banner-wrap 轮播两条 |
 | U25 | `home/quick-row` | 1 | 5 | .quick-row 快捷入口四宫格 |
 | U26 | `home/daily-card` | 2 | 9 | .daily-card 今日推荐卡 |
 | U27 | `home/pl-card` | 7 | 7 | .pl-grid / .pl-card 推荐歌单区块 |
 | U29 | `home/song-list` | 8 | 20 | .song-list 热门单曲区块 |
 | U31 | `home/artist-card` | 4 | 4 | .artist-card 热门歌手横滚 |
 | U32 | `home/section-note` | 2 | 1 | .section-note 区块说明灰字 |
-| U33 | `home/radio-card` | 4 | 7 | .radio-grid / .radio-card / .wip-tag 随手听 |
 | U36 | `playlist/my-pl` | 7 | 7 | .my-pl-row 我的歌单一排 |
 | U37 | `playlist/pl-count` | 1 | 1 | .pl-count「已列出 N / M 个」计数行 |
 | U38 | `playlist/pl-pool` | 4 | 0 | 推荐池区块 |
@@ -71,22 +70,27 @@
 | U54 | `player/stage-dots` | 3 | 0 | .stage-dots 舞台指示点 |
 | U55 | `player/player-meta` | 7 | 9 | .player-meta |
 | U56 | `player/player-source` | 1 | 2 | .player-source 平台+音质文本行 |
-| U57 | `player/seek` | 3 | 6 | .seek 进度条 |
-| U58 | `player/seek-time` | 3 | 1 | .seek-time 起止时间行 |
-| U59 | `player/player-controls` | 10 | 6 | .player-controls / .pc 主传输行三颗 |
+| U57 | `player/seek` | 6 | 6 | .seek 进度条 |
+| U58 | `player/seek-time` | 6 | 1 | .seek-time 起止时间行 |
+| U59 | `player/player-controls` | 20 | 6 | .player-controls / .pc 主传输行三颗 |
 | U60 | `player/player-tools` | 16 | 4 | .player-tools / .pt-btn 次级工具行五颗 |
 | U61 | `player/lrc-float` | 6 | 8 | .lrc-float 歌词悬浮窗 |
 | 搜索层壳 | `search/_layer` | 1 | 1 | search-layer 壳层 |
-| U62 | `search/sc-top` | 9 | 10 | .sc-top / .sc-box / .sc-cancel 搜索头排 |
+| U62 | `search/sc-top` | 18 | 10 | .sc-top / .sc-box / .sc-cancel 搜索头排 |
 | U63 | `search/sc-tabs` | 0 | 5 | .sc-tabs 单曲/歌单分段条 |
 | U64 | `search/sc-body` | 1 | 6 | #searchBody 滚动体 + .sc-label / .sc-clear |
 | U65 | `search/sc-result` | 0 | 3 | .sc-empty / .sc-hint 结果空态与提示族 |
 | 详情层壳 | `songlist-detail/_layer` | 1 | 4 | pl-layer 推入壳层 |
 | U66 | `songlist-detail/pl-bg` | 1 | 1 | .pl-bg 封面氛围层 |
-| U67 | `songlist-detail/pl-top` | 8 | 4 | .pl-top / .pl-crumb / .pl-fav-btn 顶排 |
+| U67 | `songlist-detail/pl-top` | 28 | 5 | .pl-top / .pl-crumb / .pl-fav-btn 顶排 |
 | U68 | `songlist-detail/pl-hero` | 1 | 7 | .pl-hero 头图区 |
 | U69 | `songlist-detail/pl-actions` | 1 | 5 | .pl-actions 播放全部 + 随机钮 |
 | U70 | `songlist-detail/pl-tracks` | 1 | 1 | #plTracks 曲目表 |
+| U81 | `radio/home` | 9 | 31 | 电台首页 |
+| U82 | `radio/detail` | 7 | 13 | 播客详情层 |
+| U83 | `radio/search` | 2 | 0 | 搜播客层 |
+| U84 | `radio/episode` | 10 | 9 | 单集屏 |
+| U85 | `sheets/region-sheet` | 6 | 0 | podRegionSheet 地区抽屉实例件 |
 | U72 | `sheets/source-sheet` | 29 | 2 | sourceSheet 音源浮层实例 |
 | U73 | `sheets/plid-sheet` | 15 | 1 | plIdSheet 打开歌单浮层实例 |
 | U74 | `sheets/create-sheet` | 11 | 0 | createSheet 新建歌单浮层实例 |

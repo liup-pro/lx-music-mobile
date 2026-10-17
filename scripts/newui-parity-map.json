@@ -96,9 +96,6 @@
     "home/quick-row": [
       "components/QuickRow/QuickRow.tsx"
     ],
-    "home/radio-card": [
-      "components/RadioCard/RadioCard.tsx"
-    ],
     "home/section-note": [
       "components/SectionNote/SectionNote.tsx"
     ],
@@ -176,6 +173,22 @@
     ],
     "playlist/pl-count": [
       "components/PlCount/PlCount.tsx"
+    ],
+    "radio/detail": [
+      "components/Minibar/Minibar.tsx",
+      "components/SongRow/SongRow.tsx",
+      "screens/SonglistDetail/PlaylistHero.tsx"
+    ],
+    "radio/episode": [
+      "components/Art/Art.tsx",
+      "components/ArtistCard/ArtistCard.tsx",
+      "components/ChartArt/ChartArt.tsx",
+      "screens/Player/sheets/CommentNode.tsx",
+      "screens/SonglistDetail/PlaylistHero.tsx"
+    ],
+    "radio/home": [
+      "components/SongRow/SongRow.tsx",
+      "screens/SonglistDetail/PlaylistHero.tsx"
     ],
     "rank/chart-art": [
       "components/ChartArt/ChartArt.tsx"

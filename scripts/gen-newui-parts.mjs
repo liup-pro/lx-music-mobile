@@ -139,7 +139,7 @@ const ANCHORS = [
   ['cls:viewport', '_shell', 'self'], ['cls:page', '_shell', 'self'],
   ['cls:banner-wrap', 'U24', 'claim'], ['cls:quick-row', 'U25', 'claim'],
   ['sec:page-home:0', 'U16', 'claim'], ['sec:page-home:1', 'U26', 'claim'], ['sec:page-home:2', 'U27', 'claim'],
-  ['sec:page-home:3', 'U29', 'claim'], ['sec:page-home:4', 'U31', 'claim'], ['sec:page-home:5', 'U33', 'claim'],
+  ['sec:page-home:3', 'U29', 'claim'], ['sec:page-home:4', 'U31', 'claim'],
   ['cls:rank-tabs', 'U28_35', 'claim'], ['cls:section-note', 'U32', 'claim'],
   ['cls:page-head', 'U34', 'claim'], ['cls:cat-row', 'U28_35', 'claim'],
   ['sec:page-playlist:0', 'U36', 'claim'], ['sec:page-playlist:1', 'U38', 'claim'], ['id:plPoolCount', 'U37', 'claim'],
@@ -159,8 +159,15 @@ const ANCHORS = [
   ['id:searchLayer', 'USEARCH_shell', 'self'], ['cls:sc-top', 'U62', 'claim'], ['id:searchBody', 'U64', 'claim'],
   ['id:plLayer', 'UDETAIL_shell', 'self'], ['id:plBg', 'U66', 'claim'], ['cls:pl-top', 'U67', 'claim'],
   ['id:plHero', 'U68', 'claim'], ['id:plActions', 'U69', 'claim'], ['id:plTracks', 'U70', 'claim'],
+  // 电台（播客）四层：DOM 先后就是层级（首页 → 搜播客 → 详情 → 单集），与 #plLayer / #searchLayer 同一套右推层。
+  // 层内的顶排 / 地区条 / 空态 / 页尾 / 进度 / 传输行由各自的原子件认走（.pl-top→U67、.cat-row→U28_35、
+  // .empty-tip→U11、.foot-note→U10、.seek→U57、.player-controls→U59），本层 claim 只留壳与四族新骨架。
+  ['id:radioLayer', 'U81', 'claim'], ['id:podcastSearchLayer', 'U83', 'claim'],
+  ['id:podcastLayer', 'U82', 'claim'], ['id:episodeLayer', 'U84', 'claim'],
   ['id:sourceSheet', 'U72', 'claim'], ['id:plIdSheet', 'U73', 'claim'], ['id:createSheet', 'U74', 'claim'],
   ['id:plTagsSheet', 'U75', 'claim'], ['id:nameSheet', 'U47', 'claim'], ['id:moreSheet', 'U76', 'claim'],
+  // 地区抽屉：电台（播客）那一屏用的浮层，DOM 排在 #plTagsSheet 之后、#moreSheet 之前（层级由先后决定）
+  ['id:podRegionSheet', 'U85', 'claim'],
   ['id:playerSheet', 'U78_79', 'claim'], ['id:confirmSheet', 'U77', 'claim'],
   ['cls:toast', 'U06', 'claim'],
 ]
@@ -190,7 +197,7 @@ const P = (key, units, dir, file, title, extra = {}) => ({ key, units, dir, file
 const PART_DEFS = [
   P('_shell', '壳层', '', '_shell', '文档壳与页面骨架：html/head/body、#viewport、五只 .page（页面壳单列）', { js: ['switchTab', 'PAGES', 'init'], note: '页面本体就是这五只 .page 空壳，内容全部来自各单元件；五只页壳内的子件以「▸」占位注释互指。' }),
   P('_chrome', 'V1–V4', '', '_chrome', '查看器 chrome（非 App UI，不参与拆件）：设备切换条 / 手机外框 / 灵动岛 / 假状态栏 / Pad 侧栏专属节点 / 设计说明面板', { js: ['fitFrame', 'frameZoom', 'setDevice', 'FRAME', 'renderSwatches'], note: 'RN 有意不承接；本件仅作归属收容，避免混进语义单元（对撞报告 K 组）。' }),
-  P('_base', '公共底', '', '_base', '公共底：:root token 与 .phone.light 明亮档、reset、.ic、跨单元复用原子（.art/.chip/.icon-btn/.q-tag/.src-badge/.play-badge/.ghost-btn/.empty-tip/.section-*/.foot-note/.hot-words/分页状态行 .pl-status|.pl-end/.player-crumb/@keyframes spin）', { cssOnly: true, js: ['applyTheme', 'setTheme'], note: '共享样式只在这里出现一份，各件不复刻。' }),
+  P('_base', '公共底', '', '_base', '公共底：:root token 与 .phone.light 明亮档、reset、.ic、跨单元复用原子（.art/.chip/.icon-btn/.q-tag/.src-badge/.play-badge/.ghost-btn/.empty-tip/.section-*/.foot-note/.hot-words/分页状态行 .pl-status|.pl-end/右推层固定段壳 .pl-head（电台两层共用，见 U81/U82）/.player-crumb/@keyframes spin）', { cssOnly: true, js: ['applyTheme', 'setTheme'], note: '共享样式只在这里出现一份，各件不复刻。' }),
 
   P('U01', 'U01', 'common-control', 'topbar', '.topbar 吸顶头部（头像 / 搜索条 / 波纹钮；U03 告警点静态实例在本件内）', { js: [], jsNote: '事件接线在 init() 尾部（#searchBtn / #castBtn / #avatarBtn）；头像首字由 renderProfile() 写入。' }),
   P('U02', 'U02', 'common-control', 'icon-btn', '.icon-btn 圆钮原子（样式归 _base）', { doc: true, occCls: ['.icon-btn'] }),
@@ -201,14 +208,14 @@ const PART_DEFS = [
   P('U07', 'U07', 'common-control', 'art', '.art 程序化封面原子（样式归 _base；由 app.js 生成，静态出现处见列表）', { doc: true, occCls: ['.art'], js: ['svgArt', 'svgAvatar', 'art', 'coverArt', 'faceArt', 'artIcon'] }),
   P('U08', 'U08', 'common-control', 'chip', '.chip 胶囊原子（样式归 _base）', { doc: true, occCls: ['.chip'] }),
   P('U09', 'U09', 'common-control', 'section', '.section / .section-head 区块壳（样式归 _base；静态 section 由各宿主件持有，此处列全）', { doc: true, occCls: ['.section'] }),
-  P('U10', 'U10', 'common-control', 'foot-note', '.foot-note 页尾说明（五处静态实例全部归本件；样式归 _base；四页固定文案在件内）', { js: ['PLD_FOOT'] }),
+  P('U10', 'U10', 'common-control', 'foot-note', '.foot-note 页尾说明（五处静态实例全部归本件：四页 + 歌单详情层；样式归 _base；四页固定文案在件内。<em>电台首页与播客详情那两处页尾本轮撤掉</em>——屏上不解释接口口径，口径移到 index.html 说明节）', { js: ['PLD_FOOT'] }),
   P('U11', 'U11', 'common-control', 'empty-tip', '.empty-tip 空态（三处静态实例归本件；样式归 _base；固定文案在件内）', { js: ['PLD_EMPTY'] }),
   P('U12', 'U12', 'common-control', 'ghost-btn', '.ghost-btn 幽灵按钮原子（样式归 _base；「播放全部 N 首」文案见符号行）', { doc: true, occCls: ['.ghost-btn'], js: ['renderSongs', 'PLD_LABELS'] }),
   P('U13', 'U13', 'common-control', 'play-badge', '.play-badge 封面播放角标原子（样式归 _base）', { doc: true, occCls: ['.play-badge'] }),
   P('U14', 'U14', 'common-control', 'q-tag', '.q-tag 音质/时长小标签原子（样式归 _base；静态实例在 U51 件内）', { doc: true, occCls: ['.q-tag'] }),
   P('U15', 'U15', 'common-control', 'src-badge', '.src-badge 平台来源角标原子（样式归 _base；songRow 生成）', { doc: true, occCls: ['.src-badge'] }),
-  P('U16', 'U16', 'common-control', 'hscroll-recent', '.hscroll + .recent-card 继续收听横滚（含区块壳与「清空记录」钮）', { js: ['renderRecent', 'recentIds', 'clearRecent', 'RECENT_LIMIT'] }),
-  P('U17', 'U17', 'common-control', 'sheet-chrome', '.sheet 浮层 chrome 定义（mask/body/handle/title/sub + 164dfa4 钉住规则 #playerSheet .sheet-body/#psBody——钉住归 chrome，不归评论件；八实例件继承）；本轮口径定稿：八只面板共用 z-index:80，层级高低由 index.html 里的先后决定「同层里谁写在后面谁压在上面」，故第二层 #moreSheet、第三层 #confirmSheet 必须排在各面板之后（#moreSheet 已从 #playerSheet 之前挪到之后），收层一次只收最上面那一层', { doc: true, sheetIds: ['sourceSheet', 'plIdSheet', 'createSheet', 'plTagsSheet', 'nameSheet', 'moreSheet', 'playerSheet', 'confirmSheet'], js: ['openSheet', 'openLayer', 'closeLayer', 'closeTopSheet'] }),
+  P('U16', 'U16', 'common-control', 'hscroll-recent', '.hscroll + .recent-card 继续收听横滚（含区块壳与「清空记录」钮）；.hscroll 这条横滚壳现在有两处静态实例——本件的继续收听、电台首页的订阅那一区（件在 U81，行卡样式各归各家）', { js: ['renderRecent', 'recentIds', 'clearRecent', 'RECENT_LIMIT'] }),
+  P('U17', 'U17', 'common-control', 'sheet-chrome', '.sheet 浮层 chrome 定义（mask/body/handle/title/sub + 164dfa4 钉住规则 #playerSheet .sheet-body/#psBody——钉住归 chrome，不归评论件；九实例件继承）；本轮口径定稿：九只面板共用 z-index:80，层级高低由 index.html 里的先后决定「同层里谁写在后面谁压在上面」，故第二层 #moreSheet、第三层 #confirmSheet 必须排在各面板之后（#moreSheet 已从 #playerSheet 之前挪到之后），收层一次只收最上面那一层；新增的 #podRegionSheet（地区抽屉，实例件 U85）排在 #plTagsSheet 之后、#moreSheet 之前', { doc: true, sheetIds: ['sourceSheet', 'plIdSheet', 'createSheet', 'plTagsSheet', 'podRegionSheet', 'nameSheet', 'moreSheet', 'playerSheet', 'confirmSheet'], js: ['openSheet', 'openLayer', 'closeLayer', 'closeTopSheet'] }),
   P('U18', 'U18', 'common-control', 'group-label', '.group-label 浮层分组标题（「已安装音源/音乐平台/音质/导入音源」等文案见符号行；.fold 变体 + .fold-toggle 折叠开关归本件，尾行 .fold-more 归 U19）', { doc: true, occCls: ['.group-label'], js: ['renderSheet', 'renderTagGroups', 'scriptFoldedNow'] }),
   P('U19', 'U19', 'common-control', 'opt-list', '.opt-list / .opt-row（radio/or-body/or-state/opt-ic）选项行族；行尾移除钮 .or-del 与列表尾「还有 N 个没显示」行 .fold-more 归本件', { doc: true, occCls: ['.opt-list'], js: ['renderSheet', 'actRow', 'openMore', 'scriptRow'] }),
   P('U20', 'U20', 'common-control', 'op-box', '.op-box / .op-input / .op-go / .op-err / .op-file 输入行族（.op-file 是本机导入那枚次级钮；打开/创建/保存钮文案在实例件内）', { doc: true, occCls: ['.op-box'], js: ['handleImport', 'handleImportFile', 'importGate', 'submitCreateList', 'saveNick', 'tryOpenByPid'] }),
@@ -216,17 +223,18 @@ const PART_DEFS = [
   P('U22', 'U22', 'common-control', 'toggle', '.toggle / .sw-row 开关行唯一定义（静态元素在 sheets/player-sheet 件内；「等当前这首放完再停」文案见 renderTimerSheet）', { doc: true, occCls: ['.sw-row'], js: ['renderTimerSheet', 'setToggle'] }),
   P('U23', 'U23', 'common-control', 'sprite', 'SVG sprite（36 枚 symbol 全量归本件；RN 侧经 gen-newui-icons.mjs 生成 icons.ts，勿手改）', { js: ['setIcon'], jsNote: 'symbol 按名取用；本件与 RN 生成物 scripts/gen-newui-icons.mjs 同源。' }),
   P('U30', 'U30', 'common-control', 'eq-bars', '.sr-title .eq 播放中三柱均衡器（含 @keyframes eq；元素由 songRow 生成）', { doc: true, js: ['songRow'] }),
-  P('U28_35', 'U28+U35', 'common-control', 'chip-row', 'chip 行：首页 .rank-tabs 与歌单页 .cat-row(sticky) 合并为一件，不再拆细；歌单首位标签取 PL_TAG_REC「推荐」（交叉轴居中靠 _base .chip 的 line-height:1+justify-content:center）。CatStickerBar 是 RN 为平台缺 sticky 自造的复制层，属实现税，不进原型件', { js: ['renderRankTabs', 'homeBoards', 'renderPlaylistPage', 'tagChip', 'plHotCats', 'PL_TAG_REC'] }),
+  P('U28_35', 'U28+U35', 'common-control', 'chip-row', 'chip 行：首页 .rank-tabs 与<em>一处</em> .cat-row(sticky)（歌单页分类条）合并为一件，不再拆细；歌单首位标签取 PL_TAG_REC「推荐」（交叉轴居中靠 _base .chip 的 line-height:1+justify-content:center）。<em>电台首页那条地区胶囊本轮撤掉</em>——地区改成抽屉（实例件 U85），这一屏不再出现 .cat-row。CatStickerBar 是 RN 为平台缺 sticky 自造的复制层，属实现税，不进原型件', { js: ['renderRankTabs', 'homeBoards', 'renderPlaylistPage', 'tagChip', 'plHotCats', 'PL_TAG_REC'] }),
   P('U34', 'U34', 'common-control', 'page-head', '.page-head 公共页头（歌单/排行/设定三页；含 .pl-open-btn「打开歌单」）', { js: ['renderPlaylistPage'] }),
 
-  P('U24', 'U24', 'home', 'banner', '.banner-wrap 轮播三条（track/dots；b-tag、veil 由 renderBanners 生成；电台条「建设中」文案见符号行）', { js: ['bannerItems', 'renderBanners', 'bannerPaint', 'startBannerCarousel', 'BANNER_ACTION'] }),
-  P('U25', 'U25', 'home', 'quick-row', '.quick-row 快捷入口四宫格（每日推荐/排行榜/电台/我喜欢，QUICK 见 data.js）', { js: ['renderQuick'] }),
+  P('U24', 'U24', 'home', 'banner', '.banner-wrap 轮播两条（track/dots；b-tag、veil 由 renderBanners 生成）：一条音源公告、一条正在播放（有歌才出现）。<em>电台那一条本轮撤掉</em>——首页只留快捷入口那一格电台，同一屏不给三个入口指向同一层', { js: ['bannerItems', 'renderBanners', 'bannerPaint', 'startBannerCarousel', 'BANNER_ACTION'] }),
+  P('U25', 'U25', 'home', 'quick-row', '.quick-row 快捷入口四宫格（每日推荐/排行榜/电台/我喜欢，QUICK 见 data.js）：<em>电台那一格现在是全站唯一的电台入口</em>，点它推入 U81 那一层', { js: ['renderQuick'] }),
   P('U26', 'U26', 'home', 'daily-card', '.daily-card 今日推荐卡（含区块壳）', { js: ['renderDaily', 'dailyPool', 'todayLabel'] }),
   P('U27', 'U27', 'home', 'pl-card', '.pl-grid / .pl-card 推荐歌单区块（首页那份；歌单页/我的页复用见 U38/U46）', { js: ['renderPlaylists', 'plCard'] }),
   P('U29', 'U29', 'home', 'song-list', '.song-list 热门单曲区块（section 壳 + ghost-btn + 列表壳；rank-tabs 子块挖出归 chip-row；songRow/src-badge/q-tag/play-badge 复用 _base 与内容件）；本轮 songRow() 多收第 5 参 scene——只有传 \'queue\' 时行内「⋯」给 U80 那一屏专属菜单，其余落点不传、菜单不变', { js: ['renderSongs', 'songRow', 'currentSongs', 'currentBoard', 'HOME_SONG_LIMIT'] }),
   P('U31', 'U31', 'home', 'artist-card', '.artist-card 热门歌手横滚（含区块壳；section-note 挖出归 U32）', { js: ['renderArtists', 'ARTIST_LIMIT'] }),
   P('U32', 'U32', 'home', 'section-note', '.section-note 区块说明灰字（RN 缺件·页面内联，本轮拆件头号转正候选）', { js: ['renderArtists'] }),
-  P('U33', 'U33', 'home', 'radio-card', '.radio-grid / .radio-card / .wip-tag 随手听（私人 FM/赫兹电台 +「建设中」）', { js: ['renderRadio'] }),
+  // U33（首页电台区块 .radio-grid / .radio-card）本轮退役：首页只留快捷入口那一格电台，
+  // 编号不回收；.wip-tag 样式本体挪到 U84（单集屏那枚「界面示意」本轮也撤了：样式留着备用，屏上已无实例）。
 
   P('U36', 'U36', 'playlist', 'my-pl', '.my-pl-row 我的歌单一排（含区块壳；空态挖出归 U11）', { js: ['renderPlaylistPage'] }),
   P('U37', 'U37', 'playlist', 'pl-count', '.pl-count「已列出 N / M 个」计数行（RN 缺件·内联，转正候选）', { js: ['paintPlPool'] }),
@@ -267,10 +275,16 @@ const PART_DEFS = [
 
   P('UDETAIL_shell', '详情层壳', 'songlist-detail', '_layer', 'pl-layer 推入壳层（搜索层也复用这份基础样式，见 search/_layer 头注）', { js: ['openPlaylist', 'closePlLayer'] }),
   P('U66', 'U66', 'songlist-detail', 'pl-bg', '.pl-bg 封面氛围层（blur64+saturate150；RN 侧 CoverWash 是降级共通件）', { js: ['openPlaylist'] }),
-  P('U67', 'U67', 'songlist-detail', 'pl-top', '.pl-top / .pl-crumb / .pl-fav-btn 顶排（RN 缺件·内联，转正候选；面包屑文案见 PLD_CRUMB）', { js: ['PLD_CRUMB', 'togglePlFav'] }),
+  P('U67', 'U67', 'songlist-detail', 'pl-top', '.pl-top / .pl-crumb / .pl-fav-btn 顶排（RN 缺件·内联，转正候选；面包屑文案见 PLD_CRUMB）：静态实例现在有四层共用同一份顶排——歌单详情、电台首页（右槽是搜节目那颗 #podSearchBtn）、播客详情、单集屏（后两层右槽不放钮）；左槽一律是返回 chevron，靠本件那条 :first-child 规则转 180°。顶排一律<em>不做 sticky、不吸顶</em>，但落法分两种：<em>歌单详情与单集屏</em>顶排仍在滚动容器里随整层滚；<em>电台首页与播客详情</em>本轮起顶排挂在固定段 .pl-head 里，根本不参与滚动（所以「全站右推层没有第二处吸顶顶栏、别造 sticky」那条旧口径本轮作废，两屏靠结构分段而不是 sticky）。<em>本轮起</em>电台两层那颗 crumb 回显<em>节目名</em>而非类别词，长名字只截断一行：两条 #podcastLayer / #episodeLayer 的 .player-crumb>span 截断规则随本件登记（管的就是四层共用的那颗 crumb，不塞进 radio/ 那两件）；flex 容器里的裸文字挂不出省略号，所以详情屏那颗的标记也改成 .player-crumb>span 这个形状——与播放页、单集屏同一判例', { js: ['PLD_CRUMB', 'togglePlFav'] }),
   P('U68', 'U68', 'songlist-detail', 'pl-hero', '.pl-hero 头图区（ph-body/ph-sub/ph-meta/sep；「N/M 首可播」等文案在 openPlaylist）', { js: ['openPlaylist', 'chartArt'] }),
   P('U69', 'U69', 'songlist-detail', 'pl-actions', '.pl-actions 播放全部 + 随机钮（RN 缺件·内联，转正候选；PLD_LABELS 文案见符号行；「播放全部」实心 .ghost-btn.solid 实例在 openPlaylist 内生成，样式本体在 _base）', { js: ['PLD_LABELS', 'openPlaylist'] }),
   P('U70', 'U70', 'songlist-detail', 'pl-tracks', '#plTracks 曲目表（song-list 复用 U29；分页状态行 .pl-status/.pl-end 样式在 _base——三页共用；PLD_STATUS 文案见符号行）；本轮起播那一列改由 plPlayableQueue() 出，顺手把「这一列是谁家的」标在数组上（queueOwner：本机一张单子的名字，其余 null），供 U80 的「移出」文案分叉', { js: ['renderPlTracks', 'plStatusRow', 'loadPlPage', 'plEndRow', 'PLD_STATUS', 'PLD_EMPTY', 'PL_PAGE_SIZE', 'plPlayableQueue'] }),
+
+  P('U81', 'U81', 'radio', 'home', '电台首页（#radioLayer 右推层，DOM 排在 #plLayer 之后、#podcastSearchLayer 之前）：<em>订阅那一区</em>（.subs-block/.subs-head/.subs-card + 每颗右上角 .subs-x 取消收听 + .subs-empty 空态，横滚壳复用 U16 的 .hscroll；标题右侧只剩「N 个节目」这个数）→ <em>当前地区那一行</em>（.pod-region：左边回显区名，右边「更多地区」那颗开抽屉 U85；胶囊行与 LS.podRegion 已撤，默认区固定在 cn）→ <em>排行榜主视觉</em>（.pod-list/.pod-row/.pod-rank/.pod-body/.pod-name/.pod-by/.pod-open，行是 div[role=button]）。一次 10 个 + 距底 160px 触底续取 + .pl-status/.pl-end（样式在 _base），第 3 批故意先失败一次；换区与取不到那一区走同一条状态行（loadPodRegion / podRetryRow）。顶排下那句能力边界说明与页尾口径句（.foot-note 归 U10）本轮撤掉，口径一律写进 index.html 说明节。<em>滚动结构（本轮按指令改成上半固定 + 列表独立滚，上一轮「整层一张滚动面」那条结论作废）</em>：外层 <em>#radioLayer{padding:0;overflow:hidden}</em>（这条 ID 规则随本件登记）→ 固定段 <em>.pl-head</em>（跨件原子，登记在 _base；本屏装顶排 + 订阅那一区 + 当前地区那一行）→ 滚动段<em>就是 .pod-list 自己</em>（#radioLayer>.pod-list 上 flex:1;overflow-y:auto，判例是 .pad / .land #plLayer 里 #plTracks 那一族，不再套一层壳）；.pl-status 与 .pl-end 由列表携带，跟着一起滚、留在列表尾，所以触底续取的 podChartScroll 换绑到 #podChartList（#podChartList 就是这一屏唯一的轴，距底 160px 不变），进层与换区都由 podChartAxis() 把这根轴归零。订阅区与顶排之间的呼吸走 .subs-block{margin-top:18px}（.pl-actions 那一档，原来是 2px，固定段里挨着顶栏太紧）；地区行与榜列之间 18（6 + 2 + 轴自身 padding-top 10）。横屏档（屏内高 368）把订阅区收到 .land .daily-card 的 84 档并收 .pl-head 内边距——这些覆盖归 _chrome。订阅与收听进度<em>不是接口给的</em>，是本机状态（LS.podSub / LS.podProgress）', { js: ['openRadio', 'closeRadio', 'renderPodSub', 'podSubIds', 'podSaveSubs', 'unsubPod', 'renderPodRegion', 'podRegionLabel', 'POD_REGION_DEFAULT', 'podChartAxis', 'podChartOf', 'resetPodChart', 'podRow', 'podStatusRow', 'renderPodChart', 'podRetryRow', 'loadPodRegion', 'loadPodChartPage', 'podChartScroll', 'POD_TXT', 'podMin', 'podDate'] }),
+  P('U82', 'U82', 'radio', 'detail', '播客详情层（#podcastLayer）：.pl-bg 氛围层 + .pl-hero/.pl-actions 复用 U68/U69（内容 openPodcast() 生成：节目名 / 作者 / 分类词 / 共 N 集 / 最新单集日期 / 上次听到——<em>没有简介位，接口不给</em>）+ .ep-list 这一批取回的单集（.ep-head 小标题只留「单集」两字、.ep-row 行 = 集名两行截断 + .ep-meta 日期·时长·本机进度 tag + .ep-text 有摘要才有，<em>整行可点、行内不放按钮</em>——.ep-play 与列表尾 #podEpFoot 那句人话终点行本轮一起撤掉，接口给多少集就列多少集，不分页也不写解释行）。顶排右侧那颗收听（#podSubBtn，含 .on 实心渐变与 paintPodSubBtn）也撤了：这一屏只留 hero 那一颗「继续播放」，代价是「收进这台设备」在原型里没有入口，待用户定。<em>滚动结构（本轮按指令改成上半固定 + 列表独立滚，上一轮「整层滚、hero 跟着走」那条核对结论作废）</em>：外层 <em>#podcastLayer{padding:0;overflow:hidden}</em>（这条 ID 规则随本件登记）→ 固定段 <em>.pl-head</em>（跨件原子，登记在 _base；本屏装顶排 + .pl-hero + .pl-actions + .ep-head，hero 与操作行进固定段后不再被层的 padding 撑出一段滚不掉的空白）→ 滚动段<em>就是 .ep-list 自己</em>（#podcastLayer>.ep-list 上 flex:1;overflow-y:auto，与 U81 那根轴同一条判例）。小标题「单集」因此<em>移出滚动轴</em>：静态节点 #podEpHead 挂在 .pl-head 里，文字仍由 openPodcast() 灌（POD_TXT.epHead），轴里只有 .ep-row；进层时 openPodcast() 把这根轴 scrollTop 归零；小标题与首行之间 18（4 + 8 + 轴自身 padding-top 6）。那颗 crumb 回显<em>节目名</em>（长名字只截断，规则随 U67 登记，选择器本轮跨 .pl-head 一级改成后代式），不再用「名字一长就退回类别词」那个做法；横屏档把 hero 封面收到 84 档并置 min-height:0，覆盖归 _chrome', { js: ['openPodcast', 'epRow', 'closePodcastLayer', 'podNow', 'podProgress', 'podProgressOf', 'podSaveProgress'] }),
+  P('U83', 'U83', 'radio', 'search', '搜播客层（#podcastSearchLayer，复用 .search-layer 与 U62 的 .sc-top，写法与 U64/U65 那一屏同口径）：回车才发、正在搜索…、命中行复用 U81 的 podRow、底部只留命中数「N 个节目」（原先那句「点进去看最近几集」顺带删了）；无输入时<em>只给本机搜过的词</em>（LS.podSearchHistory，可清空），那句能力说明整条撤掉——播客没有「热搜」这件事（三条接口都不给），也不需要向用户解释自己能干什么。<em>这一屏仍是分区滚</em>：头部固定（输入框要常驻）+ .sc-body 自己滚，与搜歌那一屏（U64/U65）同一判例，不是电台自成一格；<em>但「四层里唯一分区滚」那句本轮作废</em>——电台首页（U81）与播客详情（U82）本轮也改成上半固定 + 列表独立滚，只是那两屏照 .pl-* 这一族写（.pl-head + 列表自己那根轴），不借用本件的 .sc-* 语义；输入框占位与右上那颗的 aria-label 本轮按 Apple 用词收成「搜节目名或作者」/「搜节目」', { js: ['openPodSearch', 'closePodSearch', 'renderPodSearch', 'submitPodSearch', 'podHitsOf', 'podWords', 'rememberPodQuery', 'podSearchHistory', 'podSearchQ', 'podSearchLoading'] }),
+  P('U84', 'U84', 'radio', 'episode', '单集屏（#episodeLayer，<em>只做界面</em>：这件事只写在 notes 与注释里，<em>屏上不挂任何角标</em>——原先那枚「界面示意」与把它摆进行内的 .epl-wip 覆盖规则本轮一并撤掉；样式本体 .wip-tag 仍随本件登记，留着备用，屏上已无实例）：.epl-head（.epl-cover + .epl-meta 集名/节目·日期）+ .epl-intro（:empty 时整行不占位，对应接口那一集摘要可缺席）+ .seek/.seek-time/.player-controls 复用 U57/U58/U59（后退 15 秒 · 播停 · 前进 30 秒）+ .group-label/.q-chips 倍速档（复用 U18/U21）；尾句「播到这里就停 · 没听完的位置会留在本机…」本轮撤掉，剩余秒数怎么留只写在说明节。它<em>不接歌曲那套取流</em>：本地计时走 epTick，关掉时 podSaveProgress 写本机。顶排同样随整层滚、不吸顶，<em>那颗 crumb 回显节目名</em>（Apple 的播放器位不写「单集」这种类别词；静态标记里原先那两字已清空，长名字截断规则随 U67 登记）', { js: ['openEpisode', 'closeEpisodeLayer', 'epToggle', 'epTick', 'epStop', 'epJump', 'paintEpisode', 'renderPodRates', 'bindEpisodeSeek', 'epState', 'EP_RATES', 'epSec'] }),
+  P('U85', 'U85', 'sheets', 'region-sheet', 'podRegionSheet 地区抽屉实例件（chrome 见 U17；写法<em>对标 #sourceSheet / #plTagsSheet</em>，但<em>不写 .sheet-sub 那一行解说</em>——原先那句「选一个地区，名单跟着换。」本轮撤掉，屏上只剩 .sheet-title「收听地区」，槽位宁可空着；分组目录由 openPodRegionSheet() 灌入 #podRegionBody，分组小标题 .group-label 归 U18、选项行族 .opt-list/.opt-row/.radio 归 U19，选中态就是行首那颗实心圆）。清单是 data.js 的 POD_REGION_GROUPS（5 组 42 区，key 就是排行榜接口地址里那一格国家码）；点一行 = 收层 + 换区 + 把 U81 那根榜列轴归零 + 重取这一区（loadPodRegion 里先 podChartAxis().scrollTop = 0 再重铺）。归本件的样式 0 条：这一层不新开任何视觉', { js: ['openPodRegionSheet', 'podRegionRow', 'podRegionSheet'] }),
 
   P('U72', 'U72', 'sheets', 'source-sheet', 'sourceSheet 音源浮层实例（chrome 见 U17；「音源只负责一件事…」sheetSub 与 q-note 三句由 renderSheet 生成，文案见符号行；含就绪置顶排序 sortedScripts、折叠开关 scriptFoldedNow/SCRIPT_FOLD_LIMIT、行尾移除 askRemoveScript/removeScript、在线+本机双路导入 importGate/receiveScript/handleImportFile）', { js: ['renderSheet', 'renderImportRow', 'handleImport', 'handleImportFile', 'importGate', 'receiveScript', 'scriptRow', 'askRemoveScript', 'removeScript', 'sortedScripts', 'scriptFoldedNow', 'SCRIPT_FOLD_LIMIT', 'SCRIPT_MAX', 'NO_SCRIPT'] }),
   P('U73', 'U73', 'sheets', 'plid-sheet', 'plIdSheet 打开歌单浮层实例（PLID 样例表与错误文案见符号行；本件持有「打开」按钮与三句固定提示）', { js: ['openPlIdSheet', 'PLID', 'pidOf', 'bareIdOf', 'renderPlIdPlats', 'renderPlIdSamples', 'plIdError'] }),
@@ -477,7 +491,8 @@ const CSS_MATCHERS = [
   ['U16', ['.hscroll', '.recent-card']],
   ['U17', ['.sheet', '#playerSheet', '#psBody', '#psMeta']],
   ['U18', ['.group-label', '.fold-toggle']],
-  ['U33', ['.radio-grid', '.radio-card', '.wip-tag']],
+  // U33（首页电台区块）本轮退役：.radio-grid / .radio-card 样式随区块一起从 styles.css 删掉，
+  // .wip-tag 挪到 U84（样式本体留着备用：单集屏那枚「界面示意」与它的 .epl-wip 覆盖规则本轮撤掉，屏上已无实例）。
   // .or-del：行尾移除钮（.opt-row 由 button 改 div[role=button] 后，这颗才是 button，与 .or-body/.or-state 同族）
   // .fold-more：opt-list 尾部「还有 N 个没显示」整行，与 .opt-row 同层级同职责
   ['U19', ['.opt-list', '.opt-row', '.radio', '.or-body', '.or-state', '.opt-ic', '.or-del', '.fold-more']],
@@ -530,8 +545,16 @@ const CSS_MATCHERS = [
   ['U76', ['.more-song']],
   ['U77', ['.cf-actions', '.cf-btn']],
   ['U79', ['.cmt-total', '.cmt-item', '.cmt-body', '.cmt-line', '.cmt-name', '.cmt-like', '.cmt-text', '.cmt-reply', '.cmt-to']],
+  // 电台（播客）四族新骨架。放在 _base 之前：像 `.pod-row .art`、`.ep-play .ic` 这种「本件类 + 原子类」
+  // 的组合选择器，matchOneSel 是先到先得，本件排在 _base 前才会归本件（与 U29 .song-row .art 同一判例）。
+  // U83（搜播客）没有新增样式：那一屏全部复用 .sc-* 与 U81 的 podRow，所以不列条目。
+  // 两层各自那条「外层定死 padding:0;overflow:hidden」按 ID 规则归本层（与 #psBody 归实例件同一判例）；
+  // 共用的固定段壳 .pl-head 排在 _base，不塞进 radio/ 那两件（与 .pl-status|.pl-end 跨件原子同一条判例）。
+  ['U81', ['#radioLayer', '.subs-block', '.subs-head', '.subs-card', '.sub-n', '.sub-l', '.subs-x', '.subs-wrap', '.subs-empty', '.pod-region', '.pod-list', '.pod-row', '.pod-rank', '.pod-body', '.pod-name', '.pod-by', '.pod-open']],
+  ['U82', ['#podcastLayer', '.ep-list', '.ep-head', '.ep-row', '.ep-body', '.ep-title', '.ep-meta', '.ep-text']],
+  ['U84', ['.wip-tag', '.epl-head', '.epl-cover', '.epl-meta', '.epl-by', '.epl-intro']],
   ['_shell', ['.viewport', '.page']],
-  ['_base', [':root', '*', 'html', 'body', 'button', 'h1', 'h2', 'h3', 'p', 'code', '.ic', '.art', '.icon-btn', '.chip', '.q-tag', '.src-badge', '.play-badge', '.empty-tip', '.section', '.section-head', '.section-title', '.section-more', '.section-sub', '.foot-note', '.foot-mark', '.ghost-btn', '.hot-words', '.pl-status', '.pl-end', '.player-crumb']],
+  ['_base', [':root', '*', 'html', 'body', 'button', 'h1', 'h2', 'h3', 'p', 'code', '.ic', '.art', '.icon-btn', '.chip', '.q-tag', '.src-badge', '.play-badge', '.empty-tip', '.section', '.section-head', '.section-title', '.section-more', '.section-sub', '.foot-note', '.foot-mark', '.ghost-btn', '.hot-words', '.pl-status', '.pl-end', '.pl-head', '.player-crumb']],
 ]
 const KF_PART = { spin: '_base', pulse: 'U03', eq: 'U30', pop: 'U55' }
 function matchOneSel(s0) {
@@ -704,10 +727,11 @@ const readme = `# new_design/parts —— 原型语义单元小件（派生物�
   - \`_base.css\`：:root token、reset、跨单元复用原子的唯一样本处（.art/.chip/.icon-btn/分页状态行等）。
   - \`_shell.html/.css\`：文档壳 + #viewport + 五只 .page 页壳（页面壳单列）。
   - \`_chrome.html/.css\`：查看器 chrome（V1–V4）——不是 App UI，RN 不承接，仅作归属收容。
-  - \`common-control/ home/ playlist/ rank/ mine/ setting/ player/ search/ songlist-detail/ sheets/\`：按页面分组的单元件，一件一单元（合并/继承规则见对撞报告第六节）。
+  - \`common-control/ home/ playlist/ rank/ mine/ setting/ player/ search/ songlist-detail/ sheets/ radio/\`：按页面分组的单元件，一件一单元（合并/继承规则见对撞报告第六节）；\`radio/\` 是电台（播客）四层——首页 / 详情 / 搜播客 / 单集屏。
 - 件里的 \`<!-- ▸ … -->\` 是「子树已划给别件」的占位指针，指回 parts 内文件；\`内容/定义件\`（如 U02/U07/sheet-chrome/timer-sheet/comment-sheet）无独立静态壳，头注列出全部出现处。
 - 固定文案留在件里（本来就在 HTML/符号行里）；对照 RN 侧时文案仍走 \`src/newui/const/\`，靠件头注的 app.js 符号行回溯，不靠复制。
-- 约定（对撞报告边界）：sheet = U17 chrome 定义件 + 八实例件继承，164dfa4 钉住规则归 chrome；.rank-tabs 与 .cat-row 合并为 chip-row 一件；播放器舞台按原型单元写件；CatStickerBar 是 RN 自造件不进 parts；查看器 chrome 不参与拆件。
+- 约定（对撞报告边界）：sheet = U17 chrome 定义件 + 九实例件继承（本轮新增 U85 地区抽屉），164dfa4 钉住规则归 chrome；.rank-tabs 与 .cat-row 合并为 chip-row 一件；播放器舞台按原型单元写件；CatStickerBar 是 RN 自造件不进 parts；查看器 chrome 不参与拆件。
+- 退役编号：<em>U33</em>（首页电台区块 .radio-grid / .radio-card）——首页只留快捷入口那一格电台，编号不回收，.wip-tag 样式本体挪到 U84。
 - 本次产出：${dirLine}。
 `
 writeFileSync(join(OUT, 'README.md'), readme, 'utf8')

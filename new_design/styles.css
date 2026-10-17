@@ -340,20 +340,108 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 .artist-card .art{width:68px;height:68px;border-radius:50%}
 .artist-card span{font-size:11.5px;color:var(--text-2);font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* ============ radio ============ */
-.radio-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.radio-card{
-  position:relative;overflow:hidden;height:108px;border-radius:var(--r-m);padding:16px;display:flex;flex-direction:column;justify-content:flex-end;
-  box-shadow:inset 0 0 0 1px var(--line);text-align:left;
-}
-.radio-card .bgart{position:absolute;inset:0;opacity:.5}
-/* 卡片是半透明封面压在页面底色上，底色跟着主题走，所以图标也必须跟着主题反相 */
-.radio-card .ic-top{position:absolute;top:16px;left:16px;width:20px;height:20px;color:var(--text);opacity:.85;z-index:2}
-.radio-card h4{position:relative;z-index:2;font-size:15px;font-weight:800;margin:30px 0 0}
-.radio-card p{position:relative;z-index:2;font-size:11px;color:var(--text-2);margin:5px 0 0}
+/* ============ wip 角标 ============
+ * 「建设中 / 界面示意」那枚毛玻璃角标的本体。首页电台区块已撤，单集屏面包屑那枚（写着「界面示意」，
+ * 连那条把它摆进行内的 .epl-wip 覆盖规则）也一并撤了：样式留着备用，屏上现在一枚实例都没有 */
 .wip-tag{position:absolute;top:12px;right:12px;z-index:2;font-size:9.5px;font-weight:800;letter-spacing:.4px;
   padding:3px 7px;border-radius:999px;color:var(--glass-ink);background:var(--glass);box-shadow:inset 0 0 0 1px var(--line);
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+
+/* ============ 电台（播客） ============
+ * 只引用上面已有的 token 与原子（.art / .q-tag / .chip / .section-more / .pl-top / .pl-hero / .pl-actions /
+ * .pl-status / .pl-end / .empty-tip / .seek / .player-controls / .q-chips，抽屉那一层再加
+ * .sheet-* 与 .group-label / .opt-list / .opt-row 那两族），
+ * 这一段落新增的是「榜单行 / 订阅区 / 地区行 / 剧集行 / 单集屏」这几族骨架，不新开一套视觉 */
+
+/* —— 电台首页 / 播客详情：上半固定 + 列表独立滚 ——
+ * 结构照项目里已有那一套（.search-layer 外层定死 + .sc-top flex:none + .sc-body flex:1 内滚），
+ * 但不把 .sc-* 的语义搬过来：固定段是这两层共用的 .pl-head（跨单元原子，登记在 _base），
+ * 滚动轴就是各自的列表本体——与 .pad / .land #plLayer 里 #plTracks「列表自己就是那根轴」同一判例，不再套一层壳。
+ * 层的 padding 只是平移：58/16/34 拆成固定段的 58/16/0 与滚动段的 0/16/34，数值一字未改。
+ * 分页状态行 .pl-status 由列表自己携带，所以它跟着一起滚、留在列表尾；触底续取的 podChartScroll 因此绑在 #podChartList。
+ * 顶排进固定段后不参与滚动，所以这两屏不需要 sticky；歌单详情与单集屏仍是整层滚，本段不碰。 */
+#radioLayer{padding:0;overflow:hidden}
+#podcastLayer{padding:0;overflow:hidden}
+.pl-head{flex:none;padding:58px 16px 0}
+#radioLayer>.pod-list{flex:1;overflow-y:auto;scrollbar-width:none;padding:10px 16px 34px}
+#radioLayer>.pod-list::-webkit-scrollbar{display:none}
+#podcastLayer>.ep-list{flex:1;overflow-y:auto;scrollbar-width:none;padding:6px 16px 34px}
+#podcastLayer>.ep-list::-webkit-scrollbar{display:none}
+
+/* —— 电台首页：订阅那一区（本机状态，横滚卡） ——
+ * margin-top 由 2 收到 18：固定段里顶排与「我听的」挨着太紧，取 .pl-actions 那一档 */
+.subs-block{margin:18px 0 6px}
+.subs-head{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
+.subs-head b{font-size:15px;font-weight:900;letter-spacing:.2px}
+.subs-head em{font-style:normal;font-size:11px;color:var(--text-3)}
+.subs-card{flex:none;width:132px;text-align:left;transition:.2s var(--ease)}
+.subs-card:active{transform:scale(.96)}
+.subs-card .art{width:132px;height:132px;border-radius:16px}
+.subs-card .sub-n{font-size:12.5px;font-weight:700;margin-top:8px;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.subs-card .sub-l{font-size:10.5px;color:var(--text-3);margin-top:3px;font-variant-numeric:tabular-nums}
+.subs-x{position:absolute;top:6px;right:6px;z-index:2;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  color:var(--glass-ink);background:var(--glass);box-shadow:inset 0 0 0 1px var(--line);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.subs-x .ic{width:11px;height:11px}
+.subs-wrap{position:relative;flex:none}
+.subs-empty{padding:12px 14px;border-radius:14px;background:var(--card);
+  box-shadow:inset 0 0 0 1px var(--hairline);font-size:11.5px;color:var(--text-3);line-height:1.6}
+
+/* —— 电台首页：当前地区那一行（只是回显，选区在抽屉里） ——
+ * 左边报当前这一区，右边那颗就是开抽屉的入口；抽屉本体复用浮层 chrome（U17）与选项行族（U19），不新开样式 */
+.pod-region{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 6px}
+.pod-region b{font-size:15px;font-weight:900}
+
+/* —— 电台首页：榜单行（排行榜是这一屏的主视觉） —— */
+.pod-list{display:flex;flex-direction:column;margin-top:2px}
+.pod-row{display:flex;align-items:center;gap:11px;width:100%;padding:9px 8px;border-radius:14px;
+  text-align:left;transition:.2s var(--ease)}
+.pod-row:active{background:var(--fill-1)}
+.pod-rank{width:22px;flex:none;text-align:center;font-size:14px;font-weight:900;font-style:italic;color:var(--text-3)}
+.pod-rank.top{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pod-row .art{width:56px;height:56px;flex:none;border-radius:13px}
+.pod-body{flex:1;min-width:0}
+.pod-name{font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pod-by{font-size:11.5px;color:var(--text-3);margin-top:3px;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.pod-by>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.pod-by .sep{width:1px;height:9px;background:var(--line-strong);flex:none}
+.pod-open{flex:none;display:grid;place-items:center;width:24px;height:24px;color:var(--text-3)}
+.pod-open .ic{width:14px;height:14px}
+
+/* —— 播客详情：这一批取回的单集（行整体可点，行内不放按钮） —— */
+.ep-list{display:flex;flex-direction:column;gap:1px;margin-top:8px}
+.ep-head{display:flex;align-items:baseline;gap:8px;margin:22px 0 4px}
+.ep-head b{font-size:15px;font-weight:900;letter-spacing:.2px}
+.ep-row{display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 8px;border-radius:14px;text-align:left;
+  transition:.2s var(--ease)}
+.ep-row:active{background:var(--fill-1)}
+.ep-body{flex:1;min-width:0}
+.ep-title{font-size:14px;font-weight:700;line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ep-meta{font-size:11px;color:var(--text-3);margin-top:5px;display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.ep-meta .sep{width:1px;height:9px;background:var(--line-strong);flex:none}
+.ep-text{font-size:11.5px;color:var(--text-2);line-height:1.6;margin-top:5px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* —— 单集屏（这一屏只做界面，屏上不写状态标注：见 index.html 说明节） —— */
+.epl-head{display:flex;align-items:flex-end;gap:14px;margin:22px 0 2px;min-height:96px}
+.epl-cover{width:96px;height:96px;flex:none;border-radius:18px;overflow:hidden;box-shadow:0 20px 40px -20px rgba(0,0,0,.95)}
+.epl-cover .art{width:96px;height:96px;border-radius:18px}
+.epl-meta{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;gap:6px}
+.epl-meta h3{font-size:17px;font-weight:900;line-height:1.4}
+.epl-by{font-size:11.5px;color:var(--text-2);line-height:1.5}
+.epl-intro{font-size:12.5px;color:var(--text-2);line-height:1.75;margin:14px 0 0}
+.epl-intro:empty{display:none}
+
+/* —— 电台两层顶栏那颗：装的是节目名，不是类别词（口径见 index.html 说明节）——
+ * 节目名再长也只截断一行，不回退成「播客」这种类别词；
+ * 写法照既有判例：文字一律挂在 .player-crumb 里的 span 上（播放页 / 单集屏都是这个形状），
+ * flex 容器里的裸文字挂不出省略号，截断只能落在那个 span 上（它是真 flex 子项，min-width:0 才让得了位）。
+ * 详情屏那颗现在挂在 .pl-head 里，所以选择器从「#podcastLayer>.pl-top」改成跨一级的「#podcastLayer .pl-top」。
+ * 这一条登记归 U67（顶排共通件），不塞进 radio/ 那两件：管的就是四层共用的那颗 crumb */
+#podcastLayer .pl-top>.player-crumb>span,#episodeLayer>.pl-top>.player-crumb>span{
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ============ foot ============ */
 .foot-note{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:32px;font-size:11px;color:var(--text-3);text-align:center}
@@ -999,8 +1087,11 @@ body.pad .notes{width:min(100%,900px);max-height:none}
 .pad .artist-card span{font-size:12.5px}
 .pad .pl-grid{grid-template-columns:repeat(4,1fr);gap:20px 18px}
 .pad .rank-grid{grid-template-columns:repeat(4,1fr);gap:20px 18px}
-.pad .radio-grid{grid-template-columns:repeat(3,1fr);gap:16px}
-.pad .radio-card{height:124px;padding:18px}
+/* 电台：Pad 宽场把榜单行摊成两列，订阅卡的封面跟着卡宽走 */
+.pad .pod-list{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+.pad .pod-list>.pl-status,.pad .pod-list>.pl-end{grid-column:1/-1}
+.pad .subs-card{width:150px}
+.pad .subs-card .art{width:150px;height:150px;border-radius:18px}
 .pad .rk-name{font-size:16.5px}
 .pad .song-row{gap:14px;padding:9px 12px 9px 6px}
 .pad .song-row .art{width:52px;height:52px}
@@ -1114,8 +1205,23 @@ body.pad .notes{width:min(100%,900px);max-height:none}
 /* 首页与列表页：横向铺得开，卡片增列、封面缩短 */
 .land .banner{height:126px;border-radius:var(--r-l);padding:14px}
 .land .pl-grid,.land .rank-grid{grid-template-columns:repeat(4,1fr);gap:14px 12px}
-.land .radio-grid{grid-template-columns:repeat(3,1fr);gap:12px}
-.land .radio-card{height:96px;padding:13px}
+/* 电台榜单行在横屏宽场同样摊两列（与 .land .pl-grid 那一族同一口径） */
+.land .pod-list{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+.land .pod-list>.pl-status,.land .pod-list>.pl-end{grid-column:1/-1}
+/* 电台首页 / 播客详情的固定段在横屏要吃掉屏内高（390 - 上下边框 = 368），不收就只剩一两行榜。
+   收的是订阅区与 hero 的内边距/卡高（84 档取 .land .daily-card，14/12/6/4 都是现成档），
+   榜行与单集行的行高不动；轴余 ≈ 87 / ≈ 101，算式见 index.html 说明节「滚动结构」那一条 */
+.land .pl-head{padding:26px 22px 0}
+.land #radioLayer>.pod-list,.land #podcastLayer>.ep-list{padding:8px 22px 18px}
+.land #radioLayer .subs-block{margin:12px 0 6px}
+.land .subs-head{margin:0 0 6px}
+.land .subs-card{width:84px}
+.land .subs-card .art{width:84px;height:84px}
+.land #radioLayer .pod-region{margin:12px 0 4px}
+.land #podcastLayer .pl-hero{margin:14px 0 2px;min-height:0}
+.land #podcastLayer .pl-hero .art{width:84px;height:84px;border-radius:16px}
+.land #podcastLayer .pl-actions{margin:14px 0 12px}
+.land #podcastLayer .ep-head{margin:14px 0 4px}
 .land .recent-card{width:106px}
 .land .recent-card .art{width:106px;height:106px}
 .land .artist-card{width:66px}

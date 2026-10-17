@@ -149,13 +149,6 @@
             <div class="hscroll" id="artistRow"></div>
           </section>
 
-          <section class="section">
-            <div class="section-head">
-              <h2 class="section-title">随手听</h2>
-            </div>
-            <div class="radio-grid" id="radioGrid"></div>
-          </section>
-
           <div class="foot-note">
             <span class="foot-mark"></span>
             曲库内容来自各平台 · 能否播放取决于当前音源
@@ -389,6 +382,77 @@
         <div class="foot-note" id="plFoot"></div>
       </div>
 
+      <!-- 电台首页：从右侧推入。上半（顶栏 / 我听的这一区 / 当前地区那一行）固定在 .pl-head 里，只有榜列这一根轴在滚；右上那颗是搜节目的入口 -->
+      <div class="pl-layer" id="radioLayer">
+        <div class="pl-head">
+          <div class="pl-top">
+            <button class="icon-btn" id="radioBack" aria-label="返回"><svg class="ic"><use href="#i-chevron"/></svg></button>
+            <div class="player-crumb" id="radioCrumb">电台</div>
+            <button class="icon-btn" id="podSearchBtn" aria-label="搜节目"><svg class="ic"><use href="#i-search"/></svg></button>
+          </div>
+          <div class="subs-block" id="radioSub"></div>
+          <div class="pod-region">
+            <b id="podRegionNow">国内</b>
+            <button class="section-more" id="podRegionMore">更多地区<svg class="ic"><use href="#i-chevron"/></svg></button>
+          </div>
+        </div>
+        <div class="pod-list" id="podChartList"></div>
+      </div>
+
+      <!-- 搜播客：整页推入，写法与搜歌那一屏同一套（头部搜索框 + 取消，下面滚结果） -->
+      <div class="pl-layer search-layer" id="podcastSearchLayer">
+        <div class="sc-top">
+          <div class="sc-box">
+            <svg class="ic"><use href="#i-search"/></svg>
+            <input class="sc-input" id="podSearchInput" placeholder="搜节目名或作者" autocomplete="off" spellcheck="false">
+            <button class="sc-x" id="podSearchClear" hidden aria-label="清空"><svg class="ic"><use href="#i-close"/></svg></button>
+          </div>
+          <button class="sc-cancel" id="podSearchCancel">取消</button>
+        </div>
+        <div class="sc-body" id="podSearchBody"></div>
+      </div>
+
+      <!-- 播客详情：节目本体 + 这一批取回的单集，操作行只有 hero 那一颗；单集标题以上（顶栏 / hero / 操作行 /「单集」小标题）都固定在 .pl-head 里，只有单集这一根轴在滚，顶栏那颗回显节目名 -->
+      <div class="pl-layer" id="podcastLayer">
+        <div class="pl-bg" id="podBg"></div>
+        <div class="pl-head">
+          <div class="pl-top">
+            <button class="icon-btn" id="podBack" aria-label="返回"><svg class="ic"><use href="#i-chevron"/></svg></button>
+            <div class="player-crumb"><span id="podCrumb"></span></div>
+          </div>
+          <div class="pl-hero" id="podHero"></div>
+          <div class="pl-actions" id="podActions"></div>
+          <div class="ep-head" id="podEpHead"></div>
+        </div>
+        <div class="ep-list" id="podEpisodes"></div>
+      </div>
+
+      <!-- 单集播放态：这一屏只做界面示意（屏上不挂任何角标，「只做界面」这件事只写在下面说明节）。单集那条直链和歌曲那套取流不是一回事，本轮不接 -->
+      <div class="pl-layer" id="episodeLayer">
+        <div class="pl-bg" id="epBg"></div>
+        <div class="pl-top">
+          <button class="icon-btn" id="epClose" aria-label="返回"><svg class="ic"><use href="#i-chevron"/></svg></button>
+          <div class="player-crumb"><span id="epCrumb"></span></div>
+        </div>
+        <div class="epl-head">
+          <div class="epl-cover" id="epCover"></div>
+          <div class="epl-meta">
+            <h3 id="epTitle"></h3>
+            <div class="epl-by" id="epBy"></div>
+          </div>
+        </div>
+        <p class="epl-intro" id="epIntro"></p>
+        <div class="seek" id="epSeek"><i id="epFill"></i><em id="epKnob"></em></div>
+        <div class="seek-time"><span id="epCur">0:00</span><span id="epDur">0:00</span></div>
+        <div class="player-controls">
+          <button class="pc ghost" id="epBack15" aria-label="后退十五秒"><svg class="ic"><use href="#i-prev"/></svg></button>
+          <button class="pc main" id="epPlay" aria-label="播放/暂停"><svg class="ic"><use href="#i-play"/></svg></button>
+          <button class="pc ghost" id="epFwd30" aria-label="前进三十秒"><svg class="ic"><use href="#i-next"/></svg></button>
+        </div>
+        <div class="group-label">倍速</div>
+        <div class="q-chips" id="epRateRow"></div>
+      </div>
+
       <!-- 音源状态浮层 -->
       <div class="sheet" id="sourceSheet">
         <div class="sheet-mask" data-close></div>
@@ -463,6 +527,16 @@
           <h3 class="sheet-title">全部分类</h3>
           <div class="sheet-sub">当前平台的全部分类 · 选一个，下面的推荐歌单就换成这一类。</div>
           <div id="plTagsBody"></div>
+        </div>
+      </div>
+
+      <!-- 地区抽屉：排行榜按地区给，一次只看一区。写法对标 #sourceSheet / #plTagsSheet（chrome 见 U17，选中态复用 U19 选项行族），但只留标题——选区这件事不用解释 -->
+      <div class="sheet" id="podRegionSheet">
+        <div class="sheet-mask" data-close></div>
+        <div class="sheet-body">
+          <div class="sheet-handle"></div>
+          <h3 class="sheet-title">收听地区</h3>
+          <div id="podRegionBody"></div>
         </div>
       </div>
 
@@ -600,14 +674,14 @@
       <ul class="notes-list">
         <li>搜索框 → 整页搜索（见下一节）；右上波纹图标 → 音源设置面板（切音源 / 切平台 / 切音质）</li>
         <li>那颗波纹图标上的<em>琥珀色呼吸点只有一种含义</em>：当前脚本没配好（未初始化 / 平台对接不上），进来处理一下。配好即整颗撤掉——不给「一切正常」留常驻绿灯，否则用户会把它读成「在线状态」，而这种装饰性常驻点正是最容易被当成假数据的地方（<code>renderNav()</code> 里 <code>#castDot.hidden = state === 'ready'</code>）</li>
-        <li>轮播三条不是营销位，是三条<em>当前状态</em>：在看哪个平台曲库、正在放哪首、电台还没做。<code>renderBanners()</code> 每次播放与切源后重画，定时器只起一次，不会叠出重复条</li>
+        <li>轮播两条不是营销位，是两条<em>当前状态</em>：在看哪个平台曲库、正在放哪首。<code>renderBanners()</code> 每次播放与切源后重画，定时器只起一次，不会叠出重复条；电台不再占一条（首页只留快捷入口那一格）</li>
         <li>榜单 chips 用<em>真榜名</em>（当前平台的<code>homeBoards()</code>，取前 4 张），只驱动下方「热门单曲」；榜里的歌按那张榜所属平台取址，切到没接的平台就明说「这个榜暂时打不开」</li>
         <li>「播放全部 N 首」不带平台名：N 已经是按当前音源筛过的可播数，再缀一个来源只会让句子更长</li>
         <li>继续收听一行末尾是<em>清空记录</em>（与设定页那行共用 <code>clearRecent()</code>），一行没有就整块连入口一起收掉，不留点了没反应的按钮</li>
         <li>每日推荐的首数按这次真正挑到的算（池子 = 听过 ∪ 我喜欢 去重取前 10），池子空就写「先听几首，这里会自动排好」而不是硬编 10 首</li>
         <li>热门歌手没有主页可去：点头像 = 播当前这张榜里他/她的歌，对不上就明说；下面补一行灰字讲清<em>头像是示意插画</em>，平台没给歌手照片</li>
         <li>热门单曲行去掉「⋯」：这一列的定位就是单击即播，收藏与加入歌单留给播放页和详情页</li>
-        <li>电台（随手听两张卡 + 快捷入口 + 轮播里那条）统一标 <em>建设中</em>：卡片右上角挂角标，点击只给「电台 · 还在建设中」，不假装能播直播流</li>
+        <li>电台在首页<em>只有一个入口</em>：快捷入口那一格。分类区下面那个「电台」区块（两张卡 + 区块头右侧那条「听播客」）与轮播里那条电台条都已收走——同一屏给三个入口指向同一层，等于没告诉用户该点哪个。<code>data.js</code> 的 <code>RADIO</code> 卡表、<code>renderRadio()</code>、<code>.radio-grid/.radio-card</code> 样式一并撤掉；<code>.wip-tag</code> 那枚角标本体留着（样式还在，<em>屏上已经一枚实例都没有</em>——单集屏面包屑上那枚「界面示意」本轮也撤了）。这一屏播的是<em>点播的播客单集</em>，不是电台直播流</li>
         <li>任意歌曲行 → 迷你播放条（喜欢 / 播停 / 下一曲三颗）→ 点开播放页</li>
       </ul>
 
@@ -668,6 +742,31 @@
         <li>点卡片进入详情层，与歌单共用同一个页面：<code>openPlaylist(chart, 'rank')</code> 靠 <code>kind</code> 换面包屑、行动按钮文案与页脚说明</li>
         <li>整榜都按该平台取址，进来就是一整份能播的排名——所以「N/M 首能播」提示条、来源 chip 与跨平台圆点对照块全部撤掉</li>
         <li>来源筛选只剩设定页与音源面板一处，切换后 <code>renderRankPage()</code> 随 <code>repaintAll()</code> 重画网格</li>
+      </ul>
+
+      <h2>电台（播客）</h2>
+      <p class="notes-body">这一轮的<em>数据源已经定了</em>：Apple Podcasts（iTunes）的三条公共接口，不需要登录也不需要密钥。屏一共三层一态加一只抽屉——<em>电台首页</em>（订阅那一区 + 当前地区一行 + 排行榜主视觉，地区在抽屉里换）、<em>播客详情</em>（节目本体 + 这一批取回的单集）、<em>搜播客</em>、<em>单集屏</em>（界面示意）。版式对标 Apple Podcasts 的「浏览」页（顶上一排已订阅、下面一整屏排行榜；这两屏<em>上半固定、只有列表在滚</em>，见下面「滚动结构」那一条）与小宇宙的单集列表行（集名两行 + 一句摘要 + 日期与时长），不自创布局。全部走 <code>.pl-layer</code> 右推层，与歌单详情、搜歌是同一套路由：一次只收最上面那一层，Esc 与四颗返回钮同口径。<em>屏上只留名词与数字</em>（节目名 / 作者 / 分类 / 集数 / 日期 / 时长 / 按钮动词），接口的能力边界一律写在本节，不在屏上讲——上一版那些「只存在这台设备上」「一次只能取到最近这些」之类的句子已经全部撤掉。</p>
+      <ul class="notes-list">
+        <li><b>三条接口给得出什么</b>（屏上每个字段都能回溯到这里，给不出的一律不上屏）：
+          <table class="spec">
+            <tr><th>接口口径</th><th>字段边界 → 屏上落点</th></tr>
+            <tr><td>排行榜<br><code>rss.marketingtools.apple.com/api/v2/{country}/podcasts/top/50/podcasts.json</code></td><td>一条节目只有 <code>id</code> / <code>name</code> / <code>artistName</code> / <code>genres[].name</code> / <code>artworkUrl100</code> / <code>url</code>，固定 50 条；<em>没有简介、没有集数、没有发布日期、没有音频直链</em>，封面只有 100×100 这一档 → 榜单行只排三样：节目名、作者、一枚分类词，右上顶一个名次数字；这一条就是电台首页的主视觉</td></tr>
+            <tr><td>搜索<br><code>itunes.apple.com/search?term={关键词}&amp;media=podcast</code></td><td>比排行榜多 <code>artworkUrl600</code>、<code>trackCount</code>（总集数）、<code>primaryGenreName</code>，以及一条 <code>feedUrl</code>（RSS 订阅源入口）→ 命中数与行式与搜歌那一屏同一套；总集数落到详情屏「共 N 集」那位；<code>feedUrl</code> 本轮不上屏（用途见下面单独一条）</td></tr>
+            <tr><td>详情与剧集<br><code>itunes.apple.com/lookup?id={id}&amp;entity=podcastEpisode</code></td><td><code>results[0]</code> 是节目本体：<code>trackCount</code> / <code>genres</code> / <code>artworkUrl600</code> / 最近一集日期都有，<em>但没有节目简介</em>；其后每条 <code>podcast-episode</code> 给 <code>trackName</code> / <code>releaseDate</code> / <code>trackTimeMillis</code> / <code>shortDescription</code>（可缺席）/ <code>episodeUrl</code>（音频直链）；<code>entity</code><em>不支持 offset</em>，一次请求给回的那一批就是这一屏的全部内容 → 详情屏头图不带简介位，列表行是集名 + 日期 + 时长（有摘要才多一行），<em>给回多少集就上多少集</em>：不分页、不放「加载更多」，列表尾也不写解释行</td></tr>
+          </table>
+        </li>
+        <li><b>三样东西干脆不是这三条接口给的</b>，所以它们的<em>数据来源归属只写在这里</em>，屏上一字不提：<em>分类目录</em>（接口只在每条节目上挂自己的 <code>genres</code>，没有一份可以点来筛的总目录，所以这一轮<em>没有做分类页</em>，分类词只作为标签出现在行尾）；<em>订阅</em>（Apple 的订阅在用户账号侧，这三条匿名接口一条都读不到，也写不回去）；<em>播放进度</em>（在播放器侧）。后两样是<em>本机状态</em>：电台首页那一区就是本机名单（标题右侧只剩「N 个节目」这个数），卡右上角的 × 只改本机名单（<code>LS.podSub</code>），单集屏关掉时把剩余秒数写进本机存储（<code>LS.podProgress</code>），下次进这个节目才把「还剩 X」落到 hero 那颗钮的文案上</li>
+        <li><b>地区做成抽屉，不做胶囊</b>：①那个地址是按国家/地区分的，可选的区远不止四五个，吸顶那一排胶囊放不下、也不该让人横着滚。所以首页只留<em>一行回显</em>（左边当前这一区，右边「更多地区」那颗），选区收进抽屉 <code>#podRegionSheet</code>——写法<em>对标 #sourceSheet / #plTagsSheet</em>：同一只 <code>.sheet</code>（chrome 归 U17，层级由 index.html 里的先后决定，本只排在 <code>#plTagsSheet</code> 之后、<code>#moreSheet</code> 之前），分组小标题 <code>.group-label</code>（U18）+ 选项行族 <code>.opt-list / .opt-row / .radio</code>（U19），选中态就是行首那颗实心圆；<em>但这一只抽屉不继承 <code>.sheet-sub</code> 那一行</em>——原先那句「选一个地区，名单跟着换。」本轮撤掉，槽位宁可空着也不换另一句解说（选区这件事不需要向用户解释），屏上只剩标题「收听地区」；点一行就收层、换区、重取这一区。清单在 <code>data.js</code> 的 <code>POD_REGION_GROUPS</code>（中文地区 / 亚太 / 欧洲 / 美洲 / 中东与非洲，共 42 区）</li>
+        <li><b>默认区是国内（cn），不再「记住上次看的区」</b>：每次进电台首页都固定在 cn，键 <code>LS.podRegion</code> 已撤。实测口径写在这里而不是屏上：<em>cn / us / gb 稳定可用</em>、<em>jp 偶发 502、重试即通</em>；<em>cn 区能否拿到有意义的榜单本轮仍未实跑验证</em>（RN 落地时先跑一次这一区再说），其余各区本轮只抄了 us / gb / jp 三份样本，运行时按接口取。取不到的那一区走 <code>.pl-status</code> 那一条（<em>这一区没有取到名单 · 点击重试</em>，点一下就是再取一次），不假装榜是空的</li>
+        <li><b>屏上不留解释行</b>（两轮清掉的全部几处，一律只在本节说明）：电台首页顶排下面那句「名单按地区给 · 换地区就是换一份名单 · 收到的节目…」、页尾那句「〈区名〉 · 这一阵听的人最多的是这 N 档」（<code>#podFoot</code> 整节点撤掉）、播客详情列表尾那句「一共 N 集 · 这里只列最近 n 集」（<code>#podEpFoot</code> 整节点撤掉）与小标题右侧「一次只能取到最近这些…」、搜播客无输入时那句能力说明、单集屏尾句「播到这里就停 · 没听完的位置会留在本机…」；订阅区标题右侧也从「N 档 · 只存在这台设备上」收成「N 档」（<em>本轮再按 Apple 的量词换成「N 个节目」</em>，见下面用词那一条），空态收成一行「还没有收听的节目」。<em>本轮再补两处</em>：地区抽屉那句「选一个地区，名单跟着换。」（<code>#podRegionSheet</code> 只剩标题，见上面那条）与单集屏面包屑上那枚「界面示意」角标（连带 <code>.epl-wip</code> 那条覆盖规则一起删）。<em>屏上现在一枚角标都没有</em>——「这一屏只做界面」是本节的话，不该做成一个给用户读的标注。<em>留下的只有</em>：节目名 / 作者 / 分类词 / 名次 / 共 N 集 / 最新单集日期 / 集名 / 发布日期 / 时长 / 本机剩余时长 / 按钮动词 / 分页与取数状态行（那一条是<em>状态</em>，不是解说，与全站 <code>.pl-status</code> 同一族）</li>
+        <li><b>排行榜是主视觉，也顺带把分页范式跑出来</b>：一次 10 个、距底 160px 触底续取、底部 <code>.pl-status</code>（<em>正在载入下一批…</em> / <em>这一批没有载入 · 点击重试</em>）、取完收 <em>没有更多了</em>，第 3 批同样故意先失败一次——jp 偶发 502 这件事就需要这条路径承接。真实侧一份榜就是 50 个节目，落地时 <code>pageSize</code> 照 <code>RANK_PAGING</code> 那一档写，别把 10 当上限</li>
+        <li><b>详情屏只留一颗按钮</b>：hero 下面那一排现在只有<em>继续播放</em>——听过就把文案换成「继续播放 · 还剩 X」并接着上次那集，没听过就是「播最新单集 · X」，同一颗钮两种状态。跟着一起撤掉的是<em>另外三处</em>：顶排右侧那颗收听（<code>#podSubBtn</code>，含它的 <code>.on</code> 实心渐变）、<code>#podSubBtn</code> 的接线与 <code>paintPodSubBtn()</code>、每一集右侧那颗圆形播放钮（<code>.ep-play</code>）。点行进单集屏的动作<em>保留</em>——那是导航不是按钮。<em>代价要说清</em>：摘掉收听那颗之后，「把一个节目收进这台设备」<em>在原型里没有入口了</em>（电台首页那一区只剩取消收听的 ×），名单靠 <code>POD_SUB_SEED</code> 两条种子演示；要不要补一颗（放回顶排、还是落到行内「⋯」）请用户定，本轮按指令先只留继续播放。列表侧两处同时改了：<em>没有简介位</em>（节目简介不在 lookup 返回里，不摆一个等着被填的空段落，这条设计说明留在这里、屏上不留痕迹）；<em>给回多少集列多少集</em>——<code>podEpisodesOf()</code> 原先为演示写死 8 集，现在取 <code>min(接口一批的上限 50, 这个节目的 trackCount)</code>，手写的那几行只是这批的前几行、其余按这个节目自己的更新间隔续满，<em>不分页、不放「加载更多」、列表尾不写任何解释行</em>（原先那句「一次只能取到最近这些…」整条撤掉）</li>
+        <li><b>搜播客这一屏</b>与搜歌那一屏是同一套写法（<code>.sc-top</code> 输入框 + 取消、回车才发、命中数）。无输入时<em>只剩本机搜过的词</em>（<code>LS.podSearchHistory</code>，可清空）：原先那句「按节目名或作者搜 · 点进去看最近几集，听到的位置记在这台设备上」整条撤掉——播客没有「热搜」这件事（三条接口都不给），也不需要向用户解释自己能干什么。命中后底部只留一个数「N 个节目」。搜索结果比榜单多的那两样——总集数与<em>一条订阅源地址</em>——总集数直接落到详情屏的「共 N 集」位上；<em>订阅源地址不上屏也不提</em>：它是 RSS 的入口，解析 RSS（取全量历史剧集、取节目简介、拿真正的订阅更新）<em>不在这三条接口的能力里</em>，要不要再开一条 RSS 通道由用户定，见 <code>todo-list.md</code></li>
+        <li><b>单集屏只表现界面</b>：<code>episodeUrl</code> 是这一集的音频直链，和项目现有那条<em>音源解码 → <code>musicUrl</code></em>的链路<em>不是一回事</em>（后者由用户自配的音源脚本给地址，走 track-player 那一套队列）。所以这一屏不接播放器、不占迷你条、不进播放列表面板，<em>屏上也不挂任何角标</em>（这一层「只做界面」的性质只写在本节，不做成给用户看的标注）；那一行倍速与进度只走本地计时，为的是把「倍速 / 步进 / 剩余位置」这几个控件的<em>尺寸与位置</em>定下来。落地时它需要的是「一条能直接喂给 track-player 的地址」，属于核心侧的活，本轮没动</li>
+        <li><b>滚动结构：电台首页与播客详情都是<em>上半固定 + 列表独立滚</em></b>（本轮改动；上一轮那条「四层都是一张滚动面、<code>podChartScroll</code> 绑在 <code>#radioLayer</code>」的核对结论<em>作废</em>，「全站右推层没有第二处吸顶顶栏、别造 sticky」那条一并作废——这两屏的顶排现在根本不在滚动容器里）。写法照<em>搜索屏</em>那一套：外层定死 <code>#radioLayer / #podcastLayer{padding:0;overflow:hidden}</code> → 固定段 <code>.pl-head{flex:none;padding:58px 16px 0}</code> → 滚动段 <code>flex:1;overflow-y:auto</code>。滚动段<em>就是各自的列表本体</em>（<code>#radioLayer&gt;.pod-list</code> / <code>#podcastLayer&gt;.ep-list</code>，不再套一层壳，判例是 <code>.pad / .land #plLayer #plTracks</code>）；水平内边距与底部留白从层的 <code>padding</code> 平移到固定段与滚动段各自身上（58/16/0 与 16/34，数值与改前逐字相同）。类名沿用 <code>.pl-*</code> / <code>.pod-*</code> / <code>.ep-*</code> 这一族，<em>不引入 <code>.sc-*</code> 的语义</em>。固定段里放的是：电台首页＝顶排 + 订阅那一区 + 当前地区那一行；播客详情＝顶排 + <code>.pl-hero</code> + <code>.pl-actions</code> + <code>.ep-head</code>——小标题「单集」移出滚动轴，落成静态节点 <code>#podEpHead</code>，文字仍由 <code>openPodcast()</code> 灌（<code>POD_TXT.epHead</code>），hero 与操作行一起进固定段后不再被层的 <code>padding</code> 撑出一段滚不掉的空白。滚的只有列表：<code>.pl-status</code> 两条状态行（<em>正在载入这一区…</em> / <em>这一区没有取到名单 · 点击重试</em>）与收行 <em>没有更多了</em> 由列表自己携带、跟着一起滚、留在列表尾；<code>podChartScroll</code> 换绑到 <code>#podChartList</code>，判据仍是<em>距底 160px</em>；进层与换区（<code>openRadio()</code> / <code>loadPodRegion()</code>）都把这根轴的 <code>scrollTop</code> 归零，单集列在 <code>openPodcast()</code> 里同样归零。间距三处都收成 18 档：订阅区与顶排之间（<code>.subs-block</code> 的 <code>margin-top</code> 2 → 18，取 <code>.pl-actions</code> 那一档）、地区行与榜列之间（6 + 2 + 滚动段 <code>padding-top</code> 10）、小标题与首行之间（4 + 8 + 滚动段 <code>padding-top</code> 6）——<em>全部取现成档位，未新开数值</em>，<code>--fill-*</code> / <code>--hairline</code> 那套叠色与描边不动。固定段变高会吃掉列表，三档分别量过（一次性量测页 + 无头 Chromium，按最满的一档：节目名占两行、单集行带摘要；不是设备验收）：<em>手机档</em>屏内高 822，电台固定段 382、轴可视 438（榜行 74，一屏 5 行以上），播客详情固定段 348、轴可视 466（单集行 89，一屏 5 行）；<em>Pad 档</em>屏内高 796，电台固定段 400（含 <code>.pad .subs-card</code> 现成的 150 档）、轴可视 394，播客详情固定段 348、轴可视 440，不用另收；<em>横屏档</em>屏内高只有 368，<em>订阅区与 hero 各收一档</em>——<code>.land .pl-head{padding:26px 22px 0}</code>、订阅卡走 <code>.land .daily-card</code> 的 84 档、<code>.subs-head</code>/<code>.subs-block</code>/<code>.pod-region</code> 的外边距走 12/6/4 档、hero 封面 84 + <code>min-height:0</code> 且 <code>.pl-hero</code>/<code>.pl-actions</code>/<code>.ep-head</code> 上外边距走 14 档——收到电台固定段 286、轴可视 80（榜行两列并排，首屏两个节目），播客详情固定段 256、轴可视 104；<em>榜行与单集行行高一律不动</em>，<em>横屏档还要更宽裕就得走 <code>.land #plLayer</code> 那条左右两栏判例，本轮不在这两屏起</em>。两屏的外层 <code>scrollHeight - clientHeight</code> 实测为 0（层自己不滚，只剩列表这一根轴），列表的 <code>scrollHeight - clientHeight</code> 在三个档位都远大于 160（触底判据才够得着）。RN 落地点：固定段＝一个不滚的 <code>View</code>，其下列表单独一根 <code>ScrollView</code>，这一屏只有这一根轴、<em>不给顶栏做 sticky</em>。其余三层不变：<em>歌单详情 <code>#plLayer</code> 与单集屏 <code>#episodeLayer</code> 仍是整层滚</em>，搜播客仍是 <code>.sc-body</code> 内滚</li>
+        <li><b>用词照 Apple 官方简体中文，不自创</b>（依据：Apple 播客创作入口《如何设置播客单集的顺序》全篇用「单集 / 附赠单集 / 单集编号 / 最新单集」、《热门系列》排行用「多个单集」、<code>podcasts.apple.com/cn</code> 各分类页是「热门节目排行」与「热门单集」并列、iPhone 支持文档原话「轻点单集列表上方的『单集』」）：一期内容叫<em>单集</em>（<em>不是</em>「剧集 / 集 / 本期」），一个 show 叫<em>节目</em>（<em>不是</em>「播客」），量词是<em>个节目 / N 集</em>；<em>「播客」只留作整个频道的名字</em>（首页那一格、本节标题、模块名），当内容单位用的地方一律换掉；原先屏上那个量词「档」不是 Apple 的说法。这一轮真改的屏上文案是这几处：订阅区标题右侧「N 档」→<em>N 个节目</em>、搜播客命中数「N 档」→<em>N 个节目</em>、hero 那颗「播最新一集 · X」→<em>播最新单集 · X</em>、meta 那位「最近一集 10 月 15 日」→<em>最新单集 10 月 15 日</em>；搜索框占位「搜播客节目名或作者」→<em>搜节目名或作者</em>，右上那颗的 <code>aria-label</code> 同改。<em>单集列表的小标题「单集」两字保留</em>——Apple 原话就是「轻点单集列表上方的『单集』」，列表区标题就该叫这个。顶栏那颗一并换了口径：<em>不写类别词，写节目名</em>——原先 <code>show.name.length&gt;8</code> 就退回「播客」那个做法撤了，名字长只截断一行（<code>#podcastLayer / #episodeLayer</code> 两条 <code>crumb&gt;span</code> 截断规则，登记归 <code>U67</code> 顶排共通件；<em>flex 容器里的裸文字挂不出省略号，所以详情屏那颗也改成 <code>.player-crumb&gt;span</code> 这个形状</em>，与播放页、单集屏同一个判例）；单集屏的 crumb 早就在回显节目名，只是静态标记里还挂着「单集」两字，一并清空。<em>仍待用户定的一处</em>：地区抽屉标题「<em>收听地区</em>」是自己拟的说法，Apple 那边没有可对标的中文界面词（它的区切换藏在账户设置里，不在收听路径上），本轮<em>不擅自铺开改名</em>，只把这件事记在这里</li>
+        <li><b>件与图标</b>：这四层是 <code>U81–U84</code>（<code>parts/radio/</code>），这一轮<em>新起一件 U85</em>（<code>parts/sheets/region-sheet</code>，那只地区抽屉——抽屉本体是 <code>.sheet</code>，按既有约定归 <code>sheets/</code>）；同时<em>退役 U33</em>（首页电台区块，编号不回收）。顶排 / 头图 / 操作行 / 分组小标题与选项行族 / 分页状态行 / 进度条 / 传输行 / 倍速胶囊 / 空态全部<em>复用既有原子</em>，所以这些元素在拆件时被各自的原子件（U67 / U68 / U69 / U18 / U19 / U57 / U59 / U11 / U17 …）认走，<code>radio/</code> 那几件只持有壳与新骨架（<code>.pod-*</code> 榜单行、<code>.subs-*</code> 订阅区、<code>.pod-region</code> 当前地区行、<code>.ep-*</code> 单集行、<code>.epl-*</code> 单集屏）。原先被 U81 借用的 <code>.cat-row</code>（U28_35）与 <code>.foot-note</code>（U10）已经不再出现在这一屏；<code>.wip-tag</code> 的样式本体从退役的 U33 <em>挪到 U84</em>，但<em>屏上已无任何实例</em>——单集屏那枚「界面示意」本轮撤掉，随之删掉 <code>.epl-wip</code> 那条覆盖规则，U84 的样式登记里也只摘掉 <code>.epl-wip</code>（角标本体留着备用）。样式全部引用现有 token，明亮档不用另写一份。<em>没有新增 sprite symbol</em>（RN 的 <code>icons.ts</code> 因此不需要重跑），撤掉收听钮后 <code>#i-plus</code> / <code>#i-heart-fill</code> 在电台这四层不再被引用，但全站别处仍在用，sprite 不动；后退 15 秒 / 前进 30 秒先借 sprite 里现成的前后跳转图标，正式落地时要补的是带数字的环形图标那一枚，走 <code>scripts/gen-newui-icons.mjs</code> 重跑</li>
+        <li><b>RN 侧后续落点（本轮没动）</b>：<code>src/newui/const/home.ts</code> 的 L73 / L94 / L113 三处「电台建设中」文案与 <code>hooks/useHomeBanners.ts</code> L62 那条 banner（这两处本轮原型已经<em>反向否掉</em>：首页只留快捷入口那一格，轮播不留电台条）、<code>components/RadioCard/</code>、<code>components/QuickRow/</code>、<code>screens/Main/pages/HomePage.tsx</code>；新屏建议起 <code>src/newui/screens/Radio/</code>（或 HomePage 内三层 push 屏），取数落 <code>src/newui/const/</code> + 一个新 hook，订阅与进度沿用既有本机存储通道，地区抽屉沿用既有浮层通道（对标音源设置那一只）。<em><code>components/RadioCard/</code> 这两张卡在原型里已经没有任何对应屏</em>（U33 退役），RN 侧是删件还是改造成别的入口，等用户定</li>
       </ul>
 
       <h2>我的</h2>

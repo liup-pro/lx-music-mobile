@@ -161,9 +161,9 @@ if (LS.source) activeSource = LS.source;
 if (LS.quality) activeQuality = LS.quality;
 
 /* ============ banner ============
- * 轮播不写死三段营销文案：RN 侧（hooks/useHomeBanners.ts）每一条都是当前真实状态——
- * 音源公告（现在生效的脚本 + 它能取到地址的平台）、正在播放（有歌才出现，报曲名歌手）、
- * 电台（原型本来就标着建设中）。所以切音源、切歌之后这一排要跟着重画 */
+ * 轮播不写死营销文案：RN 侧（hooks/useHomeBanners.ts）每一条都是当前真实状态——
+ * 音源公告（现在生效的脚本 + 它能取到地址的平台）、正在播放（有歌才出现，报曲名歌手）。
+ * 电台那一条已经收走：首页的电台入口只剩快捷入口那一格，同一屏不摆两个入口 */
 function bannerItems() {
   const sc = script();
   const items = [{
@@ -182,17 +182,12 @@ function bannerItems() {
       seed: coverSeedOf(state.song),
     });
   }
-  items.push({
-    key: 'radio', tag: '随手听', title: '电台',
-    sub: '按口味随机播放 · 建设中', seed: 'banner-radio',
-  });
   return items;
 }
 
 const BANNER_ACTION = {
   'api-source': () => { renderSheet(); openLayer($('#sourceSheet')); },
   'now-playing': () => { openLayer($('#playerLayer')); syncFloat(); },
-  radio: () => toast('电台 · 建设中'),
 };
 
 function renderBanners() {
@@ -259,7 +254,8 @@ function renderQuick() {
         play(songById(picked[0]), picked.map(songById));
         return toast('今日推荐已开始播放');
       }
-      toast('电台 · 建设中');
+      /* 电台那颗是全站唯一的电台入口：直接推入电台首页 */
+      openRadio();
     };
     box.appendChild(b);
   });
@@ -1732,23 +1728,521 @@ function renderArtists() {
   });
 }
 
-/* ============ 电台 ============ */
-function renderRadio() {
-  const box = $('#radioGrid');
+/* ============ 电台（播客） ============
+ * 三屏一态 + 一只抽屉：电台首页（订阅那一区 + 当前地区 + 排行榜主视觉，地区在抽屉里换）
+ * → 播客详情（这一批给回的单集）→ 单集屏。
+ * 取数口径照 data.js 顶部那三段注释，接口边界一律写在 index.html 的说明节里，屏上不出现；
+ * 运行时只写 LS.podSub / LS.podProgress 这两项本机状态，不写回任何平台。
+ * 滚动结构：电台首页与播客详情都是「上半固定 + 列表独立滚」——固定段 .pl-head 不参与滚动，
+ * 那根轴就是各自的列表本体（#podChartList / #podEpisodes），写法照搜索屏那一套（外层定死 + .sc-top flex:none + .sc-body 内滚），
+ * 触底续取的 podChartScroll 因此绑在 #podChartList（判据仍是距底 160px），进层与换区都把这根轴滚回顶部；
+ * 这两屏的顶排在固定段里，本来就不滚，所以不需要 sticky。另两层不动：歌单详情与单集屏仍是整层滚，
+ * 搜播客仍是头部固定 + .sc-body 内滚。顶栏那颗回显节目名，不写类别词。
+ * 单集屏只做界面示意：那条音频直链和歌曲的取流不是一回事，本轮不接（见 notes「电台（播客）」）。 */
+const radioLayer = () => $('#radioLayer');
+const podLayer = () => $('#podcastLayer');
+/* 这两屏唯一的滚动轴就是各自的列表本体（层自己 overflow:hidden，层的 padding 已平移到 .pl-head 与这根轴上）：
+ * 榜列 #podChartList、单集列 #podEpisodes；触底续取与进层/换区的归零都落在这一根轴上 */
+const podChartAxis = () => $('#podChartList');
+const podSearchLayer = () => $('#podcastSearchLayer');
+const epLayer = () => $('#episodeLayer');
+const podRegionSheet = () => $('#podRegionSheet');
+
+/* 这一屏的取数状态：地区默认国内，每次进这一屏都从这一区开始（不再记上次看的区）
+ * 榜单分页一次 10 个；podFailedOnce 与歌单池 / 榜单页那两处同一用意：
+ * 让「这一批没载入 · 点击重试」这条真实路径在原型里看得见 */
+const POD_REGION_DEFAULT = 'cn';
+let podRegion = POD_REGION_DEFAULT;
+let podShown = POD_CHART_PAGE;
+let podPage = 2;
+let podLoading = false;
+let podFailed = false;
+let podFailedOnce = false;
+let podFetching = false;
+
+/* 屏上只留名词与数字：区块标题、当前地区、按钮动词、集数与时长；接口边界的话一律不上屏
+ * 用词照 Apple 官方简体中文：一个 show 叫「节目」、一期内容叫「单集」，量词是「个节目 / N 集」
+ * （「档」不是它的说法，屏上已经换掉；「播客」只留作整个频道的名字） */
+const POD_TXT = {
+  subs: '我听的',
+  subsSub: (n) => `${n} 个节目`,
+  subsEmpty: '还没有收听的节目',
+  left: (sec) => `还剩 ${podMin(sec)}`,
+  epHead: '单集',
+  playLatest: (sec) => `播最新单集 · ${podMin(sec)}`,
+  resume: (sec) => `继续播放 · 还剩 ${podMin(sec)}`,
+  subRemove: '已从这台设备移除',
+  regionLoading: '正在载入这一区…',
+  regionFail: '这一区没有取到名单 · 点击重试',
+};
+
+/* 时长与日期在屏上都是人话：秒 → 「18 分钟」/「1 小时 06 分」，日期 → 「10 月 15 日」 */
+const podMin = (sec) => (sec < 3600 ? `${Math.round(sec / 60)} 分钟`
+  : `${Math.floor(sec / 3600)} 小时 ${String(Math.round((sec % 3600) / 60)).padStart(2, '0')} 分`);
+const podDate = (d) => `${Number(d.slice(5, 7))} 月 ${Number(d.slice(8, 10))} 日`;
+
+/* —— 本机状态：订阅名单与收听进度 ——
+ * 首次进来看见的是 data.js 那两份种子（原型里「这台设备上已经有了的两条」），改动一律落本机存储 */
+const podSubIds = () => (Array.isArray(LS.podSub) ? LS.podSub : POD_SUB_SEED);
+const podSaveSubs = (ids) => lsSave({ podSub: ids });
+const podProgress = () => (Array.isArray(LS.podProgress) ? LS.podProgress : POD_PROGRESS_SEED);
+const podProgressOf = (id) => podProgress().find((p) => p.id === id) || null;
+const podSaveProgress = (id, idx, left) => {
+  const list = podProgress().filter((p) => p.id !== id);
+  list.unshift({ id, idx, left });
+  lsSave({ podProgress: list.slice(0, 8) });
+};
+
+const podChartOf = (key) => POD_CHART[key] || [];
+
+/* 首页只剩快捷入口那一格进这一屏，进来固定在默认区（国内），订阅那一区就在榜列上面（固定段里） */
+function openRadio() {
+  podRegion = POD_REGION_DEFAULT;
+  resetPodChart();
+  renderPodSub();
+  renderPodRegion();
+  renderPodChart();
+  openLayer(radioLayer());
+  podChartAxis().scrollTop = 0;
+}
+const closeRadio = () => closeLayer(radioLayer());
+
+/* —— 订阅那一区：横滚卡 + 每颗右上角一枚取消钮 ——
+ * 空了不塌成一条：留一行站得住的空态（与首页「继续收听」那一排同一处理） */
+function renderPodSub() {
+  const box = $('#radioSub');
   box.innerHTML = '';
-  RADIO.forEach((r) => {
-    const c = el('button', 'radio-card');
-    const bg = coverArt(r.seed, null, 340, 220);
-    bg.classList.add('bgart');
-    c.appendChild(bg);
-    c.appendChild(el('span', '', `<svg class="ic-top"><use href="#${r.kind === 'fm' ? 'i-wave' : 'i-heart'}"/></svg>`));
-    c.appendChild(el('h4', '', r.title));
-    c.appendChild(el('p', '', r.sub));
-    c.appendChild(el('span', 'wip-tag', '建设中'));
-    c.onclick = () => toast('电台 · 建设中');
-    box.appendChild(c);
+  const shows = podSubIds().map(podShowById).filter(Boolean);
+  const head = el('div', 'subs-head');
+  head.appendChild(el('b', '', POD_TXT.subs));
+  if (shows.length) head.appendChild(el('em', '', POD_TXT.subsSub(shows.length)));
+  box.appendChild(head);
+  if (!shows.length) {
+    box.appendChild(el('div', 'subs-empty', POD_TXT.subsEmpty));
+    return;
+  }
+  const row = el('div', 'hscroll');
+  shows.forEach((s) => {
+    const wrap = el('div', 'subs-wrap');
+    const c = el('button', 'subs-card');
+    c.appendChild(coverArt('pod:' + s.id, '16px', 300, 300));
+    c.appendChild(el('div', 'sub-n', s.name));
+    const p = podProgressOf(s.id);
+    /* 进度是本机记的：没听过就不写这一行，不编「未听」这种话 */
+    if (p) c.appendChild(el('div', 'sub-l', POD_TXT.left(p.left)));
+    c.onclick = () => openPodcast(s);
+    wrap.appendChild(c);
+    const x = el('button', 'subs-x', '<svg class="ic"><use href="#i-close"/></svg>');
+    x.setAttribute('aria-label', `取消收听 ${s.name}`);
+    x.onclick = (e) => { e.stopPropagation(); unsubPod(s.id); };
+    wrap.appendChild(x);
+    row.appendChild(wrap);
+  });
+  box.appendChild(row);
+}
+
+function unsubPod(id) {
+  podSaveSubs(podSubIds().filter((x) => x !== id));
+  renderPodSub();
+  toast(POD_TXT.subRemove);
+}
+
+/* —— 地区：首页这一行只回显当前这一区，选区在抽屉里 ——
+ * 抽屉写法对标 #sourceSheet / #plTagsSheet：同一只 .sheet（chrome 归 U17），
+ * 分组小标题 + 选项行族（.group-label / .opt-list / .opt-row，归 U18 / U19），选中态就是行首那颗 .radio。
+ * 地区是「可选」不是「可假定」：取不到的那一区走下面那条重试状态行，不假装榜是空的 */
+const podRegionLabel = (key) => (POD_REGIONS.find((r) => r.key === key) || {}).label || '';
+
+function renderPodRegion() {
+  $('#podRegionNow').textContent = podRegionLabel(podRegion);
+}
+
+function openPodRegionSheet() {
+  const body = $('#podRegionBody');
+  body.innerHTML = '';
+  POD_REGION_GROUPS.forEach((g) => {
+    body.appendChild(el('div', 'group-label', g.label));
+    const list = el('div', 'opt-list');
+    g.items.forEach((r) => list.appendChild(podRegionRow(r)));
+    body.appendChild(list);
+  });
+  openLayer(podRegionSheet());
+}
+
+function podRegionRow(r) {
+  const on = podRegion === r.key;
+  const row = el('button', 'opt-row' + (on ? ' on' : ''));
+  row.innerHTML = `<span class="radio"></span><span class="or-body"><b>${r.label}</b></span>`;
+  row.onclick = () => {
+    closeLayer(podRegionSheet());
+    if (on) return;
+    podRegion = r.key;
+    resetPodChart();
+    loadPodRegion();
+  };
+  return row;
+}
+
+
+/* —— 排行榜：主视觉，分页范式与歌单池同一套（一次 10 个 + 距底 160px 触底续取 + 状态行） ——
+ * 第 3 批同样故意先失败一次，把「这一批没有载入 · 点击重试」那条真实路径摆出来 */
+function resetPodChart() {
+  podShown = POD_CHART_PAGE;
+  podPage = 2;
+  podLoading = false;
+  podFailed = false;
+}
+
+function podRow(s, rank) {
+  /* 行本体是 div[role=button]：里面要挂「⋯」这类真按钮，HTML 不许 button 套 button（与音源行同一判例） */
+  const r = el('div', 'pod-row');
+  r.setAttribute('role', 'button');
+  if (rank) r.appendChild(el('span', 'pod-rank' + (rank <= 3 ? ' top' : ''), String(rank)));
+  r.appendChild(coverArt('pod:' + s.id, '13px', 120, 120));
+  const body = el('div', 'pod-body');
+  body.appendChild(el('div', 'pod-name', s.name));
+  const sub = el('div', 'pod-by');
+  sub.appendChild(el('span', '', s.by));
+  if (s.tags && s.tags.length) {
+    sub.appendChild(el('i', 'sep'));
+    const tag = el('span', 'q-tag');
+    tag.textContent = s.tags[0];
+    sub.appendChild(tag);
+  }
+  body.appendChild(sub);
+  r.appendChild(body);
+  r.appendChild(el('span', 'pod-open', '<svg class="ic"><use href="#i-chevron"/></svg>'));
+  r.onclick = () => openPodcast(s);
+  return r;
+}
+
+function podStatusRow() {
+  const r = el('button', 'pl-status', podFailed ? PLD_STATUS.retry : '');
+  r.disabled = podLoading;
+  if (!podFailed) { r.appendChild(el('i', 'spin')); r.appendChild(el('span', '', PLD_STATUS.loading)); }
+  r.onclick = () => loadPodChartPage();
+  return r;
+}
+
+function renderPodChart() {
+  const box = $('#podChartList');
+  box.innerHTML = '';
+  if (podFetching) {
+    const r = el('button', 'pl-status', POD_TXT.regionLoading);
+    r.disabled = true;
+    r.prepend(el('i', 'spin'));
+    box.appendChild(r);
+    return;
+  }
+  const list = podChartOf(podRegion);
+  /* 这一区这一次没取回来：走分页那一族的状态行，点一下就是再取一次这一区 */
+  if (!list.length) { box.appendChild(podRetryRow()); return; }
+  list.slice(0, podShown).forEach((s, i) => box.appendChild(podRow(s, i + 1)));
+  if (podShown < list.length && (podLoading || podFailed)) box.appendChild(podStatusRow());
+  else if (podShown >= list.length) box.appendChild(el('div', 'pl-end', PLD_STATUS.end));
+}
+
+/* 点重试 = 再取一次这一区（与换区同一条路径），取回来就铺名单，取不回来还是这一行 */
+function podRetryRow() {
+  const r = el('button', 'pl-status', POD_TXT.regionFail);
+  r.onclick = () => loadPodRegion();
+  return r;
+}
+
+/* 换区就是换一份名单：先把这根轴滚回顶部，再重铺（榜列自己就是滚动容器，层不再滚） */
+function loadPodRegion() {
+  podFetching = true;
+  podChartAxis().scrollTop = 0;
+  renderPodRegion();
+  renderPodChart();
+  setTimeout(() => {
+    podFetching = false;
+    if (radioLayer().classList.contains('show')) renderPodChart();
+  }, 520);
+}
+
+function loadPodChartPage() {
+  if (podLoading) return;
+  const list = podChartOf(podRegion);
+  if (podShown >= list.length) return;
+  podLoading = true;
+  podFailed = false;
+  renderPodChart();
+  setTimeout(() => {
+    podLoading = false;
+    if (podPage === 3 && !podFailedOnce) {
+      podFailedOnce = true;
+      podFailed = true;      // 停在原地，末尾换成「点击重试」
+    } else {
+      podShown = Math.min(list.length, podShown + POD_CHART_PAGE);
+    }
+    podPage += 1;
+    renderPodChart();
+  }, 520);
+}
+
+/* 只有正站在电台首页时才认这次滚动；滚动容器是榜列自己（#podChartList），不是 #radioLayer，也不是 #viewport */
+function podChartScroll() {
+  if (!radioLayer().classList.contains('show') || podLoading) return;
+  const axis = podChartAxis();
+  const list = podChartOf(podRegion);
+  if (podShown >= list.length) return;
+  if (axis.scrollTop + axis.clientHeight > axis.scrollHeight - 160) loadPodChartPage();
+}
+
+/* —— 播客详情：节目本体 + 这一批取回的单集 ——
+ * 操作行只有 hero 那一颗「继续播放」：听过就接着上次那集，没听过就播最新一集，两种状态同一颗钮。
+ * 简介位刻意不画：详情接口不给节目简介这一项，屏上不摆「等着被填」的空位（口径写在 index.html 说明节） */
+let podNow = null;
+
+function openPodcast(s) {
+  const show = podDetailOf(s);
+  podNow = show;
+  const hero = $('#podHero');
+  hero.innerHTML = '';
+  hero.appendChild(coverArt('pod:' + show.id, '20px', 400, 400));
+  const body = el('div', 'ph-body');
+  body.appendChild(el('h3', '', show.name));
+  body.appendChild(el('div', 'ph-sub', show.by));
+  const meta = el('div', 'ph-meta');
+  (show.tags || []).slice(0, 2).forEach((t) => {
+    const tag = el('span', 'q-tag');
+    tag.textContent = t;
+    meta.appendChild(tag);
+  });
+  /* 集数与「最新单集」只有详情接口才给得出：原型里没写进那四个节目的，这两项就不出现 */
+  if (show.count) meta.appendChild(el('span', '', `共 ${show.count} 集`));
+  if (show.updated) meta.appendChild(el('span', '', `最新单集 ${podDate(show.updated)}`));
+  const p = podProgressOf(show.id);
+  /* 「上次听到」是本机记的，不是接口给的：只有真听过这个节目才写这一句 */
+  if (p && show.episodes[p.idx]) meta.appendChild(el('span', '', POD_TXT.left(p.left)));
+  body.appendChild(meta);
+  hero.appendChild(body);
+
+  const [c1, c2] = palette('pod:' + show.id);
+  $('#podBg').style.background = `linear-gradient(140deg,${c1},${c2})`;
+
+  const acts = $('#podActions');
+  acts.innerHTML = '';
+  const go = p && show.episodes[p.idx] && p.left > 30
+    ? el('button', 'ghost-btn solid', `<svg class="ic"><use href="#i-play"/></svg>${POD_TXT.resume(p.left)}`)
+    : el('button', 'ghost-btn solid', `<svg class="ic"><use href="#i-play"/></svg>${POD_TXT.playLatest(show.episodes[0].sec)}`);
+  go.onclick = () => openEpisode(p && show.episodes[p.idx] && p.left > 30 ? p.idx : 0);
+  acts.appendChild(go);
+
+  /* 「单集」小标题在固定段里（#podEpHead），不进那根滚动轴：轴里只有行 */
+  const list = $('#podEpisodes');
+  list.innerHTML = '';
+  const head = $('#podEpHead');
+  head.innerHTML = '';
+  head.appendChild(el('b', '', POD_TXT.epHead));
+  show.episodes.forEach((ep, i) => list.appendChild(epRow(ep, i)));
+
+  /* 顶栏那颗回显节目名（Apple 的节目页与播放器都不写类别词）：顶排在固定段里常驻，长名字只截断一行，
+   * 截断规则在 styles.css 电台段末（登记归 U67）；原先名字一长就退回「播客」那个做法已撤 */
+  $('#podCrumb').textContent = show.name;
+  openLayer(podLayer());
+  list.scrollTop = 0;
+}
+
+/* 一集一行：集名 / 发布日期 / 时长（+ 接口给了才写的一集简介）。
+ * 整行就是入口，行内不放按钮——详情屏的操作只留 hero 那一颗 */
+function epRow(ep, i) {
+  const r = el('div', 'ep-row');
+  r.setAttribute('role', 'button');
+  const body = el('div', 'ep-body');
+  body.appendChild(el('div', 'ep-title', ep.title));
+  const meta = el('div', 'ep-meta');
+  meta.appendChild(el('span', '', podDate(ep.date)));
+  meta.appendChild(el('i', 'sep'));
+  meta.appendChild(el('span', '', podMin(ep.sec)));
+  const p = podProgressOf(podNow.id);
+  if (p && p.idx === i) meta.appendChild(el('span', 'q-tag', POD_TXT.left(p.left)));
+  body.appendChild(meta);
+  if (ep.intro) body.appendChild(el('div', 'ep-text', ep.intro));
+  r.appendChild(body);
+  r.onclick = () => openEpisode(i);
+  return r;
+}
+
+const closePodcastLayer = () => { closeLayer(podLayer()); podNow = null; };
+
+/* —— 搜播客：整页推入，与搜歌那一屏同一套写法（回车或点词才发，输入过程不发请求） ——
+ * 真实侧打的是搜索接口，它比榜单多给总集数与一条订阅源地址；订阅源地址本轮不上屏，
+ * 用途只写在 notes：那是 RSS 入口，解析它不在这三条接口的能力里 */
+let podSearchQ = '';
+let podSearchLoading = false;
+const podSearchHistory = Array.isArray(LS.podSearchHistory) ? LS.podSearchHistory.slice(0, 8) : [];
+
+const podWords = (q) => q.toLowerCase().split(/\s+/).filter(Boolean);
+const podHitsOf = (q) => {
+  const words = podWords(q);
+  if (!words.length) return [];
+  const seen = new Set();
+  return Object.keys(POD_CHART).flatMap((k) => POD_CHART[k])
+    .filter((s) => {
+      if (seen.has(s.id)) return false;
+      seen.add(s.id);
+      const hay = (s.name + ' ' + s.by + ' ' + (s.tags || []).join(' ')).toLowerCase();
+      return words.every((w) => hay.includes(w));
+    })
+    .slice(0, 20);
+};
+
+function rememberPodQuery(word) {
+  const i = podSearchHistory.indexOf(word);
+  if (i >= 0) podSearchHistory.splice(i, 1);
+  podSearchHistory.unshift(word);
+  podSearchHistory.length = Math.min(podSearchHistory.length, 8);
+  lsSave({ podSearchHistory: podSearchHistory.slice() });
+}
+
+function renderPodSearch() {
+  const box = $('#podSearchBody');
+  box.innerHTML = '';
+  $('#podSearchClear').hidden = !podSearchQ;
+  if (!podSearchQ) {
+    if (podSearchHistory.length) {
+      const head = el('div', 'sc-label');
+      head.innerHTML = '<b>搜过的词</b>';
+      const clr = el('button', 'sc-clear', '<svg class="ic"><use href="#i-close"/></svg>清空');
+      clr.onclick = () => { podSearchHistory.length = 0; lsSave({ podSearchHistory: [] }); renderPodSearch(); };
+      head.appendChild(clr);
+      box.appendChild(head);
+      const row = el('div', 'hot-words');
+      podSearchHistory.slice().forEach((w) => {
+        const c = el('button', 'chip', w);
+        c.onclick = () => submitPodSearch(w);
+        row.appendChild(c);
+      });
+      box.appendChild(row);
+    }
+    return;
+  }
+  if (podSearchLoading) { box.appendChild(el('div', 'empty-tip', '正在搜索…')); return; }
+  const hits = podHitsOf(podSearchQ);
+  if (!hits.length) {
+    const none = el('div', 'sc-empty');
+    none.innerHTML = `<b>没找到和「${podSearchQ}」对得上的节目</b>换个词试试，或者只打节目名里的两个字`;
+    box.appendChild(none);
+    return;
+  }
+  const list = el('div', 'pod-list');
+  list.style.marginTop = '4px';
+  hits.forEach((s) => list.appendChild(podRow(s, 0)));
+  box.appendChild(list);
+  box.appendChild(el('p', 'sc-hint', `${hits.length} 个节目`));
+}
+
+function submitPodSearch(raw) {
+  const word = String(raw).trim();
+  if (!word) return;
+  podSearchQ = word;
+  rememberPodQuery(word);
+  podSearchLoading = true;
+  renderPodSearch();
+  $('#podSearchBody').scrollTop = 0;
+  setTimeout(() => {
+    /* 词中途被换掉：这一次的结果不该再盖上去（与搜歌那一屏同一条口径） */
+    if (podSearchQ !== word) return;
+    podSearchLoading = false;
+    renderPodSearch();
+  }, 450);
+}
+
+function openPodSearch() {
+  renderPodSearch();
+  openLayer(podSearchLayer());
+  $('#podSearchBody').scrollTop = 0;
+  setTimeout(() => $('#podSearchInput').focus(), 300);
+}
+const closePodSearch = () => { $('#podSearchInput').blur(); closeLayer(podSearchLayer()); };
+
+/* —— 单集屏（只做界面） ——
+ * 只走自己那一套本地计时：它播的是这条单集的直链，与歌曲那套取流（音源解码 → musicUrl）不是一回事，
+ * 本轮不接播放器、不占迷你条，也不进播放列表面板。这一层意思只写在注释与 notes，屏上不挂任何角标 */
+const epState = { idx: 0, t: 0, playing: false, rate: 1, timer: null };
+const EP_RATES = [0.75, 1, 1.25, 1.5, 2];
+
+function openEpisode(i) {
+  epState.idx = i;
+  const p = podProgressOf(podNow.id);
+  epState.t = p && p.idx === i ? Math.max(0, podNow.episodes[i].sec - p.left) : 0;
+  epState.playing = false;
+  $('#epCover').innerHTML = '';
+  $('#epCover').appendChild(coverArt('pod:' + podNow.id, '18px', 300, 300));
+  $('#epTitle').textContent = podNow.episodes[i].title;
+  $('#epBy').textContent = `${podNow.name} · ${podDate(podNow.episodes[i].date)}`;
+  $('#epIntro').textContent = podNow.episodes[i].intro || '';
+  const [c1, c2] = palette('pod:' + podNow.id);
+  $('#epBg').style.background = `linear-gradient(140deg,${c1},${c2})`;
+  /* 这一屏顶栏那颗同样是节目名（Apple 的播放器位不写「单集」这种类别词）：与详情屏同一条截断规则 */
+  $('#epCrumb').textContent = podNow.name;
+  renderPodRates();
+  paintEpisode();
+  openLayer(epLayer());
+  epLayer().scrollTop = 0;
+}
+
+function renderPodRates() {
+  const row = $('#epRateRow');
+  row.innerHTML = '';
+  EP_RATES.forEach((v) => {
+    const c = el('button', 'chip' + (epState.rate === v ? ' on' : ''), v === 1 ? '原速' : `${v} 倍`);
+    c.onclick = () => { epState.rate = v; renderPodRates(); };
+    row.appendChild(c);
   });
 }
+
+const epSec = () => podNow.episodes[epState.idx].sec;
+
+function paintEpisode() {
+  const dur = epSec();
+  const r = Math.min(1, epState.t / dur);
+  $('#epFill').style.width = (r * 100).toFixed(2) + '%';
+  $('#epKnob').style.left = (r * 100).toFixed(2) + '%';
+  $('#epCur').textContent = fmt(epState.t);
+  $('#epDur').textContent = fmt(dur);
+  setIcon($('#epPlay'), epState.playing ? 'i-pause' : 'i-play');
+  $('#epPlay').setAttribute('aria-label', epState.playing ? '暂停' : '播放');
+}
+
+function epTick() {
+  /* 倍速只改这一屏的走位速度（示意）：真实侧是解码端的播放速率，不在这轮范围 */
+  epState.t += epState.rate;
+  if (epState.t >= epSec()) { epState.t = epSec(); epStop(); return; }
+  paintEpisode();
+}
+
+function epStop() {
+  epState.playing = false;
+  clearInterval(epState.timer);
+  epState.timer = null;
+  paintEpisode();
+}
+
+function epToggle() {
+  if (epState.playing) { epStop(); return; }
+  if (epState.t >= epSec()) epState.t = 0;
+  epState.playing = true;
+  epState.timer = setInterval(epTick, 1000);
+  paintEpisode();
+}
+
+const epJump = (d) => { epState.t = Math.max(0, Math.min(epSec(), epState.t + d)); paintEpisode(); };
+
+function closeEpisodeLayer() {
+  epStop();
+  /* 没听完的位置写回本机：下次进这个节目，详情里那颗「接着上次那集听」就是靠它 */
+  const left = Math.round(epSec() - epState.t);
+  if (podNow && left > 20) podSaveProgress(podNow.id, epState.idx, left);
+  closeLayer(epLayer());
+}
+
+function bindEpisodeSeek() {
+  bindDragX($('#epSeek'), (r) => { epState.t = Math.round(r * epSec()); paintEpisode(); });
+}
+
 
 /* ============ 播放器 ============ */
 const state = {
@@ -2874,10 +3368,13 @@ function setDevice(next) {
   p.classList.toggle('pad', next === 'pad');
   document.body.classList.toggle('land', next === 'land');
   document.body.classList.toggle('pad', next === 'pad');
-  /* 换外形时把浮层与推入页收起，回到当前 Tab 的整页视图 */
-  [$('#plLayer'), $('#searchLayer'), player()].forEach(closeLayer);
+  /* 换外形时把浮层与推入页收起，回到当前 Tab 的整页视图（电台那四层同样是推入层，一起收） */
+  [$('#plLayer'), $('#searchLayer'), player(),
+    $('#radioLayer'), $('#podcastSearchLayer'), $('#podcastLayer'), $('#episodeLayer')].forEach(closeLayer);
   $$('.sheet').forEach(closeLayer);
   plNow = null;
+  podNow = null;
+  epStop();
   /* 浮窗的手拖位置是内联坐标，换外形后要清掉，让它回到该模式的默认落点 */
   const f = $('#lrcFloat');
   f.style.left = f.style.top = '';
@@ -2923,7 +3420,6 @@ function init() {
   renderRankTabs();
   renderSongs();
   renderArtists();
-  renderRadio();
   renderSheet();
   renderProfile();
   renderSwatches();
@@ -2961,11 +3457,42 @@ function init() {
     if (closeTopSheet()) return;
     if ($('#playerLayer').classList.contains('show')) { closeLayer($('#playerLayer')); syncFloat(); return; }
     if ($('#searchLayer').classList.contains('show')) { closeSearch(); return; }
+    /* 电台那四层叠在一起（首页 → 搜播客 → 详情 → 单集），按最上面那一层往下收 */
+    if ($('#episodeLayer').classList.contains('show')) { closeEpisodeLayer(); return; }
+    if ($('#podcastLayer').classList.contains('show')) { closePodcastLayer(); return; }
+    if ($('#podcastSearchLayer').classList.contains('show')) { closePodSearch(); return; }
+    if ($('#radioLayer').classList.contains('show')) { closeRadio(); return; }
     if ($('#plLayer').classList.contains('show')) closePlLayer();
   });
 
   $('#plBack').onclick = closePlLayer;
   $('#plLayer').addEventListener('scroll', plLayerScroll, { passive: true });
+
+  /* —— 电台（播客）接线：首页只有快捷入口那一格进这一屏 —— */
+  $('#radioBack').onclick = closeRadio;
+  /* 触底续取绑榜列自己（这一屏的滚动轴），不再绑 #radioLayer */
+  $('#podChartList').addEventListener('scroll', podChartScroll, { passive: true });
+  $('#podRegionMore').onclick = openPodRegionSheet;
+  $('#podSearchBtn').onclick = openPodSearch;
+  $('#podSearchCancel').onclick = closePodSearch;
+  $('#podSearchClear').onclick = () => {
+    podSearchQ = ''; podSearchLoading = false;
+    $('#podSearchInput').value = '';
+    renderPodSearch();
+    $('#podSearchInput').focus();
+  };
+  /* 与搜歌同一口径：输入过程不发请求，回车才发 */
+  $('#podSearchInput').oninput = (e) => {
+    $('#podSearchClear').hidden = !e.target.value.trim();
+    if (!e.target.value.trim() && podSearchQ) { podSearchQ = ''; podSearchLoading = false; renderPodSearch(); }
+  };
+  $('#podSearchInput').onkeydown = (e) => { if (e.key === 'Enter') submitPodSearch(e.target.value); };
+  $('#podBack').onclick = closePodcastLayer;
+  $('#epClose').onclick = closeEpisodeLayer;
+  $('#epPlay').onclick = epToggle;
+  $('#epBack15').onclick = () => epJump(-15);
+  $('#epFwd30').onclick = () => epJump(30);
+  bindEpisodeSeek();
   /* 评论浮层滚到底自动翻下一页（真实侧就是触底取数）；这一层还被定时面板共用，只在评论开着时才翻页 */
   $('#psBody').addEventListener('scroll', (e) => {
     const n = e.target;
