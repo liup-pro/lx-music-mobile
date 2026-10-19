@@ -50,7 +50,7 @@ export interface SheetListProps<T> {
   /**
    * 钉住区（可选；评论浮层钉住回归修复轮）：传了它，handle/标题/副题与本组件一起钉在滚动区上方，
    * 只有下方列表滚——原型 #playerSheet 的 flex:none 组（handle/标题/副题/#psMeta 钉住、#psBody 独滚，
-   * styles.css L735-738；#psMeta 语义 = 评论浮层 .cmt-total「总数 + 热度排序」行，164dfa4 口径）。
+   * styles.css L839-841；#psMeta 语义 = 评论浮层 .cmt-total「总数 + 热度排序」行，164dfa4 口径）。
    * 不传（默认）= 与旧行为逐字一致：head 与 headerComponent 同进列表头部 cell、随内容滚。
    */
   pinnedComponent?: ReactElement | null
@@ -250,7 +250,7 @@ export function Sheet<T = unknown>({
                刻意不启用 removeClippedSubviews——回收单元里的 SVG 封面（Art 内圈层）
                在 Android 有整格变白的老毛病（PageListView 2026-10-16 同轮结论）；windowSize 回收已够用。
                评论浮层钉住回归修复轮：pinnedComponent 传入时，handle/标题/副题与它一起摆到
-               FlatList 之外当钉住区（原型 #playerSheet 的 flex:none 组，styles.css L735-738），
+               FlatList 之外当钉住区（原型 #playerSheet 的 flex:none 组，styles.css L839-841），
                对齐 164dfa4「标题、说明和总数不被顶出视野、只有列表滚」；不传则这一整段原样。 */
             <>
               {list.pinnedComponent != null && (

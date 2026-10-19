@@ -25,7 +25,7 @@ export interface QuickRowProps {
 
 /**
  * 快捷入口四宫格（对应原型 .quick-row / .quick / .qa，styles.css L193-197）。
- * 纯展示组件：每格做什么（跳榜 / 播放 / 提示建设中）由容器分派。
+ * 纯展示组件：每格做什么（播放 / 切 Tab / 进电台首页）由容器分派。
  */
 export const QuickRow = memo(({ items, onPress }: QuickRowProps) => {
   const theme = useTheme()

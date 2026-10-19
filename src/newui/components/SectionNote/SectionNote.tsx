@@ -8,6 +8,10 @@ export interface SectionNoteProps {
   text: string
 }
 
+/** 原型 `.section-note` 的 `line-height:1.6`（styles.css L461）。
+ *  CSS 里这个无单位倍数是「相对自身字号」的，RN 只吃绝对行高，故按 11px × 1.6 换算。 */
+const LINE_HEIGHT_RATIO = 1.6
+
 /**
  * 区块说明灰字（对应原型 `.section-note`，index.html L148 / styles.css L364，
  * parts/home/section-note.{html,css}，U32；app.js renderArtists L1536）：
@@ -25,9 +29,11 @@ export const SectionNote = memo(({ text }: SectionNoteProps) => {
 SectionNote.displayName = 'NewUISectionNote'
 
 const styles = StyleSheet.create({
-  /** .section-note（原型 margin:0 0 10px / 11px；落地口径：SPACING.md / FONT_SIZE.caption） */
+  /** .section-note（原型 margin:0 0 10px / 11px / line-height:1.6；落地口径：SPACING.md / FONT_SIZE.caption，
+   *  行高按 11×1.6 换算成绝对值——闸门轮补的就是这一条漏掉的 line-height） */
   root: {
     marginBottom: SPACING.md,
     fontSize: FONT_SIZE.caption,
+    lineHeight: Math.round(FONT_SIZE.caption * LINE_HEIGHT_RATIO),
   },
 })

@@ -26,7 +26,7 @@ export interface QueueSheetProps {
   bottomInset?: number
 }
 
-/** .q-note（件 U21 持有该原子，styles.css L808：11 / text-3 / 行高 1.6）——与 MoreSheet、SourceSheet 同参数 */
+/** .q-note（件 U21 持有该原子，styles.css L896：11 / text-3 / 行高 1.6）——与 MoreSheet、SourceSheet 同参数 */
 const QueueNote = ({ text }: { text: string }) => {
   const theme = useTheme()
   return <Text style={[styles.note, { color: theme.colors.text3 }]}>{text}</Text>
@@ -34,21 +34,27 @@ const QueueNote = ({ text }: { text: string }) => {
 
 /**
  * 正在播放页 · 播放列表面板（原型件 U80 parts/sheets/queue-sheet.{html,css}；
- * renderQueueSheet app.js L2266 + QUEUE_TXT L2247 + openQueueMore L1581 + paintQueueBtn L2289）。
+ * renderQueueSheet app.js L2760 + QUEUE_TXT L2741 + openQueueMore L1577 + paintQueueBtn L2783，行号取件头 parts/sheets/queue-sheet.html 原引）。
  *
  * 版面口径逐条照原型：
  * - **一条按播放顺序平铺的列**，不分段不分类——没有「现在 / 之后 / 之前」三段，
  *   也没有五种循环档各写的尾句说明；只有随机档多一句 .q-note（「这一列只是可能被抽到的」）。
  * - 正在播的那首不另造样式：用行内现成的 .song-row.playing 底色 + 歌名前的均衡条（SongRow 的 active/playing）。
- * - 这一列**不带榜单序号**（件里那条 `#psBody .song-row .rank{display:none}`，styles.css L759）——
+ * - 这一列**不带榜单序号**（件里那条 `#psBody .song-row .rank{display:none}`，styles.css L847）——
  *   RN 侧就是不给 SongRow 传 rank，槽位根本不出现。
  * - 顶部只留一句「这次要播的一共 N 首 · 点一行就切过去听」；没有歌在放时整屏只剩空态一句。
  * - 不挂分页状态行（这一列是一次读全的清单，不是按需续取的水池）。
+ * - **头部钉住、只有列表滚**（styles.css L839-841：`#playerSheet .sheet-body{display:flex;flex-direction:column;overflow:hidden}`
+ *   + `#playerSheet .sheet-handle,#playerSheet .sheet-title,#playerSheet .sheet-sub,#psMeta{flex:none}`
+ *   + `#psBody{flex:1;min-height:0;overflow-y:auto}`）。本屏钉住区就是 handle + 标题 + 副题三段：
+ *   `#psMeta` 是这组的第四段，但它在 queue 实例里恒空（`openSheet()` L2694 先清空，只有评论实例
+ *   L2832 往里写 `.cmt-total`），所以走 Sheet 的 `pinnedComponent` 传一个空 Fragment 占位——
+ *   传了它 Sheet 才把 head 挪进钉住区，槽位本身在本屏没有内容。
  *
  * 数据（全部只读复用，见 hooks/usePlayQueue）：整份清单 = getList(playerListId)、当前位置 = 当前曲目 id、
  * 「下一曲播放」那几首 = tempPlayList；**重排只发生在显示层**，写回单子等于改用户歌单，绝对不做。
  *
- * 层级前提（件 U80 + U17 那条口径，styles.css L727-733）：行内「⋯」要浮在本面板**之上**。
+ * 层级前提（件 U80 + U17 那条口径，styles.css L815-821：同级 .sheet 共用 z-index:80）：行内「⋯」要浮在本面板**之上**。
  * 原型靠 index.html 把 #moreSheet 排在 #playerSheet 之后拿到更高层级（同一个 z-index，写在后面的压上面）；
  * RN 侧同一件事 = 本组件把 <Sheet> 与 <MoreSheet> 作为兄弟节点按这个顺序挂：两者都是 Z_LAYER.sheet(80)
  * 的绝对铺满覆盖层，**后声明的在上**，Android 返回键也按「后挂载先响应」依次收（Sheet 自带这套能力，
@@ -191,9 +197,10 @@ export const QueueSheet = ({ visible, onClose, bottomInset }: QueueSheetProps) =
   const keyExtractor = useCallback((item: NewUiPlayQueueRow) => item.key, [])
 
   /**
-   * 列表头部 cell（随内容滚，不是钉住区）：
-   * 空态一句（原型 .empty-tip，没歌在放时 #psBody 里就只有它）；
-   * 随机档那一句 .q-note 挂在列表头顶（原型原话：它解释的是顺序，不是某一行的状态）。
+   * 列表头部 cell（在 #psBody 内，随列表滚，不属于钉住区——原型原话两条都在 box=#psBody 上落）：
+   * 空态一句（app.js L2768 `box.appendChild(el('div','empty-tip',…))`，没歌在放时 #psBody 里就只有它）；
+   * 随机档那一句 .q-note 挂在列表头顶（app.js L2774，注释原话「挂在列表头顶，钉不钉住无所谓：
+   * 它解释的是顺序，不是某一行的状态」）。这两段都留在滚动区内，本轮不上移。
    */
   const listHeader = useMemo(() => (
     <>
@@ -201,6 +208,14 @@ export const QueueSheet = ({ visible, onClose, bottomInset }: QueueSheetProps) =
       {hasSong && togglePlayMethod === MUSIC_TOGGLE_MODE.random && <QueueNote text={NEW_UI_SHEET_QUEUE.random} />}
     </>
   ), [hasSong, togglePlayMethod])
+
+  /**
+   * 钉住区槽位（Sheet 的 pinnedComponent）：本屏恒空——它对应原型 `#psMeta`，
+   * 而 #psMeta 只在评论实例里被写过（见组件头注）。传空 Fragment 而不是不传，是为了让钉住模式
+   * 自挂载起恒开：有歌/空态/随机档来回切，头部都不在「随滚 / 钉住」两套结构间跳变
+   * （与 CommentSheet 的 pinnedTotal 同一写法）。
+   */
+  const pinnedMeta = <></>
 
   /** 交给行内「⋯」那一份菜单（原型 scene='queue' 整份换掉菜单，不掺通用那几项） */
   const queueActions = moreTarget != null ? {
@@ -224,6 +239,7 @@ export const QueueSheet = ({ visible, onClose, bottomInset }: QueueSheetProps) =
           renderItem,
           keyExtractor,
           headerComponent: listHeader,
+          pinnedComponent: pinnedMeta,
         }}
       />
       {/* 面板之上再叠行内「⋯」——必须排在上面那块之后（同 z-index，后声明者在上；返回键也先收它） */}
@@ -242,9 +258,9 @@ export const QueueSheet = ({ visible, onClose, bottomInset }: QueueSheetProps) =
 QueueSheet.displayName = 'NewUIQueueSheet'
 
 const styles = StyleSheet.create({
-  /** `#psBody .song-list`（styles.css L760，件 U80 自己带的两条规则之一）：gap 4px / margin-top 12px。
+  /** `#psBody .song-list`（styles.css L848，件 U80 自己带的两条规则之一）：gap 4px / margin-top 12px。
    *  FlatList 没有 gap，行距落在每行的下边距上；12px 的列顶衬距落在首行的上边距上（随机档那句 .q-note
-   *  本身无纵向 margin，styles.css L808，所以列顶这 12px 在两种形态下都是同一段距离） */
+   *  本身无纵向 margin，styles.css L896，所以列顶这 12px 在两种形态下都是同一段距离） */
   row: {
     marginBottom: SONG_ROW.queueListGap,
   },

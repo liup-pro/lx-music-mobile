@@ -13,6 +13,7 @@ import {
   FONT_SIZE,
   FONT_WEIGHT,
   GRADIENTS,
+  MONO_FONT_FAMILY,
   OPTION_ROW,
   OR_DEL,
   useTheme,
@@ -262,9 +263,11 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.rank,
     fontWeight: FONT_WEIGHT.bold,
   },
-  /** .or-body b small：10.5 / 600 / text-3 */
+  /** .or-body b small：10.5 / 600 / text-3 / ui-monospace（styles.css L863 那一族字面就在规则里，
+   *  不只字号——版本号「v1.0.0」这类标识符要跟数字位宽对齐，走 theme 的等宽档，两端各取其解） */
   version: {
     flexShrink: 0,
+    fontFamily: MONO_FONT_FAMILY,
     fontSize: FONT_SIZE.tiny,
     fontWeight: FONT_WEIGHT.semibold,
   },

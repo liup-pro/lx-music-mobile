@@ -4,12 +4,16 @@ import { StyleSheet, Text, View } from 'react-native'
 import { BUTTON, FONT_SIZE, LETTER_SPACING, SPACING, useTheme } from '@/newui/theme'
 
 import { IconButton } from '../IconButton'
+import type { IconName } from '../Icon'
 
 /**
  * 右上那一颗（原型 #plFavBtn）的三种形态（app.js L902-922 三分支）：
  * - fav：心钮（.pl-fav-btn.on 实心心形 + 主色）——pl / mine / rank 形态的收藏 / 取消收藏；
  * - delete：删除本歌单（本地单可删时的那位，trash 字形 + err 色，按下过二次确认）；
  * - none：同尺寸空槽（原型 visibility:hidden 留位）——系统列表 / 不可删的本地单，不放死按钮。
+ * 第四支 `icon`（2026-10-17 电台首页 U81 追加，**纯新增分支**）：右上「通用图标钮」，
+ * 字形 / 说明 / 动作全由容器传——原型 `#podSearchBtn` 就是这一位的第四种实例。
+ * 既有三形态的判定顺序与渲染路径未动，SonglistDetail 调用方零影响。
  */
 export type PlTopRight =
   | {
@@ -21,6 +25,13 @@ export type PlTopRight =
       label: string
     }
   | { kind: 'delete'; onPress: () => void; label: string }
+  /**
+   * icon：右上通用图标钮（原型 `#radioLayer` 顶排那颗 `#podSearchBtn`，index.html L391
+   * 「右上那颗是搜节目的入口」）。`.pl-top` 这一位本来就是「同尺寸一颗 icon-btn」，
+   * 字形与说明都由容器给（电台是 search，别的层将来也是这一支）。
+   * 与 fav / delete 的区别只有字形不固定、没有选中态；底档同 .pl-top 那一侧（strong）。
+   */
+  | { kind: 'icon', name: IconName, label: string, onPress: () => void }
   | { kind: 'none' }
 
 export interface PlTopProps {
@@ -78,7 +89,17 @@ export const PlTop = memo(({ crumbText, backLabel, onBack, right }: PlTopProps) 
               accessibilityLabel={right.label}
             />
           )
-          : <View style={styles.spacer} />}
+          : right.kind === 'icon'
+            ? (
+              /* 第四支（U81 电台首页 #podSearchBtn）：与返回钮同重的 strong 底，字形与说明由容器给 */
+              <IconButton
+                name={right.name}
+                strong
+                onPress={right.onPress}
+                accessibilityLabel={right.label}
+              />
+            )
+            : <View style={styles.spacer} />}
     </View>
   )
 })

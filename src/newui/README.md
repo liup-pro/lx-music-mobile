@@ -102,7 +102,7 @@ const { mode, scheme, setMode } = useThemeMode()
 import {
   Art, ArtistCard, Banner, CardGrid, Chip, ChipRow, DailyCard, EmptyTip, FavCard, FootNote,
   GhostButton, HScroll, Icon, IconButton, MineHeader, MyPlCard, PageHeader, PageViewport,
-  PillButton, PlCard, PlayBadge, QTag, QuickRow, RadioCard, RecentCard, Section, SongRow,
+  PillButton, PlCard, PlayBadge, QTag, QuickRow, RecentCard, Section, SongRow,
   StatRow, Switch, TabBar, TopBar,
 } from '@/newui/components'
 

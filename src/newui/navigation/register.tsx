@@ -2,12 +2,25 @@ import type { ComponentType } from 'react'
 import { Navigation } from 'react-native-navigation'
 
 import { Provider } from '@/store/Provider'
-import { MainScreen, PlayerScreen, SearchScreen, SonglistDetailScreen } from '@/newui/screens'
+import {
+  EpisodeScreen,
+  MainScreen,
+  PlayerScreen,
+  PodcastDetailScreen,
+  PodcastSearchScreen,
+  RadioHomeScreen,
+  SearchScreen,
+  SonglistDetailScreen,
+} from '@/newui/screens'
 import { ThemeProvider } from '@/newui/theme'
 
 import {
+  NEW_UI_EPISODE_SCREEN,
   NEW_UI_MAIN_SCREEN,
   NEW_UI_PLAYER_SCREEN,
+  NEW_UI_PODCAST_DETAIL_SCREEN,
+  NEW_UI_PODCAST_SEARCH_SCREEN,
+  NEW_UI_RADIO_HOME_SCREEN,
   NEW_UI_SEARCH_SCREEN,
   NEW_UI_SONGLIST_DETAIL_SCREEN,
 } from './screenNames'
@@ -35,6 +48,12 @@ export const registerNewUiScreens = () => {
   Navigation.registerComponent(NEW_UI_SEARCH_SCREEN, () => withNewUiProviders(SearchScreen))
   Navigation.registerComponent(NEW_UI_SONGLIST_DETAIL_SCREEN, () =>
     withNewUiProviders(SonglistDetailScreen))
+  Navigation.registerComponent(NEW_UI_RADIO_HOME_SCREEN, () => withNewUiProviders(RadioHomeScreen))
+  Navigation.registerComponent(NEW_UI_PODCAST_DETAIL_SCREEN, () =>
+    withNewUiProviders(PodcastDetailScreen))
+  Navigation.registerComponent(NEW_UI_PODCAST_SEARCH_SCREEN, () =>
+    withNewUiProviders(PodcastSearchScreen))
+  Navigation.registerComponent(NEW_UI_EPISODE_SCREEN, () => withNewUiProviders(EpisodeScreen))
 
   console.info('New UI screens have been registered...')
 }

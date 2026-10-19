@@ -1,0 +1,303 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import type { TextInput } from 'react-native'
+import { Navigation } from 'react-native-navigation'
+
+import type { PodShowRow } from '@/newui/podcast/types'
+import { usePodcastSearch } from '@/newui/podcast/hooks'
+
+import { ChipFlow } from '@/newui/components/ChipFlow'
+import { EmptyTip } from '@/newui/components/EmptyTip'
+import { Icon } from '@/newui/components/Icon'
+import { PagingStatus } from '@/newui/components/PagingStatus'
+import { PodcastRow } from '@/newui/components/PodcastRow'
+import { SearchTop } from '@/newui/components/SearchTop'
+
+import { newUiPodArtSeed } from '@/newui/const/radio'
+import {
+  NEW_UI_POD_SEARCH_CANCEL,
+  NEW_UI_POD_SEARCH_CLEAR_INPUT_LABEL,
+  NEW_UI_POD_SEARCH_CLEAR_LABEL,
+  NEW_UI_POD_SEARCH_EMPTY_SUB,
+  NEW_UI_POD_SEARCH_HISTORY_LABEL,
+  NEW_UI_POD_SEARCH_LOADING,
+  NEW_UI_POD_SEARCH_PLACEHOLDER,
+  NEW_UI_POD_SEARCH_RETRY,
+  newUiPodSearchEmptyTitle,
+  newUiPodSearchHint,
+} from '@/newui/const/radioSearch'
+import { useNewUiSystemBar, useSafeArea } from '@/newui/hooks'
+// 直连 entry 而非 '@/newui/navigation' 桶口：避免 navigation/index → register → screens → 本文件的循环引用
+import { pushNewUiPodcastDetail } from '@/newui/navigation/entry'
+import { FONT_SIZE, FONT_WEIGHT, SEARCH, useTheme } from '@/newui/theme'
+
+export interface PodcastSearchScreenProps {
+  componentId: string
+}
+
+/**
+ * 搜节目层（原型 `#podcastSearchLayer`，U83，`new_design/parts/radio/search.html`；
+ * 行为 `app.js` renderPodSearch L2100-2135 / submitPodSearch L2137-2152）。
+ *
+ * **写法与搜歌那一屏同口径**（判例 `screens/Search/SearchScreen.tsx`）：
+ * `.sc-top` 头部固定（输入框常驻）＋ `.sc-body` 自己滚，**不是**电台首页那种三段钉住。
+ * 件里归本件的样式为 0 条（`.sc-*` / `.hot-words` / `.empty-tip` / `.pod-list` 全是跨件原子），
+ * 因此这里不造新样式，只把 U64/U65 那两屏的档位与结构照搬。
+ *
+ * 四态（原型逐条）：
+ * - 无输入（idle）：只给本机「搜过的词」胶囊 + 清空（app.js L2105-2118）。**热搜不做**，
+ *   那句能力说明本轮已撤，词表为空时屏上什么都不放。
+ * - 提交后在途：`.empty-tip`「正在搜索…」（app.js L2122，用 EmptyTip 的 layer 档，
+ *   件壳是 `.pl-layer.search-layer`，`.pl-layer .empty-tip{padding:34px 0}` 生效）。
+ * - 接口失败：状态行「这一词没有载入 · 点击重试」——**失败不假装成空结果**。
+ * - 零命中：`.sc-empty` 两句；有命中：`.pod-list`（行复用 U81 的 `PodcastRow`，
+ *   命中行无名次）+ 尾注 `.sc-hint`「N 个节目」。
+ *
+ * 发请求的时机与搜歌一致：**回车 / 点词才发**，输入过程不逐字发（app.js L3467 同口径）。
+ * 词中途被换掉时那一次的结果不再盖上来——这条判据在数据层 hook 里（请求代次 + `reset`），
+ * 屏只负责在清空输入时调 `reset()`。历史词的读写与条数上限（8）全在数据层，屏内不碰存储。
+ *
+ * 纯 UI 层：取数走 `@/newui/podcast/hooks` 的 `usePodcastSearch`，本屏不写 AsyncStorage、不接播放器。
+ */
+export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) => {
+  const theme = useTheme()
+  const { top, bottom } = useSafeArea()
+  useNewUiSystemBar(componentId)
+
+  const {
+    keyword,
+    results,
+    loading,
+    failed,
+    search,
+    reset,
+    retry,
+    history,
+    clearHistory,
+  } = usePodcastSearch()
+
+  // 输入框里的实时文本归本屏自己管（keyword 是上一次**提交**的词）
+  const [text, setText] = useState('')
+  const [focused, setFocused] = useState(false)
+  const inputRef = useRef<TextInput>(null)
+  const bodyRef = useRef<ScrollView>(null)
+
+  /** 提交（回车 / 点词）：空词忽略（原型 submitPodSearch L2138）；记历史由数据层顺手做 */
+  const submit = useCallback((raw: string) => {
+    const word = raw.trim()
+    if (!word) return
+    setText(word)
+    search(word)
+  }, [search])
+
+  // 提交换词后把结果轴归零（原型 `$('#podSearchBody').scrollTop = 0`，app.js L2144）
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ y: 0, animated: false })
+  }, [keyword])
+
+  const handleCancel = useCallback(() => {
+    void Navigation.pop(componentId)
+  }, [componentId])
+
+  /** 清空输入：回到 idle，并作废在途的那一次（hook.reset 里抬代次） */
+  const handleClearText = useCallback(() => {
+    reset()
+    setText('')
+    inputRef.current?.focus()
+  }, [reset])
+
+  // 逐字退格到空即回 idle（原型本地过滤无此问题，提交式搜索必须给空串分支）
+  const handleChangeText = useCallback((value: string) => {
+    if (value.length === 0) {
+      reset()
+    }
+    setText(value)
+  }, [reset])
+
+  /**
+   * 命中行点进去（原型 `podRow` 的 `r.onclick = () => openPodcast(s)`，app.js L1915）。
+   * passProps 只带可序列化的那五项（契约 7.3 ④），与电台首页进详情传的是同一份形状；
+   * `feedUrl` 是 RSS 入口，本轮不上屏也不往外传。
+   */
+  const openPodcast = useCallback((row: PodShowRow) => {
+    pushNewUiPodcastDetail(componentId, {
+      id: row.id,
+      name: row.name,
+      by: row.by,
+      tags: row.tags.slice(),
+      artworkUrl: row.artworkUrl,
+    })
+  }, [componentId])
+
+  const hasQuery = keyword.length > 0
+
+  return (
+    <View
+      nativeID="newui.podSearch.content"
+      style={[styles.root, { backgroundColor: theme.colors.bg }]}
+    >
+      {/* .sc-top（复用 U62 的件，第二处实例）：占位与右上那颗按 Apple 用词 */}
+      <SearchTop
+        ref={inputRef}
+        value={text}
+        focused={focused}
+        topInset={top}
+        placeholder={NEW_UI_POD_SEARCH_PLACEHOLDER}
+        cancelLabel={NEW_UI_POD_SEARCH_CANCEL}
+        clearLabel={NEW_UI_POD_SEARCH_CLEAR_INPUT_LABEL}
+        onChangeText={handleChangeText}
+        onFocus={() => { setFocused(true) }}
+        onBlur={() => { setFocused(false) }}
+        onSubmit={() => { submit(text) }}
+        onClear={handleClearText}
+        onCancel={handleCancel}
+      />
+
+      {/* .sc-body：本屏唯一的滚动轴（头部不在里面）；命中固定 ≤20 条，不虚拟化 */}
+      <ScrollView
+        ref={bodyRef}
+        style={styles.body}
+        contentContainerStyle={[
+          styles.bodyContent,
+          { paddingBottom: SEARCH.bodyPaddingBottom + bottom },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {!hasQuery ? (
+          // idle：本机搜过的词 + 清空；没有词就整块不给（原型也不给别的解释）
+          history.length > 0 && (
+            <>
+              <View style={styles.label}>
+                <Text style={[styles.labelText, { color: theme.colors.text2 }]}>
+                  {NEW_UI_POD_SEARCH_HISTORY_LABEL}
+                </Text>
+                <Pressable
+                  hitSlop={8}
+                  onPress={clearHistory}
+                  style={({ pressed }) => [styles.clear, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                  accessibilityLabel="清空搜过的词"
+                >
+                  <Icon name="close" size={SEARCH.clearWordIcon} color={theme.colors.text3} />
+                  <Text style={[styles.clearText, { color: theme.colors.text3 }]}>
+                    {NEW_UI_POD_SEARCH_CLEAR_LABEL}
+                  </Text>
+                </Pressable>
+              </View>
+              <ChipFlow
+                items={history.map(word => ({ key: word, label: word }))}
+                onSelect={submit}
+              />
+            </>
+          )
+        ) : loading ? (
+          // .empty-tip（件壳是 .pl-layer，走 layer 档内距）
+          <EmptyTip text={NEW_UI_POD_SEARCH_LOADING} variant="layer" />
+        ) : failed ? (
+          // 接口失败：状态行就是重试入口，不拿空结果冒充
+          <PagingStatus text={NEW_UI_POD_SEARCH_RETRY} onPress={retry} />
+        ) : results.length === 0 ? (
+          // .sc-empty：与搜歌同一族
+          <View style={styles.empty}>
+            <Text style={[styles.emptyTitle, { color: theme.colors.text2 }]}>
+              {newUiPodSearchEmptyTitle(keyword)}
+            </Text>
+            <Text style={[styles.emptySub, { color: theme.colors.text3 }]}>
+              {NEW_UI_POD_SEARCH_EMPTY_SUB}
+            </Text>
+          </View>
+        ) : (
+          <>
+            {/* .pod-list：命中行没有名次（原型 podRow(s, 0)，不传 rank 时那一整个槽位不画）；
+                行尾只挂一枚分类词由 PodcastRow 内部取 tags[0]（podRow L1905-1912），这里给全量 */}
+            <View style={styles.list}>
+              {results.map(row => (
+                <PodcastRow
+                  key={row.id}
+                  artSeed={newUiPodArtSeed(row.id)}
+                  artUri={row.artworkUrl}
+                  name={row.name}
+                  by={row.by}
+                  tags={row.tags}
+                  onPress={() => { openPodcast(row) }}
+                />
+              ))}
+            </View>
+            {/* .sc-hint：命中后底部只留这一个数 */}
+            <Text style={[styles.hint, { color: theme.colors.text3 }]}>
+              {newUiPodSearchHint(results.length)}
+            </Text>
+          </>
+        )}
+      </ScrollView>
+    </View>
+  )
+}
+
+PodcastSearchScreen.displayName = 'NewUIPodcastSearchScreen'
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  /** .sc-body{flex:1;overflow-y:auto;padding:0 16px 40px} */
+  body: {
+    flex: 1,
+    minHeight: 0,
+  },
+  bodyContent: {
+    paddingHorizontal: SEARCH.bodyPaddingX,
+  },
+  /** .sc-label margin:18px 0 10px / 12.5 / 600，b 走 text-2 700 */
+  label: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: SEARCH.labelMarginTop,
+    marginBottom: SEARCH.labelMarginBottom,
+  },
+  labelText: {
+    fontSize: FONT_SIZE.smallLg,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  /** .sc-clear：11.5 / text-3 / gap 1（图标 13） */
+  clear: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 1,
+  },
+  clearText: {
+    fontSize: FONT_SIZE.captionLg,
+  },
+  pressed: {
+    opacity: 0.6,
+  },
+  /** 原型 renderPodSearch 里 `list.style.marginTop = '4px'`（命中列表贴输入框下 4） */
+  list: {
+    marginTop: 4,
+  },
+  /** .sc-empty：padding 46px 0 / 居中 */
+  empty: {
+    paddingVertical: SEARCH.emptyPaddingY,
+    alignItems: 'center',
+  },
+  /** .sc-empty b：14 / 750 / text-2 / mb 4 */
+  emptyTitle: {
+    fontSize: FONT_SIZE.rank,
+    fontWeight: FONT_WEIGHT.extraBold,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  emptySub: {
+    fontSize: FONT_SIZE.smallLg,
+    lineHeight: SEARCH.emptyLineHeight,
+    textAlign: 'center',
+  },
+  /** .sc-hint：11 / mt 16 / 行高 1.7 ≈ 19 */
+  hint: {
+    marginTop: SEARCH.hintMarginTop,
+    fontSize: FONT_SIZE.caption,
+    lineHeight: 19,
+  },
+})

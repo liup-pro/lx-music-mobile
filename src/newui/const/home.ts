@@ -1,9 +1,11 @@
-import type { QuickEntry, RadioCardProps } from '@/newui/components'
+import type { QuickEntry } from '@/newui/components'
 
 /**
- * 首页文案与静态条目（对应原型 #page-home 与 data.js 的 QUICK / RADIO）。
+ * 首页文案与静态条目（对应原型 #page-home 与 data.js 的 QUICK）。
  * 原型里的 BANNERS / DAILY / PLAYLISTS / RANK_TABS 都是 mock，一律不搬；
- * 这里只放「不依赖数据」的标题、动作文案与电台占位条目。
+ * 这里只放「不依赖数据」的标题、动作文案。
+ * （原 data.js RADIO 卡表与「随手听」区块随原型 U33 退役一并撤掉——首页电台入口只剩快捷那一格，
+ * 落点是 RadioHomeScreen，见 navigation/entry.ts `pushNewUiRadioHome`。）
  */
 
 /** 各区块标题（.section-title / .section-sub） */
@@ -13,7 +15,6 @@ export const NEW_UI_HOME_TITLES = {
   playlists: '推荐歌单',
   songs: '热门单曲',
   artists: '热门歌手',
-  radio: '随手听',
 } as const
 
 /** 各区块右侧动作（.section-more） */
@@ -68,17 +69,18 @@ export const NEW_UI_HOME_EMPTY = {
   artists: '这个榜里没认出歌手',
 } as const
 
-/** 还没做完的动作给的一句话提示（说人话，别漏开发术语）；音源轮播已接 SourceSheet（9d），条目随之清理 */
+/** 还没做完的动作给的一句话提示（说人话，别漏开发术语）；音源轮播已接 SourceSheet（9d）、电台已接 RadioHomeScreen（快捷那一格），两条占位随之清理，只剩歌手主页这一句 */
 export const NEW_UI_HOME_TODO_TOAST = {
-  radio: '电台 · 建设中',
   artists: '歌手主页建设中 · 先播放这张榜里 TA 的歌曲',
 } as const
 
-/** 轮播条目的动作 key（useHomeBanners 产出、HomePage 分派，两处共用） */
+/**
+ * 轮播条目的动作 key（useHomeBanners 产出、HomePage 分派，两处共用）。
+ * 原型首页的电台入口只有快捷那一格（data.js L294），轮播里没有电台条。
+ */
 export const NEW_UI_HOME_BANNER_KEYS = {
   apiSource: 'api-source',
   nowPlaying: 'now-playing',
-  radio: 'radio',
 } as const
 
 /** 播放相关反馈 */
@@ -102,21 +104,6 @@ export const NEW_UI_HOME_QUICK_KEYS = {
   radio: 'radio',
   liked: 'liked',
 } as const
-
-/** 随手听卡片（原型 RADIO，两项都标着「建设中」）；key 供容器分派动作 */
-export type RadioEntry = { key: string } & Omit<RadioCardProps, 'width' | 'onPress'>
-
-export const NEW_UI_HOME_RADIO_ITEMS: RadioEntry[] = [
-  { key: 'fm', title: '私人 FM', sub: '按你的口味随机', icon: 'wave', artSeed: 'r-fm', tag: '建设中' },
-  {
-    key: 'hertz',
-    title: '赫兹电台',
-    sub: '夜间 · 人声爵士',
-    icon: 'heart',
-    artSeed: 'r-hertz',
-    tag: '建设中',
-  },
-]
 
 /** 封面种子前缀（与 utils/song 里的专辑种子区分开） */
 export const NEW_UI_HOME_ART_SEED = {

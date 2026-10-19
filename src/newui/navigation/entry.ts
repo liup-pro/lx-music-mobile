@@ -4,12 +4,19 @@ import { Navigation } from 'react-native-navigation'
 import type { ListInfoItem } from '@/store/songlist/state'
 import type { NewUiSonglistDetailKind } from '@/newui/const/songlistDetail'
 import type { NewUiTabKey } from '@/newui/const/tabs'
+// 只取类型（babel 会整条抹掉，不产生运行时依赖）：屏 → entry 是运行时的调用方向，反向不能有值引用
+import type { NewUiPodcastDetailPassShow } from '@/newui/screens/Radio/PodcastDetailScreen'
+import type { NewUiEpisodePassProps } from '@/newui/screens/Radio/EpisodeScreen'
 
 import { PL_LAYER, PLAYER, SEARCH, getCachedNewUiScheme, readPersistedNewUiScheme } from '@/newui/theme'
 
 import {
+  NEW_UI_EPISODE_SCREEN,
   NEW_UI_MAIN_SCREEN,
+  NEW_UI_PODCAST_DETAIL_SCREEN,
+  NEW_UI_PODCAST_SEARCH_SCREEN,
   NEW_UI_PLAYER_SCREEN,
+  NEW_UI_RADIO_HOME_SCREEN,
   NEW_UI_SEARCH_SCREEN,
   NEW_UI_SONGLIST_DETAIL_SCREEN,
 } from './screenNames'
@@ -137,23 +144,29 @@ export const pushNewUiSearch = (componentId: string) => {
 }
 
 /**
- * 详情层右推的共用体（原型 #plLayer：与搜索层同一条 .pl-layer 右推规则，
- * 时长取 PL_LAYER.enterDuration 440ms；根 View nativeID 见 screens/SonglistDetail）。
+ * 右推层（原型 `.pl-layer`）的共用体：`translateX 100% → 0`，时长 `PL_LAYER.enterDuration` 440ms。
+ * RNN 侧用 elementTransitions 平移整层，`contentId` 即目标屏根 View 的 nativeID。
+ * **转场只在这一处持有**：屏内一律调下面的 helper，不各自写 Navigation.push。
  * passProps 必须全部可序列化（RNN 走原生桥），store 对象 / 函数不许进来。
  */
-const pushSonglistDetailLayer = (componentId: string, passProps: Record<string, unknown>) => {
+const pushPlLayer = (
+  componentId: string,
+  name: string,
+  contentId: string,
+  passProps?: Record<string, unknown>,
+) => {
   const { width } = Dimensions.get('window')
   return Navigation.push(componentId, {
     component: {
-      name: NEW_UI_SONGLIST_DETAIL_SCREEN,
-      passProps,
+      name,
+      ...(passProps != null ? { passProps } : {}),
       options: {
         ...newUiScreenOptions(getCachedNewUiScheme()),
         animations: {
           push: {
             elementTransitions: [
               {
-                id: 'newui.songlistDetail.content',
+                id: contentId,
                 translationX: {
                   from: width,
                   duration: PL_LAYER.enterDuration,
@@ -164,7 +177,7 @@ const pushSonglistDetailLayer = (componentId: string, passProps: Record<string, 
           pop: {
             elementTransitions: [
               {
-                id: 'newui.songlistDetail.content',
+                id: contentId,
                 translationX: {
                   to: width,
                   duration: PL_LAYER.enterDuration,
@@ -190,7 +203,8 @@ export const pushNewUiSonglistDetail = (
   kind: NewUiSonglistDetailKind = 'pl',
   fromTab?: NewUiTabKey,
 ) => {
-  return pushSonglistDetailLayer(componentId, fromTab != null ? { info, kind, fromTab } : { info, kind })
+  return pushPlLayer(componentId, NEW_UI_SONGLIST_DETAIL_SCREEN, 'newui.songlistDetail.content',
+    fromTab != null ? { info, kind, fromTab } : { info, kind })
 }
 
 /**
@@ -207,7 +221,39 @@ export const pushNewUiLocalListDetail = (
   fromTab?: NewUiTabKey,
   kind: NewUiSonglistDetailKind = 'local',
 ) => {
-  return pushSonglistDetailLayer(componentId, fromTab != null
-    ? { kind, listId: list.id, listName: list.name, fromTab }
-    : { kind, listId: list.id, listName: list.name })
+  return pushPlLayer(componentId, NEW_UI_SONGLIST_DETAIL_SCREEN, 'newui.songlistDetail.content',
+    fromTab != null
+      ? { kind, listId: list.id, listName: list.name, fromTab }
+      : { kind, listId: list.id, listName: list.name })
+}
+
+/**
+ * 打开电台首页（U81，原型 #radioLayer；首页快捷四格那一颗的落点）。
+ * 不带 passProps：地区、榜单与本机的订阅/进度都由屏自己从 `@/newui/podcast` 取。
+ */
+export const pushNewUiRadioHome = (componentId: string) => {
+  return pushPlLayer(componentId, NEW_UI_RADIO_HOME_SCREEN, 'newui.radio.content')
+}
+
+/**
+ * 打开播客详情层（U82，原型 #podcastLayer）。
+ * show 是 U81 榜行 / U83 命中行带来的五项快照（契约 7.3④）：只带 id / name / by / tags / 封面，
+ * `feedUrl` 与名次这一屏用不上、也不必要过原生桥；详情由本屏自己发 ③ 取。
+ */
+export const pushNewUiPodcastDetail = (componentId: string, show: NewUiPodcastDetailPassShow) => {
+  return pushPlLayer(componentId, NEW_UI_PODCAST_DETAIL_SCREEN, 'newui.podcast.content', { show })
+}
+
+/** 打开搜节目层（U83，原型 #podcastSearchLayer）；历史词与结果都在屏内经数据层自取 */
+export const pushNewUiPodcastSearch = (componentId: string) => {
+  return pushPlLayer(componentId, NEW_UI_PODCAST_SEARCH_SCREEN, 'newui.podSearch.content')
+}
+
+/**
+ * 打开单集屏（U84，原型 #episodeLayer）。
+ * passProps 摊平进屏 props（屏那套 `NewUiEpisodePassProps` 就是单集视图模型，全字符串/数字；
+ * ③ 给的音频直链 `episodeUrl` 要在那一屏真出声，所以得过原生桥）。
+ */
+export const pushNewUiEpisode = (componentId: string, passProps: NewUiEpisodePassProps) => {
+  return pushPlLayer(componentId, NEW_UI_EPISODE_SCREEN, 'newui.episode.content', { ...passProps })
 }

@@ -21,6 +21,7 @@
  *   人工可在该文件 manual 字段钉死覆盖（改完不用加 --refresh-map 也生效）。
  * - 白名单：scripts/newui-parity-whitelist.json（不存在=全量报）。键＝`件|A|属性` 或
  *   `件|B|属性=数值`，值为理由；命中的对账项被抑制并在统计里计数（抑制数量可见）。
+ *   同文件另有一段 `noInstance`（无实例豁免，粒度＝单条选择器，每次运行回查原型；见 5 段说明）。
  *
  * 口径（v1 有意跳过，不报）：
  * - _chrome/_shell 不参与（查看器 chrome/页壳，RN 不承接）；_base 只做新鲜度探针
@@ -265,11 +266,80 @@ const FAM = new Map([
 const NUMERIC_PROPS = new Set(['font-size', 'font-weight', 'letter-spacing', 'line-height', 'gap', 'border-radius', 'opacity'])
 
 const wl = existsSync(WL_FILE) ? (JSON.parse(readFileSync(WL_FILE, 'utf8')).flags || {}) : {}
+/*
+ * 「无实例豁免」——不是关掉检查，是一条必须由原型每次作证的豁免。
+ *
+ * 场景：件里登记了一条 CSS 规则，而原型自己在件头/notes 里写明「屏上已无实例」
+ * （例：radio/episode 的 .wip-tag —— 角标本体留着备用，单集屏那枚「界面示意」已撤）。
+ * 这种规则 RN 侧**不该有对应实现**（凭空造一枚屏上不存在的角标就是自创视觉），
+ * 所以它不该进 A/B 对账。但豁免一旦写死就退化成「这件永不报错」，那比没闸门更糟，故三条底线：
+ *  1) 粒度 = 单条选择器，不是整件、也不是整个属性。radio/episode 里 .epl-* 那些真有实例的
+ *     规则照旧逐条对账（少一个 9.5px 就报）。白名单 flags 那种「件|A|属性」的宽度在这里不许用。
+ *  2) 每次运行都回查原型：该选择器的类名/ id 若出现在 index.html 的 class="" / id="" 属性值里，
+ *     或被 app.js / data.js 正文以任何方式提到（那里是真数据渲染处），即视为「已上屏」——
+ *     豁免当场作废、按未豁免继续对账，并追加一条内部错误（退出码 2）。
+ *     之后任何一件把 .wip-tag 摆上屏，都会被这条回查抓到，而不是悄悄绕过。
+ *  3) 只认「无实例」这一件事，不动任何数值严格性：数字池、单位、新鲜度探针一律不变。
+ */
+const noInstSrc = existsSync(WL_FILE) ? (JSON.parse(readFileSync(WL_FILE, 'utf8')).noInstance || {}) : {}
+const INST_HTML = readFileSync(join(root, 'new_design/index.html'), 'utf8')
+const INST_JS = [
+  readFileSync(join(root, 'new_design/app.js'), 'utf8'),
+  readFileSync(join(root, 'new_design/data.js'), 'utf8'),
+].join('\n')
+// 原型 markup 里真正挂在元素上的类名 / id（属性值逐个切词；notes 散文里 <code>.wip-tag</code> 这种不算）
+const htmlClassSet = new Set()
+const htmlIdSet = new Set()
+for (const m of INST_HTML.matchAll(/\bclass\s*=\s*"([^"]*)"/g)) for (const c of m[1].split(/\s+/)) if (c) htmlClassSet.add(c)
+for (const m of INST_HTML.matchAll(/\bid\s*=\s*"([^"]*)"/g)) for (const c of m[1].split(/\s+/)) if (c) htmlIdSet.add(c)
+
+// 选择器 → 它要求的类名/ id 记号（先剥掉 [attr] 与 :pseudo，避免把 ::after 当类名）
+function selTokens(sel) {
+  const bare = sel.replace(/\[[^\]]*\]/g, ' ').replace(/::?[a-zA-Z-]+(\([^)]*\))?/g, ' ')
+  const out = []
+  for (const m of bare.matchAll(/([.#])([a-zA-Z][\w-]*)/g)) out.push({ kind: m[1], name: m[2] })
+  return out
+}
+// 该记号在原型里是否已经上屏（判据见底线 2，任一命中即算有实例）
+function hasPrototypeInstance(tok) {
+  if (tok.kind === '.' ? htmlClassSet.has(tok.name) : htmlIdSet.has(tok.name)) return true
+  return new RegExp('\\b' + escRe(tok.name) + '\\b').test(INST_JS)
+}
+const normSel = (s) => s.trim().replace(/\s+/g, ' ')
+const instOk = new Map() // `${件}|${选择器}` → { exempt, why }（exempt:false = 回查已撤销豁免）
+const instViolations = []
+const instMatched = new Set() // 真正在某件规则里撞上过的豁免键（撞不上 = 配置过期，要报）
+for (const [partKey, spec] of Object.entries(noInstSrc)) {
+  const sels = Array.isArray(spec?.selectors) ? spec.selectors : []
+  if (!sels.length) instViolations.push(`${partKey} 的无实例豁免没列任何选择器（空豁免=无效配置，请补 selectors）`)
+  if (!String(spec?.reason || '').trim()) instViolations.push(`${partKey} 的无实例豁免缺 reason（豁免必须逐字引用原型自证，无理由=无效配置）`)
+  for (const raw of sels) {
+    const sel = normSel(raw)
+    const toks = selTokens(sel)
+    if (!toks.length) { instViolations.push(`${partKey} 的豁免选择器「${raw}」取不出类名/ id，无法回查实例`); continue }
+    const live = toks.filter(hasPrototypeInstance)
+    if (live.length) {
+      instViolations.push(`${partKey} 的无实例豁免已失效：选择器 ${sel} 要求的 ${live.map((t) => (t.kind === '.' ? 'class' : 'id') + '「' + t.name + '」').join('、')} 如今在原型里有实例（index.html 的 class/id 属性值，或 app.js / data.js 正文提及）——按未豁免继续对账：把这条落地进 RN，或从白名单 noInstance 撤掉`)
+      instOk.set(`${partKey}|${sel}`, { exempt: false, why: spec.reason || '' })
+    } else {
+      instOk.set(`${partKey}|${sel}`, { exempt: true, why: spec.reason || '' })
+    }
+  }
+}
+
 const flagsA = []
 const flagsB = []
 const unmapped = []
 let suppressed = 0
 let mappedCount = 0
+let instSkipped = 0
+const instSkippedList = new Map() // `${件}|${选择器}` → { part, sel, why, src, items: [] }（同一条豁免合并显示，理由只印一次）
+const instSkip = (partKey, rule, why, item) => {
+  instSkipped++
+  const key = `${partKey}|${rule.sel}`
+  if (!instSkippedList.has(key)) instSkippedList.set(key, { part: partKey, sel: rule.sel, why, src: rule.a, items: [] })
+  instSkippedList.get(key).items.push(item)
+}
 
 for (const part of parts) {
   if (part.key === '_base') continue // 公共底：原子分散在各组件，v1 只做新鲜度
@@ -286,10 +356,21 @@ for (const part of parts) {
     codeText += c.codeNoStr + '\n'
   }
 
+  // 本件的「无实例」判定器：粒度 = 单条选择器（不是整件、不是整个属性）
+  const exemptOf = (r) => {
+    const key = `${part.key}|${normSel(r.sel)}`
+    const hit = instOk.get(key)
+    if (!hit) return null
+    instMatched.add(key)
+    return hit.exempt ? { why: hit.why } : null
+  }
+
   // A：属性族覆盖（件里有该 CSS 属性，映射件里该 RN 键一次都没出现）
   const seenA = new Map()
+  const exA = new Map() // 豁免侧候选；同件内另有「真有实例」的规则带同一属性族时让位（下方 delete）
   for (const r of part.rules) {
     if (r.at) continue
+    const ex = exemptOf(r)
     for (const d of r.decls) {
       const rnKey = FAM.get(d.prop)
       if (!rnKey) continue
@@ -297,6 +378,11 @@ for (const part of parts) {
       if (/^(inherit|initial|unset)$/.test(d.val)) continue
       if (d.prop === 'text-align' && d.val === 'left') continue
       const k = `${d.prop}|${rnKey}`
+      if (ex) {
+        if (!seenA.has(k) && !exA.has(k)) exA.set(k, { rnKey, rule: r, why: ex.why })
+        continue
+      }
+      exA.delete(k)
       if (!seenA.has(k)) seenA.set(k, { rnKey, rule: r })
     }
   }
@@ -307,11 +393,17 @@ for (const part of parts) {
       flagsA.push({ part: part.key, prop: k.split('|')[0], rnKey, rule, files: mapped })
     }
   }
+  for (const [k, { rnKey, rule, why }] of exA) {
+    if (new RegExp(`\\b${rnKey}\\b`).test(codeText)) continue // 本来就不报，不记进豁免数
+    instSkip(part.key, rule, why, `A 缺属性 { ${k.split('|')[0]} }：映射件无 ${rnKey}`)
+  }
 
   // B：数值缺（件里的字面数值在映射件数值池找不到）
   const seenB = new Map()
+  const exB = new Map()
   for (const r of part.rules) {
     if (r.at) continue
+    const ex = exemptOf(r)
     for (const d of r.decls) {
       if (!NUMERIC_PROPS.has(d.prop)) continue
       if (/var\(|%|calc\(/.test(d.val)) continue
@@ -323,6 +415,11 @@ for (const part of parts) {
         const n = parseFloat(s)
         if (n === 0 || n === 1) continue
         const k = `${d.prop}=${n}`
+        if (ex) {
+          if (!seenB.has(k) && !exB.has(k)) exB.set(k, { prop: d.prop, val: d.val, n, rule: r, why: ex.why })
+          continue
+        }
+        exB.delete(k)
         if (!seenB.has(k)) seenB.set(k, { prop: d.prop, val: d.val, n, rule: r })
       }
     }
@@ -332,6 +429,17 @@ for (const part of parts) {
     if (wl[wlKey] !== undefined) { suppressed++; continue }
     if (!pools.has(n)) flagsB.push({ part: part.key, prop, val, n, rule, files: mapped })
   }
+  for (const [, { prop, val, n, rule, why }] of exB) {
+    if (pools.has(n)) continue // 本来就不报，不记进豁免数
+    instSkip(part.key, rule, why, `B 数值缺 { ${prop}: ${val} }：${n} 不在数值池`)
+  }
+}
+
+// 豁免配置自身也要能被证伪：白名单写了、却在该件规则里一条都没撞上（选择器写错 / 规则已从原型删除 / 件未映射被整件跳过）→ 报
+for (const key of instOk.keys()) {
+  if (instMatched.has(key)) continue
+  const [partKey, sel] = key.split('|')
+  instViolations.push(`${partKey} 的无实例豁免没有命中本件任何规则：${sel}（选择器写错、该规则已从原型删除，或整件未建映射被跳过——请撤掉或改对，别留悬空豁免）`)
 }
 
 // ---------------------------------------------------------------------------
@@ -351,6 +459,18 @@ for (const f of flagsB) {
   console.log(`    ${f.n} 不在数值池（源 styles.css L${f.rule.a}）：${f.files.join(' , ')}`)
 }
 const total = flagsA.length + flagsB.length
-console.log(`\n结论：flags = ${total}（A ${flagsA.length} / B ${flagsB.length}）${suppressed ? `，白名单抑制 ${suppressed} 项` : ''}`)
+console.log(`\n—— 无实例豁免（原型已撤实例，RN 凭空造一枚屏上不存在的角标＝自创视觉；每次运行都回查原型）：${instSkipped} 条 ——`)
+for (const g of instSkippedList.values()) {
+  console.log(`  [无实例豁免] ${g.part}  ${g.sel} 免掉 ${g.items.length} 条（源 styles.css L${g.src}）`)
+  for (const it of g.items) console.log(`      · ${it}`)
+  console.log(`      理由：${g.why}`)
+}
+if (!instSkipped) console.log('  （无）')
+console.log(`\n结论：flags = ${total}（A ${flagsA.length} / B ${flagsB.length}）${suppressed ? `，白名单抑制 ${suppressed} 项` : ''}${instSkipped ? `，无实例豁免 ${instSkipped} 条` : ''}`)
+if (instViolations.length) {
+  console.log(`\n✗ 无实例豁免不成立（${instViolations.length} 条，退出码 2）——豁免必须由原型每次作证，不许写死了就算：`)
+  for (const v of instViolations) console.log('  ' + v)
+  process.exit(2)
+}
 if (errors.length) { console.log('\n内部错误：'); for (const e of errors) console.log('  ' + e); process.exit(2) }
 process.exit(total > 0 ? 1 : 0)

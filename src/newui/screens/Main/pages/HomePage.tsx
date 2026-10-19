@@ -4,12 +4,11 @@ import { StyleSheet, View, type ListRenderItem } from 'react-native'
 import type { ListInfoItem } from '@/store/songlist/state'
 
 // 直连 entry 而非 '@/newui/navigation' 桶口：避免 navigation/index → register → screens → 本文件的循环引用
-import { pushNewUiPlayer, pushNewUiSonglistDetail } from '@/newui/navigation/entry'
+import { pushNewUiPlayer, pushNewUiRadioHome, pushNewUiSonglistDetail } from '@/newui/navigation/entry'
 
 import {
   ArtistCard,
   Banner,
-  CardGrid,
   ChipRow,
   DailyCard,
   EmptyTip,
@@ -19,7 +18,6 @@ import {
   PageListView,
   PlCard,
   QuickRow,
-  RadioCard,
   RecentCard,
   Section,
   SectionNote,
@@ -36,12 +34,10 @@ import {
   NEW_UI_HOME_PLAY_TOAST,
   NEW_UI_HOME_QUICK_ITEMS,
   NEW_UI_HOME_QUICK_KEYS,
-  NEW_UI_HOME_RADIO_ITEMS,
   NEW_UI_HOME_TITLES,
   NEW_UI_RECENT_CLEARED_TOAST,
   NEW_UI_HOME_TODO_TOAST,
   NEW_UI_SEARCH_UNPLAYABLE_TOAST,
-  type RadioEntry,
 } from '@/newui/const'
 import type { NewUiPageProps } from '../../types'
 import {
@@ -55,7 +51,7 @@ import {
   useRecentPlays,
   useSingerPics,
 } from '@/newui/hooks'
-import { CARD_GRID, PLATFORM_TINTS, RADIO_CARD, SONG_ROW, type PlatformTintKey } from '@/newui/theme'
+import { CARD_GRID, PLATFORM_TINTS, SONG_ROW, type PlatformTintKey } from '@/newui/theme'
 import { clearNewUiRecentPlays, getSingerMidOfSong, getToday, playQueue, showNewUiToast, toSongDisplay } from '@/newui/utils'
 
 /** 上屏上限（原型刻意设计值，集中在 const/home 的 NEW_UI_HOME_LIMITS，含各处原型行号） */
@@ -101,14 +97,14 @@ const splitSingers = (singer: string): string[] =>
  * —— 2026-10-16 真机 OOM 修复轮（第 2 站点）：推荐池改「整页虚拟化列表」——
  * 旧形态是主屏共用 PageViewport（裸 ScrollView）里整页 `.map` 直出。首页各段落里，
  * 只有推荐歌单池（`playlists.items.map`）的条目数由平台侧给多少决定，其余（继续收听 12 /
- * 榜单歌 10 / 歌手 8 / 电台 2）都是写死的上限。**如实说明**：当前 useRecommendPlaylists
+ * 榜单歌 10 / 歌手 8）都是写死的上限。**如实说明**：当前 useRecommendPlaylists
  * 一次取一批再 slice(0, 4)，所以首页今天的上屏量是有限的（本轮改的是形态，不是止血数字）；
  * 但这段落与歌单页那条根因链同一条——一旦换成随触底累加的取数（每批 10 份那种），
  * 裸 ScrollView 就会让挂载视图数与池长成正比，Yoga 节点撑满 Java 堆 → OOM 栈顶 YogaNodeJNIBase。
  * 现本页自带 PageListView（FlatList）作主滚动容器，**卡池按两列成行为虚拟单元**，
  * 挂载数 = 屏内行 + windowSize 余量，与池长解耦；页头（轮播 / 快捷四格 / 继续收听 /
  * 每日推荐 / 池子标题行）进 ListHeaderComponent，热门单曲（就地换榜的整块）/ 热门歌手 /
- * 随手听 / 页脚进 ListFooterComponent——RN VirtualizedList 源码里 header/footer 两个 cell
+ * 页脚进 ListFooterComponent——RN VirtualizedList 源码里 header/footer 两个 cell
  * 是无条件渲染的（不参与 windowing），所以这两块**永不回收、永不重挂**：
  * ① 轮播的 4.2s 自动换播定时器与横滑停靠位不会因滚动被重置（与旧 ScrollView 行为逐字一致，
  *    且横滑 ScrollView 嵌在纵滚列表里本就是改造前「纵向 ScrollView > 横向 ScrollView」的同款嵌套，
@@ -122,6 +118,8 @@ const splitSingers = (singer: string): string[] =>
  * **不加 removeClippedSubviews**——回收单元里的 SVG 封面在 Android 有整格变白的老毛病
  * （SearchResultPanel 2026-10-12 同款结论，PageListView 注释亦同）。
  * 2026-10-15（拆件转正轮）：`.section-note` 原内联单元转正为独立组件 SectionNote，渲染零变化、文案常量原样。
+ * 电台接线轮：撤掉页尾「随手听」区块（原型 index.html L684 明写首页电台**只剩快捷那一格**，
+ * U33 两张 RadioCard 已退役——快捷格进 U81 电台首页的动线本就在上面 handleQuickPress 里，不动）。
  */
 export const HomePage = ({
   componentId,
@@ -141,7 +139,6 @@ export const HomePage = ({
   const assertApiSupport = useApiSupport()
 
   const cardWidth = useGridItemWidth()
-  const radioWidth = useGridItemWidth(2, RADIO_CARD.gridGap)
 
   // 历史已在记录侧按曲去重（新播在前），这里只截上屏数量
   const recentSongs = useMemo(
@@ -200,15 +197,11 @@ export const HomePage = ({
     [assertApiSupport, ranks.songs],
   )
 
-  // 轮播三条动线（原型 app.js L128-131）：正在播放 → 播放页；电台还没做 → 一句话提示；
-  // 「音源公告」卡 → 开音源设置浮层（原型 openLayer($('#sourceSheet'))，9d 接通）
+  // 轮播两条动线（原型 app.js L128-131）：正在播放 → 播放页；「音源公告」卡 → 开音源设置浮层（9d 接通）
   const handleBannerPress = useCallback((key: string) => {
     switch (key) {
       case NEW_UI_HOME_BANNER_KEYS.nowPlaying:
         pushNewUiPlayer(componentId)
-        break
-      case NEW_UI_HOME_BANNER_KEYS.radio:
-        showNewUiToast(NEW_UI_HOME_TODO_TOAST.radio)
         break
       default:
         onOpenSourceSheet?.()
@@ -225,6 +218,7 @@ export const HomePage = ({
     })
   }, [daily.songs])
 
+  // 快捷四格（原型 QUICK）：电台那一格进 U81 电台首页，转场归 entry.ts
   const handleQuickPress = useCallback((key: string) => {
     switch (key) {
       case NEW_UI_HOME_QUICK_KEYS.daily:
@@ -236,10 +230,11 @@ export const HomePage = ({
       case NEW_UI_HOME_QUICK_KEYS.liked:
         onSwitchTab('mine')
         break
-      default:
-        showNewUiToast(NEW_UI_HOME_TODO_TOAST.radio)
+      case NEW_UI_HOME_QUICK_KEYS.radio:
+        pushNewUiRadioHome(componentId)
+        break
     }
-  }, [onSwitchTab, playDaily])
+  }, [componentId, onSwitchTab, playDaily])
 
   const handleRecentPress = useCallback((index: number) => {
     void playQueue('played', recentSongs, index)
@@ -336,14 +331,10 @@ export const HomePage = ({
     void playQueue(`${ranks.activeId}__${name}`, songs, 0)
   }, [ranks.activeId, ranks.songs])
 
-  const handleRadioPress = useCallback((entry: RadioEntry) => {
-    showNewUiToast(NEW_UI_HOME_TODO_TOAST.radio)
-  }, [])
-
   const today = getToday()
 
   // —— 列表头（ListHeaderComponent）：轮播 + 快捷四格 + 继续收听 + 每日推荐 + 池子标题行 ——
-  // 全是定长内容（轮播 3 条、快捷 4 格、继续收听上限 12、榜单/池子各有上限），
+  // 全是定长内容（轮播最多 2 条、快捷 4 格、继续收听上限 12、榜单/池子各有上限），
   // 且 VirtualizedList 的 header cell 不参与 windowing：轮播的自动换播定时器与横滑停靠位
   // 不会因滚动被重置，与改造前的裸 ScrollView 行为逐字一致；横滑 ScrollView 嵌在纵滚列表内
   // 也是改造前就存在的同款嵌套（纵向 ScrollView > 横向 ScrollView），手势关系没变。
@@ -405,8 +396,8 @@ export const HomePage = ({
     </View>
   )
 
-  // —— 列表尾（ListFooterComponent）：热门单曲 + 热门歌手 + 随手听 + 页脚 ——
-  // 三块都是定长（榜单歌 10 首 / 歌手 8 位 / 电台 2 张），不为它们做「虚拟化而虚拟化」：
+  // —— 列表尾（ListFooterComponent）：热门单曲 + 热门歌手 + 页脚 ——
+  // 两块都是定长（榜单歌 10 首 / 歌手 8 位），不为它们做「虚拟化而虚拟化」：
   // footer cell 与 header 一样永不回收，正合「点榜单 tab 就地换榜要整块重渲染、不被拆散」的要求
   // （换榜后 ChipRow 选中态 + song-list 整体重建都在同一个块内完成，与改造前一模一样）。
   const listFooter = (
@@ -486,23 +477,6 @@ export const HomePage = ({
           </HScroll>
         </Section>
       )}
-
-      <Section title={NEW_UI_HOME_TITLES.radio}>
-        <CardGrid rowGap={RADIO_CARD.gridGap} columnGap={RADIO_CARD.gridGap}>
-          {NEW_UI_HOME_RADIO_ITEMS.map(entry => (
-            <RadioCard
-              key={entry.key}
-              width={radioWidth}
-              title={entry.title}
-              sub={entry.sub}
-              artSeed={entry.artSeed}
-              icon={entry.icon}
-              tag={entry.tag}
-              onPress={() => handleRadioPress(entry)}
-            />
-          ))}
-        </CardGrid>
-      </Section>
 
       <FootNote text="曲库内容来自各平台 · 能否播放取决于当前音源" />
     </View>

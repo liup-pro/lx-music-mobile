@@ -739,6 +739,148 @@ export const PL_POOL_PAGING = {
   pageSize: 10,
 } as const
 
+/* ================= 电台（播客）：榜行 / 单集行 / 订阅卡 / 单集屏（U81-U84） ================= */
+
+// 值逐条取自拆件原文：`new_design/parts/radio/home.css`（源 styles.css L373-L410）、
+// `radio/detail.css`（L413-L425）、`radio/episode.css`（L428-L435）；
+// 行高 74 / 89 是 `index.html` L766 那一次无头量测的数（榜行 = 56 封面 + 上下 9 内衬），
+// 真机要重量但**行高一律不动**（同句口径）。
+// RN 固定竖屏：横屏 / Pad 的订阅卡 84/150、hero 84 那组覆盖归原型 `_chrome`，本表不承接（契约 7.0）。
+export const POD = {
+  /* —— 榜行 / 命中行（.pod-row，home.css L398-L409）—— */
+  /** 量测行高 74（封面 56 + 上下内衬 9×2） */
+  rowHeight: 74,
+  /** .pod-row padding:9px 8px；gap:11px；border-radius:14px */
+  rowPaddingY: 9,
+  rowPaddingX: 8,
+  rowGap: 11,
+  rowRadius: 14,
+  /** .pod-rank{width:22px;font-size:14px}——与 SONG_ROW.rankWidth 同值但语义不同，就近各留一份 */
+  rankWidth: 22,
+  rankFontSize: 14,
+  /** .pod-row .art{56×56;border-radius:13px}——比 SONG_ROW.artSize(46) 大一档，故不能套 SongRow */
+  rowArtSize: 56,
+  rowArtRadius: 13,
+  /** .pod-name{14.5px/700，单行截断} */
+  nameFontSize: 14.5,
+  /** .pod-by{11.5px;margin-top:3px;gap:6px}，竖线 .sep 1×9 */
+  byFontSize: 11.5,
+  byMarginTop: 3,
+  byGap: 6,
+  bySepWidth: 1,
+  bySepHeight: 9,
+  /** .pod-open 24×24，里面那颗 chevron 14 */
+  openSize: 24,
+  openIconSize: 14,
+  /** 榜列本体：.pod-list{margin-top:2px} + 轴自身 padding:10px 16px 34px */
+  listMarginTop: 2,
+  listAxisPaddingTop: 10,
+  listAxisPaddingX: 16,
+  listAxisPaddingBottom: 34,
+
+  /* —— 订阅那一区（.subs-block / .subs-head / .subs-card / .subs-x / .subs-empty）—— */
+  /** .subs-block{margin:18px 0 6px} */
+  subsMarginTop: 18,
+  subsMarginBottom: 6,
+  /** .subs-head{gap:8px;margin:0 0 10px}，b{15px/900} + em{11px} */
+  subsHeadGap: 8,
+  subsHeadMarginBottom: 10,
+  subsHeadTitleSize: 15,
+  subsHeadCountSize: 11,
+  /** .subs-card{width:132px} + .art{132×132;border-radius:16px}（横滚壳复用 U16 的 .hscroll） */
+  subsCardWidth: 132,
+  subsArtSize: 132,
+  subsArtRadius: 16,
+  /** .sub-n{12.5px/700;margin-top:8px;line-height:1.4，两行截断} */
+  subsNameSize: 12.5,
+  subsNameMarginTop: 8,
+  subsNameLineHeight: 1.4,
+  /** .sub-l{10.5px;margin-top:3px}——只有本机有进度才写这一行 */
+  subsLabelSize: 10.5,
+  subsLabelMarginTop: 3,
+  /** .subs-x{top/right:6px;width/height:22px}，里面 .ic 11×11（底走 glassPatch） */
+  subsXSize: 22,
+  subsXOffset: 6,
+  subsXIconSize: 11,
+  /** .subs-empty{padding:12px 14px;border-radius:14px;font-size:11.5px;line-height:1.6} */
+  subsEmptyPaddingY: 12,
+  subsEmptyPaddingX: 14,
+  subsEmptyRadius: 14,
+  subsEmptyFontSize: 11.5,
+  subsEmptyLineHeight: 1.6,
+
+  /* —— 当前地区那一行（.pod-region，home.css L393-L394）—— */
+  regionMarginTop: 16,
+  regionMarginBottom: 6,
+  regionGap: 10,
+  regionTitleSize: 15,
+
+  /* —— 单集列（.ep-list / .ep-head / .ep-row / .ep-text，detail.css L413-L425）—— */
+  /** 量测行高 89（集名两行 + 元信息 + 摘要两行） */
+  epRowHeight: 89,
+  /** .ep-row{padding:12px 8px;gap:12px;border-radius:14px} */
+  epRowPaddingY: 12,
+  epRowPaddingX: 8,
+  epRowGap: 12,
+  epRowRadius: 14,
+  /** .ep-title{14px/700;line-height:1.45，两行截断} */
+  epTitleSize: 14,
+  epTitleLineHeight: 1.45,
+  /** .ep-meta{11px;margin-top:5px;gap:6px}，竖线 .sep 1×9 */
+  epMetaSize: 11,
+  epMetaMarginTop: 5,
+  epMetaGap: 6,
+  epMetaSepWidth: 1,
+  epMetaSepHeight: 9,
+  /** .ep-text{11.5px;line-height:1.6;margin-top:5px，两行截断}——没摘要就整段不渲染 */
+  epTextSize: 11.5,
+  epTextLineHeight: 1.6,
+  epTextMarginTop: 5,
+  /** .ep-list{gap:1px;margin-top:8px} + 轴自身 padding:6px 16px 34px */
+  epListGap: 1,
+  epListMarginTop: 8,
+  epAxisPaddingTop: 6,
+  epAxisPaddingX: 16,
+  epAxisPaddingBottom: 34,
+  /** .ep-head{margin:22px 0 4px;gap:8px}，b{15px/900}——小标题在固定段里，不进那根轴 */
+  epHeadMarginTop: 22,
+  epHeadMarginBottom: 4,
+  epHeadGap: 8,
+  epHeadTitleSize: 15,
+
+  /* —— 单集屏头部（.epl-head / .epl-cover / .epl-meta / .epl-intro，episode.css L428-L435）—— */
+  eplCover: 96,
+  eplCoverRadius: 18,
+  /** .epl-head{margin:22px 0 2px;gap:14px;min-height:96px;align-items:flex-end} */
+  eplHeadMarginTop: 22,
+  eplHeadMarginBottom: 2,
+  eplHeadMinHeight: 96,
+  eplHeadGap: 14,
+  /** .epl-meta{gap:6px}，h3{17px/900;line-height:1.4} */
+  eplMetaGap: 6,
+  eplTitleSize: 17,
+  eplTitleLineHeight: 1.4,
+  /** .epl-by{11.5px;line-height:1.5}（屏上写「节目名 · M 月 D 日」） */
+  eplBySize: 11.5,
+  eplByLineHeight: 1.5,
+  /** .epl-intro{12.5px;line-height:1.75;margin:14px 0 0}；:empty{display:none} → RN 侧空则不渲染 */
+  eplIntroSize: 12.5,
+  eplIntroLineHeight: 1.75,
+  eplIntroMarginTop: 14,
+} as const
+
+// 电台首页榜列的分批续取（原型 `POD_CHART_PAGE = 10`，data.js L573 + loadPodChartPage L1964）。
+// **不复用 RANK_PAGING.pageSize（8）**：那是榜单卡那一档，与榜行不是一回事；
+// 距底触发线**复用** RANK_PAGING.endReachedDistance（原型 podChartScroll L1990 的 160px 与
+// rankScroll 那条判据逐字等价，useViewportScroll 已按 px 距离实现）。
+// 注意：接口一次给满 50 条，这里的「分批」是**本地切片推进**，不是每批再发一次请求（见 podcast/hooks.ts）。
+export const POD_CHART_PAGING = {
+  /** 每批铺多少行（首批也是 10） */
+  pageSize: 10,
+  /** 距底多少 px 触发续铺（复用 RANK_PAGING 的 160 判据，同一条轴语义） */
+  endReachedDistance: RANK_PAGING.endReachedDistance,
+} as const
+
 /* ================= 榜单封面（chartArt / .rk-card 文字层，app.js L596-638 + styles.css L376-397） ================= */
 
 // 封面 = 平色深底（theme/chart.ts 的 chartCoverBg）+ 单色线条符号 + 两行真数据文字。
@@ -947,29 +1089,6 @@ export const DAILY_CARD = {
   dateRight: 16,
   datePaddingY: 4,
   datePaddingX: 8,
-} as const
-
-/* ================= 随手听卡（.radio-grid / .radio-card） ================= */
-
-// styles.css L291-302：两列 gap 12，卡高 108，纹在底、字在下，右上角「建设中」胶囊
-export const RADIO_CARD = {
-  /** .radio-grid gap:12px（与 .pl-grid 的 14/12 不同，故 CardGrid 需可覆盖间隙） */
-  gridGap: 12,
-  height: 108,
-  padding: 16,
-  /** .bgart 透明度 .5 */
-  artOpacity: 0.5,
-  /** .ic-top top/left 16，20px，opacity .85 */
-  iconOffset: 16,
-  iconSize: 20,
-  iconOpacity: 0.85,
-  /** h4 margin:30px 0 0（卡高定死 + 内容贴底，该上边距被布局吸收，不进 RN 样式）；p margin:5px 0 0 */
-  subMarginTop: 5,
-  /** .wip-tag top/right 12，padding 3px 7px */
-  wipTop: 12,
-  wipRight: 12,
-  wipPaddingY: 3,
-  wipPaddingX: 7,
 } as const
 
 /* ================= 歌手卡（.artist-card） ================= */

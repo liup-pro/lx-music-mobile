@@ -4,9 +4,9 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
 import { CARD_GRID } from '@/newui/theme'
 
 export interface CardGridProps {
-  /** 卡片（PlCard / RadioCard 等）；单卡宽度由容器用 gridItemWidth 算出后传入 */
+  /** 卡片（PlCard 等）；单卡宽度由容器用 gridItemWidth 算出后传入 */
   children: ReactNode
-  /** 行间隙，默认 CARD_GRID.rowGap（.pl-grid 的 14px）；.radio-grid 是 12px */
+  /** 行间隙，默认 CARD_GRID.rowGap（.pl-grid 的 14px） */
   rowGap?: number
   /** 列间隙，默认 CARD_GRID.columnGap */
   columnGap?: number

@@ -202,7 +202,9 @@
       "components/RankGroupHead/RankGroupHead.tsx",
       "screens/Main/pages/RankPage.tsx"
     ],
-    "search/_layer": [],
+    "search/_layer": [
+      "screens/Radio/PodcastSearchScreen.tsx"
+    ],
     "search/sc-body": [
       "screens/Search/SearchIdlePanel.tsx"
     ],
@@ -290,6 +292,18 @@
       "screens/Main/pages/SettingPage.tsx",
       "components/SettingsGroup/SettingsGroup.tsx",
       "components/GroupLabel/GroupLabel.tsx"
+    ],
+    "radio/home": [
+      "screens/Radio/RadioHomeScreen.tsx",
+      "components/PodcastRow/PodcastRow.tsx"
+    ],
+    "radio/detail": [
+      "screens/Radio/PodcastDetailScreen.tsx",
+      "screens/Radio/EpisodeRow.tsx",
+      "screens/Radio/PodcastHero.tsx"
+    ],
+    "radio/episode": [
+      "screens/Radio/EpisodeScreen.tsx"
     ]
   }
 }
