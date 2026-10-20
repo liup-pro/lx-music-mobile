@@ -1,154 +1,260 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
-import { NEW_UI_PLD_LABELS } from '@/newui/const'
-import {
-  ART_INK,
-  FONT_SIZE,
-  FONT_WEIGHT,
-  GRADIENTS,
-  MINE,
-  RADIUS,
-  SHADOW,
-  useTheme,
-} from '@/newui/theme'
-import { withAlpha } from '@/newui/utils'
+import { FAV_DUO, MINE, useTheme, type ThemeScheme } from '@/newui/theme'
 
-import { Icon } from '../Icon'
+import { Icon, type IconName } from '../Icon'
 
-/** .fc-go 圆钮的热区补足（视觉 32px → ≥44px 最小触达尺寸） */
-const FAV_GO_HIT_SLOP = 8
+/** 两半的无障碍说明（原型 renderMinePage L1290 / L1301 的 aria-label 逐字） */
+const ARIA = {
+  love: '打开「我喜欢」',
+  offline: '打开「已缓存」',
+} as const
+
+/** 两档配色的形状一致，取其中一档的联合类型即可 */
+type FavDuoPalette = typeof FAV_DUO.palette[ThemeScheme]
 
 export interface FavCardProps {
-  /** 主标题（.fav-card h3，原型为「我喜欢」） */
-  title: string
-  /** 说明行（.fav-card p，如「12 首 · 晴天 · 稻香 · 七里香」）；空态文案由容器传入 */
-  sub: string
-  onPress?: () => void
-  /** 圆钮「播放全部」；不传时圆钮为纯展示（不出现死按钮） */
-  onPlayPress?: () => void
+  /** 左半标题（.fc-half h3，原型「我喜欢」） */
+  loveTitle: string
+  /** 左半副行（「N 首」/ 空收藏那句；单行省略） */
+  loveSub: string
+  /** 右半标题（原型「已缓存」） */
+  offlineTitle: string
+  /** 右半副行（「N 首 · X MB」/ 空态长句；单行省略） */
+  offlineSub: string
+  onLovePress?: () => void
+  onOfflinePress?: () => void
 }
 
 /**
- * 「我喜欢」入口卡（对应原型 .fav-card，styles.css L373-386）：
- * 品牌渐变洗底 + 爱心渐变方块 + 标题 / 首三曲预览 + 圆形播放按钮。
- * 纯展示组件；收藏数量与预览文案由容器接线。
- * 双动作口径（2026-10-14 用户条目）：圆钮 = 播放全部（onPlayPress）；
- * 卡片其余区域 = 打开「我喜欢」内置歌单详情（onPress）。RN 内层 Pressable
- * 会自己吃掉点击、不冒泡到外层卡片，无需额外处理。
+ * 「我喜欢 / 已缓存」合一卡（件 `parts/mine/fav-card` U44 + `parts/mine/offline` U86；
+ * 样式源 styles.css L554-L577，装配源 app.js renderMinePage L1265-1317）。
+ *
+ * 一张整宽卡：24 圆角渐变底（深色 #3A1B30→#241C45 / 明亮 #FDE2EE→#D6C3F9），中间一道 4px 斜线
+ * 切成左右两半——**斜的是线，不是命中边界**，两半仍是左右两个矩形按钮（各自 role=button）。
+ * 每半 = 44 实心图标框（heartSolid / phoneSolid，22 图标）+ 标题 / 副行（都单行省略）；
+ * 副行只留名词与数字，原先「N 首 · 三首歌名」那串预览与那颗直接开播的圆钮本轮一起撤掉。
+ * 整卡按压缩到 .99：两半任一按下都缩整卡（缩放挂在阴影载体上，不做 hover）。
+ *
+ * 纯展示组件：文案与动作由容器传入，收藏数 / 缓存数都在页面拼。
+ * 备注：原型 .fc-art 的 backdrop-filter blur(4) 在 44dp 的小方块上不迁移，保留半透明底即可；
+ * 浅色档没有 inset 描边（palette.ringColor 取 transparent，那一层照常渲染、视觉为零）。
  */
-export const FavCard = memo(({ title, sub, onPress, onPlayPress }: FavCardProps) => {
-  const theme = useTheme()
-  // .fc-go 圆钮本体：32 圆底 rgba(0,0,0,.3) + 白 play 15；传了 onPlayPress 时由外层 Pressable 承接
-  const favGo = (
-    <View style={[styles.favGo, { backgroundColor: withAlpha(ART_INK.veil, MINE.favGoAlpha) }]}>
-      <Icon name="play" size={MINE.favGoIcon} color={ART_INK.fg} />
-    </View>
-  )
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.root,
-        // .fav-card 描边：原型 `inset 0 0 0 1px var(--line-strong)`（styles.css L433），
-        // 直接取色板 lineStrong（深 rgba(255,255,255,.14) / 浅 rgba(21,22,28,.16)），随主题反相
-        // ——此前固定压白 .13 的自造档在浅底上颜色族不对（QA D79）
-        { borderColor: theme.colors.lineStrong },
-        pressed && styles.pressed,
-      ]}
-    >
-      {/* .fav-card 底色：120deg 粉紫渐变洗底（GRADIENTS.favWash） */}
-      <LinearGradient
-        colors={[...GRADIENTS.favWash.colors]}
-        start={GRADIENTS.favWash.start}
-        end={GRADIENTS.favWash.end}
-        pointerEvents="none"
-        style={StyleSheet.absoluteFill}
-      />
-      {/* .fc-art：62×62、圆角 17、--grad 主渐变底、爱心 25 */}
-      <LinearGradient
-        colors={[...GRADIENTS.brand.colors]}
-        start={GRADIENTS.brand.start}
-        end={GRADIENTS.brand.end}
-        style={[styles.favArt, SHADOW.glow]}
+export const FavCard = memo(
+  ({ loveTitle, loveSub, offlineTitle, offlineSub, onLovePress, onOfflinePress }: FavCardProps) => {
+    const theme = useTheme()
+    const palette = FAV_DUO.palette[theme.scheme]
+    // 两半任一按下都缩整卡：状态记在卡上，缩放施加给阴影载体
+    const [pressing, setPressing] = useState(false)
+    const handlePressIn = () => { setPressing(true) }
+    const handlePressOut = () => { setPressing(false) }
+
+    return (
+      <View
+        style={[
+          styles.carrier,
+          {
+            backgroundColor: palette.surface,
+            shadowColor: palette.shadowColor,
+            shadowOpacity: palette.shadowOpacity,
+          },
+          pressing && styles.pressed,
+        ]}
       >
-        <Icon name="heartFill" size={MINE.favArtIcon} color={theme.colors.onBrand} />
-      </LinearGradient>
-      <View style={styles.body}>
-        <Text numberOfLines={1} style={[styles.title, { color: theme.colors.text }]}>
-          {title}
-        </Text>
-        <Text numberOfLines={1} style={[styles.sub, { color: theme.colors.text2 }]}>
-          {sub}
-        </Text>
+        {/* 渐变底 + 24 圆角裁切：两半与那道斜线都在这层里 */}
+        <View style={styles.card}>
+          <LinearGradient
+            colors={[...palette.gradient.colors]}
+            start={palette.gradient.start}
+            end={palette.gradient.end}
+            pointerEvents="none"
+            style={StyleSheet.absoluteFill}
+          />
+
+          {/* 左半「我喜欢」 */}
+          <FavHalf
+            palette={palette}
+            icon="heartSolid"
+            iconColor={palette.loveIcon}
+            title={loveTitle}
+            sub={loveSub}
+            label={ARIA.love}
+            onPress={onLovePress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+          />
+
+          {/* 右半「已缓存」 */}
+          <FavHalf
+            palette={palette}
+            icon="phoneSolid"
+            iconColor={palette.offlineIcon}
+            title={offlineTitle}
+            sub={offlineSub}
+            label={ARIA.offline}
+            onPress={onOfflinePress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+          />
+
+          {/* .fav-duo::after：那道斜线只是分隔（pointer-events:none），z-index 1，压在两半之下 */}
+          <View
+            pointerEvents="none"
+            style={[styles.divider, { backgroundColor: palette.dividerColor }]}
+          />
+          {/* inset 0 0 0 1px 内描边（浅色档 transparent） */}
+          <View pointerEvents="none" style={[styles.ring, { borderColor: palette.ringColor }]} />
+        </View>
       </View>
-      {/* .fc-go：圆钮 = 播放全部（onPlayPress 缺省时保持纯展示） */}
-      {onPlayPress == null
-        ? favGo
-        : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={NEW_UI_PLD_LABELS.playAll}
-            hitSlop={FAV_GO_HIT_SLOP}
-            onPress={onPlayPress}
-          >
-            {favGo}
-          </Pressable>
-        )}
-    </Pressable>
-  )
-})
+    )
+  },
+)
 
 FavCard.displayName = 'NewUIFavCard'
 
+interface FavHalfProps {
+  palette: FavDuoPalette
+  icon: IconName
+  iconColor: string
+  title: string
+  sub: string
+  /** 无障碍说明（「打开「我喜欢」」/「打开「已缓存」」） */
+  label: string
+  onPress?: () => void
+  onPressIn: () => void
+  onPressOut: () => void
+}
+
+/** 卡里的一整半：图标框 + 标题 / 副行；两半共用同一套几何（U44 件头：U86 不补右半专属样式） */
+const FavHalf = memo(({
+  palette,
+  icon,
+  iconColor,
+  title,
+  sub,
+  label,
+  onPress,
+  onPressIn,
+  onPressOut,
+}: FavHalfProps) => (
+  <Pressable
+    accessibilityRole="button"
+    accessibilityLabel={label}
+    onPress={onPress}
+    onPressIn={onPressIn}
+    onPressOut={onPressOut}
+    style={styles.half}
+  >
+    <View
+      style={[
+        styles.art,
+        {
+          backgroundColor: palette.artBg,
+          shadowColor: palette.artShadowColor,
+          shadowOpacity: palette.artShadowOpacity,
+        },
+      ]}
+    >
+      <Icon name={icon} size={FAV_DUO.artIcon} color={iconColor} />
+    </View>
+    <View style={styles.text}>
+      <Text numberOfLines={1} style={[styles.title, { color: palette.titleColor }]}>
+        {title}
+      </Text>
+      <Text numberOfLines={1} style={[styles.sub, { color: palette.subColor }]}>
+        {sub}
+      </Text>
+    </View>
+  </Pressable>
+))
+
+FavHalf.displayName = 'NewUIFavHalf'
+
 const styles = StyleSheet.create({
-  /** .fav-card：row / align center / gap 13 / padding 14 / radius 22 / margin-top 20 */
-  root: {
+  /**
+   * 阴影 + 限宽载体：外阴影 0 8 24（深浅两档只在颜色/浓度上不同），
+   * 宽 100% / Pad 档 max-width 620（原型 `.pad .fav-card`）。底色由 palette.surface 在渲染期给。
+   */
+  carrier: {
+    width: '100%',
+    maxWidth: MINE.favMaxWidth,
+    marginTop: FAV_DUO.marginTop,
+    borderRadius: FAV_DUO.radius,
+    shadowOffset: { width: 0, height: FAV_DUO.shadowOffsetY },
+    shadowRadius: FAV_DUO.shadowRadius,
+    elevation: FAV_DUO.shadowElevation,
+  },
+  /** .fav-card:active{transform:scale(.99)}（两半任一按下都缩整卡） */
+  pressed: {
+    transform: [{ scale: FAV_DUO.pressScale }],
+  },
+  /** .fav-card：横向两半、上下 16 内衬、24 圆角裁切 */
+  card: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: MINE.favGap,
-    marginTop: MINE.favMarginTop,
-    padding: MINE.favPadding,
-    borderRadius: RADIUS.card,
-    borderWidth: 1,
+    alignItems: 'stretch',
+    paddingVertical: FAV_DUO.paddingVertical,
+    borderRadius: FAV_DUO.radius,
     overflow: 'hidden',
   },
-  /** .fav-card:active scale(.99) */
-  pressed: {
-    transform: [{ scale: MINE.favPressScale }],
-  },
-  favArt: {
-    width: MINE.favArtSize,
-    height: MINE.favArtSize,
-    borderRadius: MINE.favArtRadius,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  /** .fc-body：flex 1 / min-width 0 */
-  body: {
+  /** .fav-duo .fc-half：flex 1 1 50% / min-width 0 / 左 20 右 16 内衬 / z-index 2 */
+  half: {
     flex: 1,
     minWidth: 0,
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: FAV_DUO.columnGap,
+    paddingLeft: FAV_DUO.halfPaddingLeft,
+    paddingRight: FAV_DUO.halfPaddingRight,
   },
-  /** h3 16px / 900 */
-  title: {
-    fontSize: FONT_SIZE.headingSm,
-    fontWeight: FONT_WEIGHT.black,
-  },
-  /** p 11.5px / text-2 / margin-top 4 / 单行省略 */
-  sub: {
-    marginTop: MINE.favSubMarginTop,
-    fontSize: FONT_SIZE.captionLg,
-  },
-  /** .fc-go：32×32 全圆居中 */
-  favGo: {
-    width: MINE.favGoSize,
-    height: MINE.favGoSize,
-    borderRadius: RADIUS.full,
+  /** .fav-card .fc-art：44 方 / 圆角 14 / 居中一颗 22 图标 / 不参与收缩 */
+  art: {
+    width: FAV_DUO.artSize,
+    height: FAV_DUO.artSize,
+    borderRadius: FAV_DUO.artRadius,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    shadowOffset: { width: 0, height: FAV_DUO.artShadowOffsetY },
+    shadowRadius: FAV_DUO.artShadowRadius,
+    elevation: FAV_DUO.artShadowElevation,
+  },
+  /** 文字列：标题在上、副行在下（row-gap 2），两行都单行省略 */
+  text: {
+    flex: 1,
+    minWidth: 0,
+    gap: FAV_DUO.rowGap,
+  },
+  /** .fav-card h3：16 / 700 / 字距 .5 */
+  title: {
+    fontSize: FAV_DUO.titleSize,
+    fontWeight: FAV_DUO.titleWeight,
+    letterSpacing: FAV_DUO.titleLetterSpacing,
+  },
+  /** .fav-card p：12 / 500 */
+  sub: {
+    fontSize: FAV_DUO.subSize,
+    fontWeight: FAV_DUO.subWeight,
+  },
+  /** .fav-duo::after：4px 实心线，left 50% 后左移半宽（translateX(-50%) 的等价），rotate 18deg */
+  divider: {
+    position: 'absolute',
+    top: FAV_DUO.dividerSpan,
+    bottom: FAV_DUO.dividerSpan,
+    left: FAV_DUO.dividerLeft,
+    zIndex: 1,
+    width: FAV_DUO.dividerWidth,
+    marginLeft: -FAV_DUO.dividerWidth / 2,
+    borderRadius: FAV_DUO.dividerRadius,
+    transform: [{ rotate: FAV_DUO.dividerRotate }],
+  },
+  /** 卡面 1px 内描边层（原型 box-shadow 的 inset 那一半） */
+  ring: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 3,
+    borderWidth: 1,
+    borderRadius: FAV_DUO.radius,
   },
 })

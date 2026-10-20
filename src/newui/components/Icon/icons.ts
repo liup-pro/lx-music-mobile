@@ -1,10 +1,10 @@
 /**
  * 本文件由 scripts/gen-newui-icons.mjs 从 new_design/index.html 的 SVG sprite 自动生成，请勿手改。
- * 共 36 个图标；重新生成：node scripts/gen-newui-icons.mjs
+ * 共 38 个图标；重新生成：node scripts/gen-newui-icons.mjs
  */
 import type { IconDef } from './types'
 
-export type IconName = "search" | "play" | "pause" | "prev" | "next" | "more" | "chevron" | "close" | "home" | "list" | "chart" | "user" | "heart" | "wave" | "signal" | "battery" | "timer" | "timerOn" | "sun" | "repeat" | "repeat1" | "repeatOff" | "stopAfter" | "shuffle" | "moon" | "comment" | "float" | "floatOn" | "heartFill" | "plus" | "gear" | "clock" | "link" | "edit" | "phone" | "trash"
+export type IconName = "search" | "play" | "pause" | "prev" | "next" | "more" | "chevron" | "close" | "home" | "list" | "chart" | "user" | "heart" | "wave" | "signal" | "battery" | "timer" | "timerOn" | "sun" | "repeat" | "repeat1" | "repeatOff" | "stopAfter" | "shuffle" | "moon" | "comment" | "float" | "floatOn" | "heartFill" | "heartSolid" | "plus" | "gear" | "clock" | "link" | "edit" | "phone" | "phoneSolid" | "trash"
 
 export const ICON_DATA: Record<IconName, IconDef> = {
   "search": {
@@ -201,6 +201,12 @@ export const ICON_DATA: Record<IconName, IconDef> = {
       { type: "path", props: { d: "M12 20s-7.5-4.6-7.5-9.4A4.1 4.1 0 0 1 12 8a4.1 4.1 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20Z", fill: "currentColor" } },
     ],
   },
+  "heartSolid": {
+    viewBox: "0 0 24 24",
+    nodes: [
+      { type: "path", props: { d: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z", fill: "currentColor" } },
+    ],
+  },
   "plus": {
     viewBox: "0 0 24 24",
     nodes: [
@@ -242,6 +248,12 @@ export const ICON_DATA: Record<IconName, IconDef> = {
     nodes: [
       { type: "rect", props: { x: 6.5, y: 2.5, width: 11, height: 19, rx: 3, fill: "none", stroke: "currentColor", strokeWidth: 2 } },
       { type: "path", props: { d: "M10.4 18.6h3.2", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" } },
+    ],
+  },
+  "phoneSolid": {
+    viewBox: "0 0 24 24",
+    nodes: [
+      { type: "path", props: { d: "M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z", fill: "currentColor" } },
     ],
   },
   "trash": {

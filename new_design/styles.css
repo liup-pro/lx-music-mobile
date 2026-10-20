@@ -68,7 +68,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 
 /* ============ phone ============ */
 .phone{
-  width:390px;height:844px;flex:none;position:relative;
+  width:400px;height:890px;flex:none;position:relative;
   border-radius:54px;padding:11px;
   background:linear-gradient(160deg,#2a2d3a,#0d0f16 40%,#20222c);
   box-shadow:0 60px 120px -40px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.06);
@@ -356,7 +356,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 /* —— 电台首页 / 播客详情：上半固定 + 列表独立滚 ——
  * 结构照项目里已有那一套（.search-layer 外层定死 + .sc-top flex:none + .sc-body flex:1 内滚），
  * 但不把 .sc-* 的语义搬过来：固定段是这两层共用的 .pl-head（跨单元原子，登记在 _base），
- * 滚动轴就是各自的列表本体——与 .pad / .land #plLayer 里 #plTracks「列表自己就是那根轴」同一判例，不再套一层壳。
+ * 滚动轴就是各自的列表本体——与 .pad #plLayer 里 #plTracks「列表自己就是那根轴」同一判例，不再套一层壳。
  * 层的 padding 只是平移：58/16/34 拆成固定段的 58/16/0 与滚动段的 0/16/34，数值一字未改。
  * 分页状态行 .pl-status 由列表自己携带，所以它跟着一起滚、留在列表尾；触底续取的 podChartScroll 因此绑在 #podChartList。
  * 顶排进固定段后不参与滚动，所以这两屏不需要 sticky；歌单详情与单集屏仍是整层滚，本段不碰。 */
@@ -443,6 +443,19 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 #podcastLayer .pl-top>.player-crumb>span,#episodeLayer>.pl-top>.player-crumb>span{
   min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+/* ============ 已缓存（离线收听） ============
+ * 壳复用 #radioLayer 那一套「上半固定 + 列表独立滚」：外层定死 padding:0;overflow:hidden，
+ * 固定段是跨件原子 .pl-head（登记在 _base），滚动段就是列表本体 .off-list 自己——不再套一层壳。
+ * 行是 .song-row 原子族（U29/_base），本屏没有序号列（自造行不画那个节点，不需要隐藏规则）；
+ * 新增的骨架只有口径段（.off-meta/.off-n/.off-lede）与这根轴，其余零新开视觉。 */
+#offlineLayer{padding:0;overflow:hidden}
+#offlineLayer>.off-list{flex:1;overflow-y:auto;scrollbar-width:none;padding:10px 16px 34px}
+#offlineLayer>.off-list::-webkit-scrollbar{display:none}
+.off-list{display:flex;flex-direction:column;gap:2px}
+.off-meta{margin:18px 0 0;display:flex;flex-direction:column;gap:5px}
+.off-n{font-size:15px;font-weight:900;letter-spacing:.2px;font-variant-numeric:tabular-nums}
+.off-lede{font-size:11.5px;color:var(--text-2);line-height:1.6}
+
 /* ============ foot ============ */
 .foot-note{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:32px;font-size:11px;color:var(--text-3);text-align:center}
 .foot-mark{width:14px;height:14px;border-radius:50%;background:var(--grad);flex:none;opacity:.6}
@@ -526,20 +539,42 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 .stat b{display:block;font-size:17px;font-weight:900;font-variant-numeric:tabular-nums}
 .stat span{display:block;font-size:10.5px;color:var(--text-3);margin-top:3px;letter-spacing:.4px}
 
-.fav-card{position:relative;overflow:hidden;width:100%;display:flex;align-items:center;gap:13px;text-align:left;
-  margin-top:20px;padding:14px;border-radius:22px;
-  background:linear-gradient(120deg,rgba(255,92,138,.26),rgba(122,59,255,.24));
-  box-shadow:inset 0 0 0 1px var(--line-strong)}
+/* ============ 「我的」页这一处：一张卡，斜线分左右两半 ============
+ * 「我喜欢」与「已缓存」不再上下叠成两张，合成同一处的同一只整宽卡（.fav-card.fav-duo）。
+ * 几何按参考一套：24 圆角、上下 16 内边距、44 图标框；配色分两档，跟着外观走——
+ * 基线（黑暗）是深梅紫→深靛紫的渐变底、浅字、亮紫图标；明亮档把参考那套浅粉→浅紫底、
+ * 深字、白色 70% 图标框原样覆盖回来（.phone.light .fav-card，见「外观 · 明亮」末段）。
+ * 两档都不吃 --text / --grad 那套页面 token：这张卡是入口，配色是独立指定的。
+ * 中间的斜线是 .fav-duo::after 画的一道 4px 白色半透明实心线（不是 1.5px 发丝线）：
+ * 上下各出血 20%、rotate(18°)、两端圆角 4px，不占 DOM 节点，被容器那条 overflow:hidden 裁在圆角里。
+ * 命中区仍是左右两个矩形：斜的是线，不是边界（RN 侧对应两个等宽 TouchableOpacity + 一道 rotate 的 View）。
+ * 两半的几何是 grid：44 见方的图标框跨两行（圆角 14 + 4px 毛玻璃），右侧一列放标题与副行，
+ * 列间距 12、行间距 2；副行单行省略（空态那两句长文案会被截断，这是参考那一行布局的取舍，文案不改）。
+ * 卡里不再挂那颗直接开播的圆钮：半宽放不下，「直接开播这批」回到各自屏里的「播放全部」。 */
+.fav-card{position:relative;overflow:hidden;width:100%;display:flex;align-items:stretch;text-align:left;
+  margin-top:20px;padding:16px 0;border-radius:24px;cursor:pointer;
+  background:linear-gradient(90deg,#3A1B30 0%,#241C45 100%);
+  box-shadow:0 8px 24px rgba(0,0,0,.42),inset 0 0 0 1px rgba(255,255,255,.06);
+  transition:transform .25s ease,box-shadow .25s ease}
+.fav-card:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,0,0,.52),inset 0 0 0 1px rgba(255,255,255,.09)}
 .fav-card:active{transform:scale(.99)}
-.fav-card .fc-art{width:62px;height:62px;flex:none;border-radius:17px;display:grid;place-items:center;
-  background:var(--grad);color:#0a0a0f;box-shadow:0 12px 24px -12px rgba(255,92,138,.9)}
-.fav-card .fc-art .ic{width:25px;height:25px}
-.fav-card .fc-body{flex:1;min-width:0}
-.fav-card h3{font-size:16px;font-weight:900}
-.fav-card p{font-size:11.5px;color:var(--text-2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fav-card .fc-go{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;
-  background:rgba(0,0,0,.3);color:#fff}
-.fav-card .fc-go .ic{width:15px;height:15px}
+.fav-duo::after{content:"";position:absolute;top:-20%;bottom:-20%;left:50%;width:4px;border-radius:4px;
+  pointer-events:none;background:rgba(255,255,255,.22);transform-origin:center;
+  transform:translateX(-50%) rotate(18deg);z-index:1}
+.fav-duo .fc-half{flex:1 1 50%;min-width:0;position:relative;z-index:2;display:grid;align-items:center;
+  align-content:center;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:2px;padding:0 16px}
+.fav-duo .fc-half:first-child{padding-left:20px}
+.fav-duo .fc-half:last-child{padding-left:20px}
+.fav-card .fc-art{grid-area:1/1/3/2;width:44px;height:44px;flex:none;border-radius:14px;display:grid;place-items:center;
+  background:rgba(255,255,255,.11);backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,.18);color:#F06BFF}
+.fav-card .fc-art .ic{width:22px;height:22px}
+.fav-duo .fc-half:last-child .fc-art{color:#A78BFF}
+.fav-card h3{grid-area:1/2;min-width:0;font-size:16px;font-weight:700;letter-spacing:.5px;color:#F5F1FB;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 副行只留名词与数字；空态那两句原文照挂，单行省略（参考的一行布局取舍，两半同高由上面那条
+   align-items:stretch 兜住） */
+.fav-card p{grid-area:2/2;min-width:0;font-size:12px;font-weight:500;color:rgba(255,255,255,.52);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .song-list.compact .song-row{padding:5px 6px 5px 3px}
 .song-list.compact .art{width:40px;height:40px}
@@ -965,7 +1000,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
 /* ============ notes panel ============ */
-.notes{width:392px;flex:none;max-height:844px;overflow-y:auto;scrollbar-width:none;padding:6px 4px 40px}
+.notes{width:392px;flex:none;max-height:890px;overflow-y:auto;scrollbar-width:none;padding:6px 4px 40px}
 .notes::-webkit-scrollbar{display:none}
 .notes h1{font-size:24px;font-weight:900;letter-spacing:.3px}
 .notes-lede{font-size:13px;color:var(--text-2);line-height:1.75;margin-top:10px}
@@ -1009,6 +1044,11 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 .vb-note{font-size:11.5px;color:var(--text-3);font-family:ui-monospace,SFMono-Regular,monospace}
 body.pad .stage{max-width:1240px}
 body.pad .notes{width:min(100%,900px);max-height:none}
+/* Pad 的说明栏不封顶（整篇文档顺着页面滚），这一列因此比窗口高出十几屏。
+ * 竖屏那套垂直居中在这种情况下会把 1180 的外框整个顶到窗口上沿之外——点完 Pad 就「只剩说明文字」。
+ * 这一档改成贴着页面顶部排：外框一进来就在视野里，顶部切换条仍靠它自己的 sticky 待着，
+ * 说明栏照样顺着页面往下读；fitFrame 那句可用高度算式（innerHeight − 132）本来就是按贴顶写的 */
+body.pad{align-items:flex-start}
 @media (max-width:860px){body.pad .stage{max-width:100%}}
 
 /* ============ Pad · 横屏 ============
@@ -1098,6 +1138,27 @@ body.pad .notes{width:min(100%,900px);max-height:none}
 .pad .sr-title{font-size:15px}
 .pad .stat-row{max-width:620px}
 .pad .fav-card{max-width:620px}
+/* 合一卡在 Pad 一档只定宽（上面那条 620）：几何整套留手机档那一套——24 圆角 / 上下 16 /
+   44 图标框 / 16 与 12 的两行字号在 620 宽的卡上照样站得住，各半再各放大一档反而把两半撑得比内容松。
+   斜线仍由同一条 rotate(18deg) 规则画，卡宽了线自然跟着长，不需要另给一档角度 */
+/* 「我的歌单」那一排是另一套横滚容器（.my-pl-row，自带 -16 出血），Pad 的页边距是 30，
+   出血量与首末卡都要跟着 .pad .hscroll 那一族走，否则卡片会从离屏 14px 处被切掉 */
+.pad .my-pl-row{margin:0 -30px;padding:0 30px 2px}
+.pad .my-pl{width:150px}
+.pad .my-pl .art{width:150px;height:150px}
+.pad .my-pl .mp-n{font-size:13.5px}
+/* 每日推荐：封面与卡高等着放大一档（手机是 98 满铺），正文不再铺满 860，收到 660 主列档 */
+.pad .daily-card{height:132px;max-width:660px}
+.pad .daily-card .dc-art{width:132px;height:132px}
+.pad .daily-card h3{font-size:20px}
+.pad .daily-card p{font-size:12.5px}
+/* 小标题两族（首页 .section-title / 歌单与我的 .section-sub）在 Pad 同批放大，别让后者停在手机档 */
+.pad .section-sub{font-size:18px}
+.pad .rk-sub{font-size:11px}
+.pad .section-more{font-size:13px}
+.pad .empty-tip{font-size:13.5px}
+/* 推入层与播放页那只面包屑同上一档（三处返回行共用这一族，Pad 不是手机那 12px） */
+.pad .player-crumb{font-size:13px}
 
 /* —— 迷你条 → 常驻播放条 —— */
 .pad .minibar{left:calc(var(--nav-w) + 22px);right:22px;bottom:20px;height:66px;border-radius:22px}
@@ -1133,9 +1194,61 @@ body.pad .notes{width:min(100%,900px);max-height:none}
 .pad .sc-tabs button{font-size:15.5px}
 .pad .sc-empty{padding:64px 0}
 
+/* —— 电台三层：顶排与页边距归到 Pad 同一档 ——
+   基线 .pl-layer / .pl-head 的 58px 顶内边距是给手机那 52px 状态栏让的；
+   Pad 状态栏 32px，照旧吃 58 就等于在返回行上面留一段空，横向 16px 也没跟上 30 的页边距。
+   这两屏「上半固定 + 列表独立滚」的结构不动，只是把内边距换档：高度差全还给那一根轴。 */
+.pad .pl-head{padding:32px 30px 0}
+.pad #radioLayer>.pod-list{padding:10px 30px 26px}
+.pad #podcastLayer>.ep-list{padding:6px 30px 26px}
+/* 榜行摊两列之后行内尺寸也要跟上宽场（行高仍由内容决定，不锁死） */
+.pad .pod-row{gap:14px;padding:11px 12px}
+.pad .pod-row .art{width:64px;height:64px}
+.pad .pod-name{font-size:15.5px}
+.pad .pod-by{font-size:12px}
+.pad .pod-rank{width:24px;font-size:15px}
+/* 三处小标题（订阅 / 当前地区 / 单集）共用 .pl-head 里那一族，一起上 Pad 一档 */
+.pad .subs-head b,.pad .pod-region b,.pad .ep-head b{font-size:17px}
+.pad .subs-card .sub-n{font-size:13.5px}
+.pad .subs-card .sub-l{font-size:11px}
+/* 播客详情的 hero 与操作行：封面放大一档，正文与那颗主操作钮收进 620 档，不铺满 860 */
+.pad #podcastLayer .pl-hero{gap:22px;margin:26px 0 2px;min-height:168px}
+.pad #podcastLayer .pl-hero .art{width:168px;height:168px}
+.pad #podcastLayer .pl-hero .ph-body{max-width:620px}
+.pad #podcastLayer .pl-hero h3{font-size:23px}
+.pad #podcastLayer .pl-hero .ph-sub{font-size:13px}
+.pad #podcastLayer .pl-actions{max-width:620px;margin:22px 0 16px}
+/* 单集行仍是单列长文（与歌曲行同一判例：整行的列表不摊两列），只是字号与行距跟上宽场 */
+.pad .ep-row{padding:14px 10px;gap:14px}
+.pad .ep-title{font-size:15.5px}
+.pad .ep-text{font-size:12.5px;line-height:1.7}
+
+/* —— 单集屏：仍是整层滚，但主列收到 660 居中（与 .pad .player-controls 同一档） ——
+   这层用的是 .pl-layer 的基线内边距（58/16/34），Pad 上一起回正到 32/30/26；
+   封面、标题、简介、进度、倍速都跟着同一个 660 主列，只有顶排那颗返回保持整行宽。 */
+.pad #episodeLayer{padding:32px 30px 26px}
+.pad #episodeLayer>.epl-head,.pad #episodeLayer>.epl-intro,.pad #episodeLayer>.seek,
+.pad #episodeLayer>.seek-time,.pad #episodeLayer>.group-label,.pad #episodeLayer>.q-chips{
+  width:100%;max-width:660px;margin-left:auto;margin-right:auto;
+}
+.pad #episodeLayer .epl-head{min-height:132px;gap:22px;margin-top:28px}
+.pad .epl-cover{width:132px;height:132px;border-radius:22px}
+.pad .epl-cover .art{width:132px;height:132px}
+.pad #episodeLayer .epl-meta h3{font-size:22px;line-height:1.35}
+.pad .epl-by{font-size:12.5px}
+.pad .epl-intro{font-size:13.5px;line-height:1.85}
+
+/* —— 已缓存：顶排回正 32/30 由现成的 .pad .pl-head 兜住；轴跟着换页边距 30，
+   口径段与那颗播放全部收进 660 主列居中（与单集屏同档）；整行列表不摊两列，
+   行的封面与字号上一档由现成的 .pad .song-row 原子规则兜住，这里只补这两处 —— */
+.pad #offlineLayer>.off-list{padding:10px 30px 26px}
+.pad #offlineLayer .off-meta,.pad #offlineLayer .pl-actions{max-width:660px;margin-left:auto;margin-right:auto}
+
 /* —— 播放页：封面与歌词并排 —— */
 .pad .player-layer{padding:32px 34px 24px}
 .pad .disc{width:268px;height:268px}
+/* Pad 的歌词态是「唱片与歌词同屏」，不存在翻页，所以那两枚滑动指示点只在手机竖屏出现 */
+.pad .stage-dots{display:none}
 .pad .player-layer.lyric-on .player-stage{grid-template-columns:minmax(0,1fr) 372px;column-gap:40px;align-items:center}
 .pad .player-layer.lyric-on .disc-wrap{display:grid}
 .pad .player-layer.lyric-on .disc{width:236px;height:236px}
@@ -1156,8 +1269,11 @@ body.pad .notes{width:min(100%,900px);max-height:none}
 .pad .player-tools{max-width:520px}
 .pad .pc.main{width:70px;height:70px}
 
-/* —— 底部面板 → 居中模态卡 —— */
-.pad .sheet{align-items:center;justify-content:center}
+/* —— 底部面板 → 居中模态卡 ——
+   居中位给内容区（左导航右侧那 920），与 toast 同一口径：遮罩仍然盖满整屏（.sheet-mask 是
+   inset:0 的绝对子项，它的包含盒是 .sheet 的 padding box，不受这条 padding-left 影响）。
+   手机侧 --nav-w 是 0px，这一句原样退化成不改变任何东西。 */
+.pad .sheet{align-items:center;justify-content:center;padding-left:var(--nav-w)}
 .pad .sheet-body{
   width:660px;max-width:calc(100% - 96px);max-height:74%;border-radius:26px;padding:22px 26px 24px;
   box-shadow:0 46px 96px -34px rgba(0,0,0,.95),inset 0 0 0 1px var(--line-strong);
@@ -1174,121 +1290,6 @@ body.pad .notes{width:min(100%,900px);max-height:none}
 .pad .lrc-float{left:calc(var(--nav-w) + 26px);top:590px;max-width:320px}
 .pad .lrc-float .lf-line{max-width:220px}
 
-/* ============ 手机 · 横屏（844 × 390） ============
-   这是查看器档位，不是 App 功能：RN 侧当前固定竖屏，本档只用来在宽窗口里
-   把每页排布看得更清楚。换向不是把竖屏拉宽——底栏保留但压扁，播放页与
-   详情层改成左右两栏，好让 390pt 的高度装得下「封面·进度·控制·工具」四排。
-   与 Pad 同一套路子：只加覆盖层，竖屏的规则一行都不动。 */
-.phone.land{--safe-b:0px;width:844px;height:390px;border-radius:46px;padding:11px}
-.land .screen{border-radius:35px}
-.land .island{display:none}
-.land .statusbar{height:26px;padding:4px 24px 0}
-.land .sb-time{font-size:12.5px}
-
-/* 顶栏 / 内容区 / 底栏一起压扁，把竖向预算还给内容 */
-.land .topbar{padding:30px 22px 8px}
-.land .viewport{padding:74px 0 122px}
-.land .page{padding:0 22px}
-.land .page-title{font-size:21px}
-.land .section{margin-top:20px}
-.land .section-title{font-size:16px}
-.land .tabbar{height:50px;padding-top:5px}
-.land .tab{gap:2px}
-.land .tab .ic{width:19px;height:19px}
-.land .tab span{font-size:10px}
-.land .minibar{bottom:58px;height:50px;border-radius:17px}
-.land .mini-art{width:36px;height:36px;border-radius:9px}
-.land .mini-title{font-size:12.5px}
-.land .mini-sub{font-size:10.5px;margin-top:1px}
-.land .mini-act{width:31px;height:31px}
-
-/* 首页与列表页：横向铺得开，卡片增列、封面缩短 */
-.land .banner{height:126px;border-radius:var(--r-l);padding:14px}
-.land .pl-grid,.land .rank-grid{grid-template-columns:repeat(4,1fr);gap:14px 12px}
-/* 电台榜单行在横屏宽场同样摊两列（与 .land .pl-grid 那一族同一口径） */
-.land .pod-list{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
-.land .pod-list>.pl-status,.land .pod-list>.pl-end{grid-column:1/-1}
-/* 电台首页 / 播客详情的固定段在横屏要吃掉屏内高（390 - 上下边框 = 368），不收就只剩一两行榜。
-   收的是订阅区与 hero 的内边距/卡高（84 档取 .land .daily-card，14/12/6/4 都是现成档），
-   榜行与单集行的行高不动；轴余 ≈ 87 / ≈ 101，算式见 index.html 说明节「滚动结构」那一条 */
-.land .pl-head{padding:26px 22px 0}
-.land #radioLayer>.pod-list,.land #podcastLayer>.ep-list{padding:8px 22px 18px}
-.land #radioLayer .subs-block{margin:12px 0 6px}
-.land .subs-head{margin:0 0 6px}
-.land .subs-card{width:84px}
-.land .subs-card .art{width:84px;height:84px}
-.land #radioLayer .pod-region{margin:12px 0 4px}
-.land #podcastLayer .pl-hero{margin:14px 0 2px;min-height:0}
-.land #podcastLayer .pl-hero .art{width:84px;height:84px;border-radius:16px}
-.land #podcastLayer .pl-actions{margin:14px 0 12px}
-.land #podcastLayer .ep-head{margin:14px 0 4px}
-.land .recent-card{width:106px}
-.land .recent-card .art{width:106px;height:106px}
-.land .artist-card{width:66px}
-.land .artist-card .art{width:58px;height:58px}
-.land .rk-name{font-size:14px;bottom:28px}
-.land .rk-sub{font-size:9.5px;bottom:10px}
-.land .daily-card{height:84px}
-.land .daily-card .dc-art{width:84px;height:84px}
-.land .song-row{padding:6px 8px 6px 3px}
-.land .song-row .art{width:42px;height:42px}
-.land .sr-title{font-size:13.5px}
-.land #page-setting #setBody{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;align-items:start}
-
-/* —— 播放页：左唱片 / 右控制两栏 —— */
-.land .player-layer{display:grid;
-  grid-template-columns:minmax(0,236px) minmax(0,1fr);
-  grid-template-rows:auto auto auto auto auto auto auto;
-  align-content:center;column-gap:26px;padding:26px 26px 12px}
-.land .player-top{grid-area:1/1/2/3}
-.land .player-stage{grid-area:2/1/7/2;align-self:center;padding:0;min-height:0}
-.land .player-meta{grid-area:2/2/3/3;align-self:end}
-.land .player-source{grid-area:3/2/4/3;margin-top:6px}
-.land .seek{grid-area:4/2/5/3;margin:16px 0 6px}
-.land .seek-time{grid-area:5/2/6/3}
-.land .player-controls{grid-area:6/2/7/3;margin-top:12px}
-.land .player-tools{grid-area:7/2/8/3;align-self:start;margin-top:10px}
-.land .disc{width:186px;height:186px}
-.land .pc.main{width:54px;height:54px}
-.land .pc.main .ic{width:23px;height:23px}
-.land .pc{width:42px;height:42px}
-.land .player-info h3{font-size:19px}
-.land .pt-btn{padding:7px 2px}
-/* 横屏/Pad 的歌词态是「唱片与歌词同屏」，不存在翻页，所以那两枚滑动指示点只在手机上出现 */
-.land .stage-dots,.pad .stage-dots{display:none}
-/* 歌词态：左栏同时留唱片与歌词，跟 Pad 一个思路，只是尺寸收紧 */
-.land .player-layer.lyric-on .player-stage{display:grid;grid-template-columns:132px minmax(0,1fr);column-gap:16px;align-items:center}
-.land .player-layer.lyric-on .disc-wrap{display:grid}
-.land .player-layer.lyric-on .disc{width:130px;height:130px}
-.land .player-layer.lyric-on .lyric-wrap{position:relative;inset:auto;height:100%;padding:8px 0;overflow:hidden;
-  border-radius:18px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
-.land .player-layer.lyric-on .lyric-scroll{text-align:left;padding:0 16px}
-.land .lyric-wrap::before,.land .lyric-wrap::after{height:34px}
-.land .ln{font-size:12.5px;line-height:24px}
-.land .ln.on{font-size:16px}
-
-/* —— 详情层：左信息 / 右曲目 —— */
-.land .pl-layer{padding:34px 22px 18px}
-.land #plLayer{display:grid;grid-template-columns:228px minmax(0,1fr);
-  grid-template-rows:auto minmax(0,1fr) auto auto;column-gap:24px;overflow:hidden}
-.land #plLayer .pl-top{grid-column:1/-1;grid-row:1}
-.land #plLayer .pl-hero{grid-column:1;grid-row:2;flex-direction:column;align-items:flex-start;gap:12px;margin:14px 0 0;min-height:0;align-self:start}
-.land #plLayer .pl-hero .art{width:100%;height:auto;aspect-ratio:1;border-radius:18px}
-.land #plLayer .pl-hero .ph-body{flex:none;align-self:stretch;width:100%;gap:4px}
-.land #plLayer h3{font-size:18px}
-.land #plLayer .pl-actions{grid-column:1;grid-row:3;margin:14px 0 0}
-.land #plLayer .foot-note{grid-column:1;grid-row:4;margin-top:12px;justify-content:flex-start;text-align:left}
-.land #plLayer #plTracks{grid-column:2;grid-row:2/span 3;align-self:stretch;min-height:0;overflow-y:auto;
-  scrollbar-width:none;padding:6px 6px 10px}
-.land #plLayer #plTracks::-webkit-scrollbar{display:none}
-
-/* —— 浮层：还是底部面板，但限高可滚，别把 390 撑破 —— */
-.land .sheet-body{max-height:calc(100% - 26px);overflow-y:auto;scrollbar-width:none;padding:8px 20px 18px}
-.land .sheet-body::-webkit-scrollbar{display:none}
-.land .toast{bottom:92px}
-.land .lrc-float{left:22px;top:auto;bottom:116px;max-width:280px}
-.land .lrc-float .lf-line{max-width:200px}
-
 /* ============ 外观 · 明亮 ============
    设定页「外观」组的 light 档。色值逐条取自本项目 newui/theme/tokens.ts 的 light 一档，
    不在原型里另造一套浅色。基线仍是深色：这一层只挂在 .phone.light 上，
@@ -1297,7 +1298,8 @@ body.pad .notes{width:min(100%,900px);max-height:none}
    组件只引用 token，浅底上由这一层把「叠白」换成「叠黑」，所以新增组件不必再写一套 .light 规则。
    吸顶栏（顶栏 / 分类条 / 底栏）与歌词上下渐隐用 color-mix(--bg …,transparent) 跟随底色，
    深色浅色都自动是对的，不需要覆盖层。
-   留在本层的只有两条改不动的真差异：歌词当前行的投影浓度、浮层遮罩浓度。
+   留在本层的真差异：歌词当前行的投影浓度、浮层遮罩浓度，以及「我的」页那张入口卡的配色
+   （.fav-card 有自己的深色基线，浅色档的配色覆盖统一收到本层末段）。
    color 必须在本层重写一遍：body 的 color 是在深色 token 下算好的，
    子元素靠继承拿到的仍是浅色字（未加 color 的 .page-title / .set-row 标题首当其冲）。 */
 .phone.light{
@@ -1335,3 +1337,13 @@ body.pad .notes{width:min(100%,900px);max-height:none}
    歌词当前行的投影（深底要压住黑雾、浅底要把字从白里抬出来）与浮层遮罩的浓度。 */
 .phone.light .ln.on{text-shadow:0 5px 22px rgba(21,22,28,.22)}
 .phone.light .sheet-mask{background:rgba(21,22,28,.28)}
+/* 合一卡的明亮档：参考稿那套浅粉→浅紫底原样落回（深色基线在 .fav-card 那一族，
+   几何 / 字号 / 斜线角度两档共用，这里只换配色）。 */
+.phone.light .fav-card{background:linear-gradient(90deg,#FDE2EE 0%,#D6C3F9 100%);
+  box-shadow:0 8px 24px rgba(147,69,230,.12)}
+.phone.light .fav-card:hover{box-shadow:0 12px 28px rgba(147,69,230,.2)}
+.phone.light .fav-duo::after{background:rgba(255,255,255,.75)}
+.phone.light .fav-card .fc-art{background:rgba(255,255,255,.7);box-shadow:0 2px 8px rgba(0,0,0,.04);color:#D233F8}
+.phone.light .fav-duo .fc-half:last-child .fc-art{color:#7129E8}
+.phone.light .fav-card h3{color:#1A1A1A}
+.phone.light .fav-card p{color:rgba(0,0,0,.45)}

@@ -7,6 +7,8 @@ import { NEW_UI_RECENT_CLEARED_TOAST } from './app'
 /** 各区块 / 卡片标题（.fav-card h3 / .section-sub） */
 export const NEW_UI_MINE_TITLES = {
   love: '我喜欢',
+  /** 合一卡的右半（原型 renderMinePage L1301，整半进 U86 那一屏） */
+  offline: '已缓存',
   recent: '最近播放',
   lists: '我的歌单',
 } as const
@@ -70,7 +72,11 @@ export const NEW_UI_MINE_EDIT = '改昵称'
 /** 空态文案（原型 .empty-tip / .fav-card p 原句优先照抄） */
 export const NEW_UI_MINE_EMPTY = {
   recent: '暂无播放记录',
-  love: '还没有收藏 · 点歌曲右侧的爱心，收进来的都会留在这里',
+  /**
+   * 合一卡左半的空态（原型 renderMinePage L1278 逐字）：卡片只有半宽，副行只留名词与数字，
+   * 长句（「…收进来的都会留在这里」）留在详情层的 NEW_UI_PLD_EMPTY.fav，这一格不重复摆。
+   */
+  love: '还没有收藏 · 点歌曲右侧的爱心',
 } as const
 
 /**
@@ -85,16 +91,13 @@ export const NEW_UI_MINE_FOOT_NOTE = '收藏 · 播放记录 · 自建歌单都�
 /** 还没接上的动作用一句话提示（说人话，别漏开发术语） */
 export const NEW_UI_MINE_TOAST = {
   // 「改昵称」的浮层已在阶段 9e 落地（NameSheet），原过渡 toast 删除
-  /** 原型 fav-card 点击无可播收藏时的原句 */
-  loveUnplayable: '收藏里的歌当前音源都放不出来',
+  // 卡片那颗直接开播的圆钮本轮随「两张卡合一」撤掉，原「收藏里的歌当前音源都放不出来」
+  // 这条预览期提示（loveUnplayable）一并删除——开播回到详情层的「播放全部」，口径归它
   /** 原型 #recentClear 点击后的原句 */
   // 与首页「继续收听」清空共用全局共通键（原型两处入口共用一条实现，app.js L283-289）
   recentCleared: NEW_UI_RECENT_CLEARED_TOAST,
   // 纯自建歌单已换活（2026-10-12，详情层 kind='local' 形态，见 pushNewUiLocalListDetail），原「随后就来」占位文案删除
 } as const
-
-/** 「我喜欢」预览行拼接前几首歌名（原型 liked.slice(0, 3)） */
-export const NEW_UI_MINE_LOVE_PREVIEW_COUNT = 3
 
 /**
  * 「我的歌单」两种单子的副行（件 parts/mine/my-pl-mine.html U46；

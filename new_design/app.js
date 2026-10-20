@@ -838,7 +838,7 @@ const plFailedPages = new Set();
 
 const PL_PAGE_SIZE = 5;
 
-const PLD_CRUMB = { rank: '排行榜', mine: '自建歌单', pl: '歌单', local: '我的歌单', fav: '内置歌单' };
+const PLD_CRUMB = { rank: '排行榜', mine: '自建歌单', pl: '歌单', local: '我的歌单', fav: '我喜欢' };
 const PLD_FOOT = {
   rank: '整份榜单按该平台的排名排列 · 每首可直接播',
   mine: '这份歌单只存在这台设备上',
@@ -894,7 +894,7 @@ const plAllTracks = () => (plNow ? plTracksOf(plNow) : []);
 const favPlaylist = () => ({ id: 'fav__builtin', name: '我喜欢', seed: 'fav-builtin', desc: '', tracks: [...state.fav] });
 
 /* 「我的歌单」里其实是两种单子，长得像但能力不一样：
- * 自建（MY_PLAYLISTS）—— 能加歌，也能把歌移出去；平台侧没有这张单，也就没有它的封面图
+ * 自建（MY_PLAYLISTS）—— 能加歌，也能把歌移出去；平台侧没有这张单，卡面拿自己的第一首歌当封面
  * 收藏自平台（state.favPl 在 PLAYLISTS 目录里命中的那些）—— 只读，封面就是平台那张真图，
  *   整份单子能移出收藏，但里面的歌不能挪进挪出（本地写不回平台） */
 const collectedPlaylists = () => PLAYLISTS.filter((p) => state.favPl.has(p.id));
@@ -903,18 +903,29 @@ const collectedPlaylists = () => PLAYLISTS.filter((p) => state.favPl.has(p.id));
  * 所以这份候选名单根本不碰 collectedPlaylists() */
 const addablePlaylists = () => MY_PLAYLISTS;
 
-/* 卡面与详情头图走哪一路，看这份单子有没有平台坐标（.home）：
+/* 卡面与详情头图走哪一路，先看这份单子有没有平台坐标（.home）：
  * 有 → 上平台给的真封面图（和【歌单】页推荐卡同一套写法，取不到图 art() 自己回落）；
- * 没有 → 内置版式占位，不画一张随机图冒充平台封面 */
-const listCover = (p, radius, w, h) => (p.home ? coverArt(p.seed, radius, w, h) : art(p.seed, { radius }));
+ * 没有（自建单子）→ 有歌就用第一首的专辑封面，一首都没有（新建的空单）才回落到内置版式 */
+const listCover = (p, radius, w, h) => {
+  if (p.home) return coverArt(p.seed, radius, w, h);
+  const first = p.tracks && p.tracks.length ? songById(p.tracks[0]) : null;
+  return first ? coverArt(coverSeedOf(first), radius, w, h) : art(p.seed, { radius });
+};
+
+/* —— 歌单详情的滚动轴：两档各只有一根在滚，但两头都要一起写 ——
+ * 手机档是整层在滚（.pl-layer 自己 overflow-y:auto），Pad 档是主从布局、层 overflow:hidden 不滚，
+ * 真正在滚的是右侧那一列曲目（.pad #plLayer #plTracks）。判据不认设备：同一份算法绑到两根候选轴上，
+ * 谁不是滚动容器谁就不触发事件、写 scrollTop 也是原样留在 0，所以手机侧退化成原来那一根。 */
+const plAxisTop = () => Math.max($('#plLayer').scrollTop, $('#plTracks').scrollTop);
+const plAxisTopSet = (y) => { $('#plLayer').scrollTop = y; $('#plTracks').scrollTop = y; };
 
 /* 收藏被改的那一刻（歌曲行的「⋯」或播放页爱心）：层开着就就地重铺，
  * 页数与滚动位置都不跳；层没开则什么都不做 */
 function refreshFavLayer() {
   if (!plNow || plNow.kind !== 'fav' || !$('#plLayer').classList.contains('show')) return;
-  const top = $('#plLayer').scrollTop;
+  const top = plAxisTop();
   openPlaylist(favPlaylist(), 'fav');
-  $('#plLayer').scrollTop = top;
+  plAxisTopSet(top);
 }
 
 function openPlaylist(p, kind) {
@@ -1010,7 +1021,7 @@ function openPlaylist(p, kind) {
 
   renderPlTracks();
   openLayer($('#plLayer'));
-  $('#plLayer').scrollTop = 0;
+  plAxisTopSet(0);
 }
 
 /* 歌单详情层交给播放器的那一列 = 这份单子里现在能播的那批。
@@ -1076,12 +1087,13 @@ function loadPlPage() {
   }, 500);
 }
 
-/* 滚到底附近就自动取下一页 */
-function plLayerScroll() {
+/* 滚到底附近就自动取下一页：判据读的是「 fired 的那一根轴」自己，
+ * 手机档来自 #plLayer、Pad 档来自 #plTracks（同一函数绑两处，见 plAxes 那段注释） */
+function plLayerScroll(e) {
   if (!plNow) return;
-  const layer = $('#plLayer');
+  const axis = e.currentTarget;
   if (plShown >= plAllTracks().length) return;
-  if (layer.scrollTop + layer.clientHeight > layer.scrollHeight - 140) loadPlPage();
+  if (axis.scrollTop + axis.clientHeight > axis.scrollHeight - 140) loadPlPage();
 }
 
 function togglePlFav(liked, origin) {
@@ -1261,32 +1273,34 @@ function renderMinePage() {
     { n: state.history.length, l: '最近播放' },
   ].forEach((s) => stats.appendChild(el('div', 'stat', `<b>${s.n}</b><span>${s.l}</span>`)));
 
+  /* 「我喜欢」与「已缓存」合成同一处的同一张卡（.fav-duo）：整宽一只，中间一条斜线分左右两半，
+   * 两半各自是独立可点区域（斜的是线，不是命中边界）。副行只留名词与数字（单行，长了省略）。
+   * 图标各用一颗实心 Material 版（#i-heart-solid / #i-phone-solid），色由 .fav-card 的深色基线
+   * 与 .phone.light .fav-card 的明亮覆盖两档分别给出。
+   * 原先挂在卡右下那颗直接开播的小圆钮撤了：半宽放不下，开播这件事回到各自屏里的「播放全部」
+   * （歌单层那一走 plPlayableQueue，起播列照样标上「我喜欢」，缓存层那一走 offlinePlayAll） */
   const fav = $('#favCard');
   fav.innerHTML = '';
-  fav.appendChild(el('span', 'fc-art', '<svg class="ic"><use href="#i-heart-fill"/></svg>'));
+  fav.appendChild(el('span', 'fc-art', '<svg class="ic"><use href="#i-heart-solid"/></svg>'));
   const liked = [...state.fav].map(songById);
-  const fb = el('div', 'fc-body');
-  fb.appendChild(el('h3', '', '我喜欢'));
-  fb.appendChild(el('p', '', liked.length ? `${liked.length} 首 · ${liked.slice(0, 3).map((s) => s.title).join(' · ')}` : '还没有收藏 · 点歌曲右侧的爱心'));
-  fav.appendChild(fb);
-  /* 整卡进详情（「我喜欢」是一份内置歌单，点开就是收藏列表）；小圆钮单独管「直接开播」，
-   * 点圆钮不跳页 —— 两者意图不同，各自一个落点 */
-  const favGo = el('button', 'fc-go', '<svg class="ic"><use href="#i-play"/></svg>');
-  favGo.setAttribute('aria-label', '播放收藏');
-  favGo.onclick = (e) => {
-    e.stopPropagation();
-    const can = liked.filter((s) => supports(s.source));
-    if (!can.length) { toast(liked.length ? '收藏里的歌曲在当前音源下均不可播 · 换个音源试试' : '还没有收藏 · 点歌曲右侧的爱心'); return; }
-    /* 「我喜欢」也是本机的一张单子（真实侧 LIST_IDS.LOVE），起播的这一列就标成它的名字，
-     * 播放列表那屏的「移出」才会说成「从「我喜欢」移出」而不是含糊的一句 */
-    can.queueOwner = '我喜欢';
-    play(can[0], can);
-    openLayer(player());
-  };
-  fav.appendChild(favGo);
+  fav.appendChild(el('h3', '', '我喜欢'));
+  fav.appendChild(el('p', '', liked.length ? `${liked.length} 首` : '还没有收藏 · 点歌曲右侧的爱心'));
   fav.setAttribute('role', 'button');
   fav.setAttribute('aria-label', '打开「我喜欢」');
   fav.onclick = () => openPlaylist(favPlaylist(), 'fav');
+
+  /* 右半「已缓存」：与左半同一只卡里的另一半（家族样式共用 .fav-card，两半写法一模一样）；
+   * 图标是新增的实心 i-phone-solid——画的是「这台设备」；右半那颗在深浅两档各有自己的色，
+   * 见 .fav-duo 的 :last-child 规则。整半进 U86 那一屏 */
+  const off = $('#offlineCard');
+  off.innerHTML = '';
+  off.appendChild(el('span', 'fc-art', '<svg class="ic"><use href="#i-phone-solid"/></svg>'));
+  const offRows = offlineRows();
+  off.appendChild(el('h3', '', '已缓存'));
+  off.appendChild(el('p', '', offRows.length ? `${offRows.length} 首 · ${LOCAL_CACHE_MB} MB` : OFF_EMPTY));
+  off.setAttribute('role', 'button');
+  off.setAttribute('aria-label', '打开「已缓存」');
+  off.onclick = openOffline;
 
   const rec = $('#mineRecent');
   rec.innerHTML = '';
@@ -1303,7 +1317,7 @@ function renderMinePage() {
   $('#minePlEmpty').hidden = grid.hidden = MY_PLAYLISTS.length + collected.length > 0;
 }
 
-/* 自建歌单卡：没有平台坐标，封面位就是内置版式（不画一张随机图冒充平台封面） */
+/* 自建歌单卡：没有平台坐标，封面位拿单子里第一首歌的专辑封面；空单才回落到内置版式 */
 function plCardMine(p) {
   const card = el('button', 'pl-card');
   card.appendChild(listCover(p, null, 340));
@@ -1333,6 +1347,108 @@ function plCardCollected(p) {
   card.onclick = () => openPlaylist(p, 'pl');
   return card;
 }
+
+/* ============ 已缓存（离线收听，U86） ============
+ * 清单 = 拿「本机已知道的歌」逐首过真实侧那两关（musicUrl 本机映射逐键 + isCached 验字节）。
+ * 原型里这两关的结果就是 data.js 的 LOCAL_CACHE_KEYS（键格式照真实映射表：id_音质）。
+ * 没有可枚举的缓存清单 API，所以候选池就是这几处：收藏、最近播放、自建歌单与收藏来的歌单里的歌目。 */
+const OFF_EMPTY = '还没有存下的歌 · 连网络听一遍，之后不联网也能播';
+const OFF_LEDE = '你听过的歌里，已经存在这台机器上的这些 · 不联网也能播';
+const offlineKnownSongs = () => {
+  const seen = new Set();
+  const out = [];
+  const push = (id) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    const s = songById(id);
+    if (s) out.push(s);
+  };
+  state.fav.forEach(push);
+  state.history.forEach(push);
+  MY_PLAYLISTS.forEach((p) => p.tracks.forEach(push));
+  collectedPlaylists().forEach((p) => p.tracks.forEach(push));
+  return out;
+};
+/* 一首可能存过几档（128k 听过、后来又按 HQ 播过）：取最高那档上屏，键就是那条真实的映射键 */
+const cachedQuality = (id) => PLAY_QUALITY_CHOICES.find((q) => LOCAL_CACHE_KEYS.includes(id + '_' + q)) || null;
+const offlineRows = () => {
+  const rows = offlineKnownSongs()
+    .map((s) => ({ song: s, quality: cachedQuality(s.id) }))
+    .filter((r) => r.quality);
+  rows.sort((a, b) => PLAY_QUALITY_CHOICES.indexOf(a.quality) - PLAY_QUALITY_CHOICES.indexOf(b.quality)
+    || a.song.id.localeCompare(b.song.id));
+  return rows;
+};
+/* 交给播放器的那一列：存在本机即现在能播，整列都给，不按当前音源的平台覆盖筛（判据见 play 的 fromCache）。
+ * queueOwner 标 null——「已缓存」不是一份本机单子，播放列表面板里那条「移出」在这屏说不出单子名，
+ * 走的本来就是「这次不播这一首」那一档文案 */
+const offlineQueue = () => {
+  const q = offlineRows().map((r) => r.song);
+  q.queueOwner = null;
+  return q;
+};
+/* 行是 .song-row 原子族自造（判例 podRow）：不画序号——真实清单来自枚举存储键，那顺序说不清，
+ * 与其编一个排序不如不标；也不挂「⋯」——这一屏只有"听"这一个意图 */
+function offRow(r, queue) {
+  const s = r.song;
+  const row = el('button', 'song-row' + (state.song?.id === s.id ? ' playing' : ''));
+  row.appendChild(coverArt(coverSeedOf(s), '10px', 120));
+  const body = el('div', 'sr-body');
+  const title = el('div', 'sr-title');
+  if (state.song?.id === s.id && state.playing) {
+    title.innerHTML = `<span class="eq"><i></i><i></i><i></i></span>`;
+  }
+  title.appendChild(el('span', '', s.title));
+  body.appendChild(title);
+  const sub = el('div', 'sr-sub');
+  const src = el('span', 'src-badge', SOURCES[s.source].short);
+  src.style.setProperty('--tint', SOURCES[s.source].tint);
+  /* 第二行四段顺序与 songRow 一致（来源 → 音质 → 歌手 → 专辑），只有音质那段换了语义：
+   * 别的屏读「这次会按哪档播」，这一屏读「存在哪一档」——清单就是按本机实际存货筛的 */
+  sub.innerHTML = `<span class="q-tag">${QUALITY[r.quality].label}</span>`
+    + `<i class="sep"></i><span class="sr-artist">${s.artist}</span>`
+    + `<i class="sep"></i><span class="sr-album">${s.album}</span>`;
+  sub.prepend(src);
+  body.appendChild(sub);
+  row.appendChild(body);
+  const right = el('div', 'sr-right');
+  right.appendChild(el('span', 'sr-dur', fmt(s.dur)));
+  row.appendChild(right);
+  row.onclick = () => play(s, queue, true);
+  return row;
+}
+function offlinePlayAll() {
+  const rows = offlineRows();
+  if (!rows.length) { toast(OFF_EMPTY); return; }
+  play(rows[0].song, offlineQueue(), true);
+  openLayer(player());
+}
+function renderOffline() {
+  const rows = offlineRows();
+  const meta = $('#offMeta');
+  meta.innerHTML = '';
+  if (rows.length) meta.appendChild(el('div', 'off-n', `共 ${rows.length} 首 · 占用 ${LOCAL_CACHE_MB} MB`));
+  meta.appendChild(el('p', 'off-lede', OFF_LEDE));
+  /* 空的时候没有按钮可点：「播放全部」整个撤掉，与「清空记录」随空态一起隐藏同一判据 */
+  const acts = $('#offActions');
+  acts.innerHTML = '';
+  if (rows.length) {
+    const all = el('button', 'ghost-btn solid', `<svg class="ic"><use href="#i-play"/></svg>播放全部 ${rows.length} 首`);
+    all.onclick = offlinePlayAll;
+    acts.appendChild(all);
+  }
+  const list = $('#offList');
+  list.innerHTML = '';
+  if (!rows.length) { list.appendChild(el('div', 'empty-tip', OFF_EMPTY)); return; }
+  const queue = offlineQueue();
+  rows.forEach((r) => list.appendChild(offRow(r, queue)));
+}
+function openOffline() {
+  renderOffline();
+  openLayer($('#offlineLayer'));
+  $('#offList').scrollTop = 0;
+}
+const closeOffline = () => closeLayer($('#offlineLayer'));
 
 /* ============ 新建歌单（#createSheet） ============
  * 原型旧版没有建单流程（MY_PLAYLISTS 是写死的 4 张）；校验规则与旧屏 ListNameEdit 一致：
@@ -1667,9 +1783,9 @@ function openMore(s, queue, scene) {
       host.tracks.splice(host.tracks.indexOf(s.id), 1);
       closeLayer($('#moreSheet'));
       /* 原地重铺这一层并保住滚动位置：刚移完就被弹回顶部，等于没让人接着往下挑 */
-      const top = $('#plLayer').scrollTop;
+      const top = plAxisTop();
       openPlaylist(host, 'local');
-      $('#plLayer').scrollTop = top;
+      plAxisTopSet(top);
       if (!$('#page-mine').hidden) renderMinePage();
       if (!$('#page-playlist').hidden) renderPlaylistPage();
       toast(MORE_TXT.removed(host.name, s.title));
@@ -2197,6 +2313,9 @@ function renderPodRates() {
 const epSec = () => podNow.episodes[epState.idx].sec;
 
 function paintEpisode() {
+  /* 没有正在看的节目（或手上这一集已经不属于它）就没有这一屏要画：
+   * 换外形时 setDevice 会先停表，那时用户可能整场都没进过电台 */
+  if (!podNow || !podNow.episodes[epState.idx]) return;
   const dur = epSec();
   const r = Math.min(1, epState.t / dur);
   $('#epFill').style.width = (r * 100).toFixed(2) + '%';
@@ -2290,8 +2409,11 @@ const copyQueue = (from) => {
 /* 评论数在真实实现里来自平台接口，原型按曲目 ID 稳定生成 */
 const commentTotal = (s) => 1284 + (s ? hash(s.id) % 9000 : 0);
 
-function play(s, queue) {
-  if (!supports(s.source)) {
+function play(s, queue, fromCache) {
+  /* fromCache 只有「已缓存」那一屏传：缓存命中在真实侧走本机映射（getStoreMusicUrl），
+   * 根本不叫音源脚本，所以存过的歌不必再过「当前音源支不支持这个平台」这道门。
+   * 其余调用点一律不传第三个参数，行为与原来逐字相同 */
+  if (!fromCache && !supports(s.source)) {
     toast(`当前音源不支持${SOURCES[s.source].label} · 换一首或换个音源`);
     return;
   }
@@ -2324,6 +2446,12 @@ function syncLists() {
     const y = $('#searchBody').scrollTop;
     renderSearch();
     $('#searchBody').scrollTop = y;
+  }
+  /* 「已缓存」层开着时同理：播中标记要跟上，滚的位置不动人 */
+  if ($('#offlineLayer').classList.contains('show')) {
+    const y = $('#offList').scrollTop;
+    renderOffline();
+    $('#offList').scrollTop = y;
   }
 }
 
@@ -3339,10 +3467,9 @@ function switchTab(key) {
 }
 
 /* ============ 设备外形（原型查看器控件，不属于 App 界面） ============ */
-const FRAME = { phone: [390, 844], land: [844, 390], pad: [1180, 820] };
+const FRAME = { phone: [400, 890], pad: [1180, 820] };
 const FRAME_NOTE = {
-  phone: '390 × 844 pt · 底部 Tab',
-  land: '844 × 390 pt · 底部 Tab · 播放页双栏',
+  phone: '400 × 890 pt · 底部 Tab',
   pad: '1180 × 820 pt · 侧栏导航',
 };
 let device = 'phone';
@@ -3363,18 +3490,19 @@ function setDevice(next) {
   if (next === device) return;
   device = next;
   const p = $('#phone');
-  /* .phone 是外框基类，永远在；这里只叠 .land / .pad 两个覆盖层 */
-  p.classList.toggle('land', next === 'land');
+  /* .phone 是外框基类，永远在；这里只叠 .pad 这一个覆盖层（横屏只有 Pad 一档） */
   p.classList.toggle('pad', next === 'pad');
-  document.body.classList.toggle('land', next === 'land');
   document.body.classList.toggle('pad', next === 'pad');
   /* 换外形时把浮层与推入页收起，回到当前 Tab 的整页视图（电台那四层同样是推入层，一起收） */
   [$('#plLayer'), $('#searchLayer'), player(),
+    $('#offlineLayer'),
     $('#radioLayer'), $('#podcastSearchLayer'), $('#podcastLayer'), $('#episodeLayer')].forEach(closeLayer);
   $$('.sheet').forEach(closeLayer);
+  /* 停表要在数据还在的时候做：epStop 末尾会重绘单集屏，那一步要读 podNow 的那一集。
+   * 先清 podNow 再停表，重绘就读不到东西，整条换外形流程在这里断掉（后面的缩放与回显全不执行） */
+  epStop();
   plNow = null;
   podNow = null;
-  epStop();
   /* 浮窗的手拖位置是内联坐标，换外形后要清掉，让它回到该模式的默认落点 */
   const f = $('#lrcFloat');
   f.style.left = f.style.top = '';
@@ -3457,6 +3585,7 @@ function init() {
     if (closeTopSheet()) return;
     if ($('#playerLayer').classList.contains('show')) { closeLayer($('#playerLayer')); syncFloat(); return; }
     if ($('#searchLayer').classList.contains('show')) { closeSearch(); return; }
+    if ($('#offlineLayer').classList.contains('show')) { closeOffline(); return; }
     /* 电台那四层叠在一起（首页 → 搜播客 → 详情 → 单集），按最上面那一层往下收 */
     if ($('#episodeLayer').classList.contains('show')) { closeEpisodeLayer(); return; }
     if ($('#podcastLayer').classList.contains('show')) { closePodcastLayer(); return; }
@@ -3467,6 +3596,11 @@ function init() {
 
   $('#plBack').onclick = closePlLayer;
   $('#plLayer').addEventListener('scroll', plLayerScroll, { passive: true });
+  /* Pad 的曲目列是这一层的另一根轴（手机档它不是滚动容器，永不触发） */
+  $('#plTracks').addEventListener('scroll', plLayerScroll, { passive: true });
+
+  /* —— 已缓存（离线收听）接线：入口只有「我的」那张卡；这一屏不分页，没有触底续取要绑 —— */
+  $('#offlineBack').onclick = closeOffline;
 
   /* —— 电台（播客）接线：首页只有快捷入口那一格进这一屏 —— */
   $('#radioBack').onclick = closeRadio;

@@ -43,12 +43,18 @@
     <symbol id="i-float" viewBox="0 0 24 24"><rect x="2.5" y="3.5" width="12" height="8.5" rx="2.6" fill="none" stroke="currentColor" stroke-width="2" opacity=".5"/><rect x="7.5" y="10" width="14" height="10.5" rx="5.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 15.3h7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="i-float-on" viewBox="0 0 24 24"><rect x="2.5" y="3.5" width="12" height="8.5" rx="2.6" fill="none" stroke="currentColor" stroke-width="2" opacity=".5"/><rect x="7.5" y="10" width="14" height="10.5" rx="5.2" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="2"/><path d="M11 15.3h7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="i-heart-fill" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-9.4A4.1 4.1 0 0 1 12 8a4.1 4.1 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20Z" fill="currentColor"/></symbol>
+    <!-- 实心 Material 心形：只给「我的」页那张合一卡的左半用（.fav-card .fc-art），
+         与上面那颗自有笔画的 i-heart-fill 并存，别互相替换 -->
+    <symbol id="i-heart-solid" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
     <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6.9"/><circle cx="12" cy="12" r="2.7"/></g><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.35 5.35l1.65 1.65M17 17l1.65 1.65M5.35 18.65 7 17M17 7l1.65-1.65" fill="none" stroke="currentColor" stroke-width="2.2"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7.6V12l3.2 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="i-link" viewBox="0 0 24 24"><path d="M14.5 7.5h2.5a4.5 4.5 0 0 1 0 9h-2.5M9.5 7.5H7a4.5 4.5 0 0 0 0 9h2.5M8.5 12h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4.5 19.5h3.2l9.6-9.6-3.2-3.2L4.5 16.3v3.2Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.6 6.2 17.4 10M15.8 4.2 19.8 8.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10.4 18.6h3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <!-- 实心 Material 手机：只给那张合一卡的右半用（.fav-duo .fc-half:last-child .fc-art），
+         上面那颗线描的 i-phone 其余地方照旧 -->
+    <symbol id="i-phone-solid" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" fill="currentColor"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.6h5V7M6.6 7l.9 12.4a1.6 1.6 0 0 0 1.6 1.5h5.8a1.6 1.6 0 0 0 1.6-1.5L17.4 7M10.4 11v6M13.6 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
@@ -60,10 +66,9 @@
     <span class="vb-label">屏幕方向</span>
     <div class="vb-seg" id="devSwitch">
       <button class="vb-btn is-on" data-dev="phone">竖屏</button>
-      <button class="vb-btn" data-dev="land">横屏</button>
       <button class="vb-btn" data-dev="pad">Pad</button>
     </div>
-    <span class="vb-note" id="vbNote">390 × 844 pt · 底部 Tab</span>
+    <span class="vb-note" id="vbNote">400 × 890 pt · 底部 Tab</span>
   </div>
 
   <!-- ================= 手机 ================= -->
@@ -220,7 +225,13 @@
           </div>
 
           <div class="stat-row" id="statRow"></div>
-          <div class="fav-card" id="favCard"></div>
+          <!-- 「我喜欢」与「已缓存」合成同一处的同一张卡：整宽一只，中间一条斜线切成左右两半。
+               两半各自是一个可点区域（左半 #favCard、右半 #offlineCard），斜线只是画在中间的分隔
+               （.fav-duo::after，不占节点），命中区仍是左右两个矩形 —— 斜的是线，不是边界 -->
+          <div class="fav-card fav-duo">
+            <div class="fc-half" id="favCard"></div>
+            <div class="fc-half" id="offlineCard"></div>
+          </div>
 
           <section class="section">
             <div class="section-head">
@@ -380,6 +391,19 @@
         <div class="pl-actions" id="plActions"></div>
         <div class="song-list" id="plTracks"></div>
         <div class="foot-note" id="plFoot"></div>
+      </div>
+
+      <!-- 已缓存（离线收听）：从右侧推入，唯一入口是「我的」那张卡。上半（顶排 / 口径与数字 / 播放全部）固定在 .pl-head 里，只有列表这一根轴在滚（写法 #radioLayer 那一套判例） -->
+      <div class="pl-layer" id="offlineLayer">
+        <div class="pl-head">
+          <div class="pl-top">
+            <button class="icon-btn" id="offlineBack" aria-label="返回"><svg class="ic"><use href="#i-chevron"/></svg></button>
+            <div class="player-crumb">已缓存</div>
+          </div>
+          <div class="off-meta" id="offMeta"></div>
+          <div class="pl-actions" id="offActions"></div>
+        </div>
+        <div class="off-list" id="offList"></div>
       </div>
 
       <!-- 电台首页：从右侧推入。上半（顶栏 / 我听的这一区 / 当前地区那一行）固定在 .pl-head 里，只有榜列这一根轴在滚；右上那颗是搜节目的入口 -->
@@ -606,7 +630,7 @@
   <aside class="notes">
     <div class="notes-inner">
       <h1>EchoIsle · 五个 Tab</h1>
-      <p class="notes-lede">移动端 UI 原型（HTML/CSS/JS）：首页 / 歌单 / 排行榜 / 我的 / 设定，左上角可切<em>手机竖屏</em>、<em>手机横屏</em>与<em>Pad 横屏</em>三种外形，另有一档明暗主题。信息架构不是照搬竞品，而是由音源脚本解码出的能力边界反推出来的——音源只能把一首歌变成能播的声音，其余内容全部来自平台曲库。</p>
+      <p class="notes-lede">移动端 UI 原型（HTML/CSS/JS）：首页 / 歌单 / 排行榜 / 我的 / 设定，左上角可切<em>手机竖屏</em>与<em>Pad 横屏</em>两种外形（横屏只有 Pad 这一种形态），另有一档明暗主题。信息架构不是照搬竞品，而是由音源脚本解码出的能力边界反推出来的——音源只能把一首歌变成能播的声音，其余内容全部来自平台曲库。</p>
 
       <h2>音源能力 → 设计约束</h2>
       <table class="spec">
@@ -656,16 +680,17 @@
         <li>落到 RN 时改的是 <code>SongRow</code> 的 <code>subRow</code> 子节点顺序（现为 <code>SrcBadge → subtitle → QTag</code>）：拆成 <code>SrcBadge → QTag → artist → album</code> 四段，<code>subtitle</code> 这一个 prop 要拆成 <code>artist</code> / <code>album</code> 两个，容器上补一条分隔线样式即可，其余 props 与交互不变</li>
       </ul>
 
-      <h2>三种外形</h2>
-      <p class="notes-body">同一套 DOM，不复制页面：左上角「设备外形」三档——<em>手机竖屏</em> 390×844、<em>手机横屏</em> 844×390、<em>Pad 横屏</em> 1180×820。切到 Pad 时给外框和 <code>body</code> 各加一个 <code>.pad</code> 类，靠一段覆盖样式把「底部 Tab」翻成「左侧导航」；手机横屏只加 <code>.land</code>，把外框转成宽扁形、底栏保持横向、内容区改两列，不引入侧栏。预览窗口不够宽时整体等比缩小（<code>fitFrame()</code> 按 stage 宽度和窗口高度取较小值，手机模式不参与缩放），量到的坐标都还是逻辑像素。</p>
+      <h2>两种外形</h2>
+      <p class="notes-body">同一套 DOM，不复制页面：左上角「设备外形」两档——<em>手机竖屏</em> 400×890、<em>Pad 横屏</em> 1180×820，横屏只有 Pad 这一种形态。切到 Pad 时给外框和 <code>body</code> 各加一个 <code>.pad</code> 类，靠一段覆盖样式把「底部 Tab」翻成「左侧导航」。预览窗口不够宽时整体等比缩小（<code>fitFrame()</code> 按 stage 宽度和窗口高度取较小值，手机模式不参与缩放），量到的坐标都还是逻辑像素。</p>
       <ul class="notes-list">
         <li>让位用一个变量做完：<code>--nav-w</code> 手机 <code>0px</code>、Pad <code>236px</code>，顶栏 / 滚动区 / 推入页 / 播放页 / 迷你条的 <code>left</code> 全部引用它——所以手机侧的计算式原样退化成 0，不需要第二套定位</li>
         <li>侧栏由原 <code>#tabbar</code> 变身（<code>flex-direction:column</code> + 42px 行高），补了品牌行、「浏览」分组标题、独立的<em>设定</em>入口，底部 <code>margin-top:auto</code> 钉住当前音源状态：脚本名 + 版本 + 平台数 + 音质，解码失败时小圆点变橙。手机模式这四个新节点 <code>display:none</code>，不占空间</li>
-        <li>内容区加宽不等于放大：轮播 860×216、歌单 / 榜单 4 列、电台 3 列、歌曲行 860 宽，左右各留 30px 边距；<code>.viewport</code> 的 <code>padding-top</code> 同步改成 94px 与 Pad 顶栏等高，胶囊吸顶仍然是 <code>top:0</code></li>
-        <li>歌单详情改成 iPad 那种主从布局：左列 318px 放封面（正方向撑满）+ 标题 / 标签 + 播放全部，右列曲目列表<em>自己滚</em>（<code>overflow:hidden</code> + 内层 <code>max-height:100%</code>），滚动条藏在卡内，标题不再被长列表顶出屏幕</li>
-        <li>播放页开歌词时左右分栏（封面 440 ｜ 歌词 372），转盘留在原地继续转；不开歌词仍是竖排。<em>定时 / 评论 / 音源</em> 这些 sheet 从底部弹出改为居中模态（660px，最大高 74%），拖动条隐藏，出现动画换成 scale + fade</li>
+        <li>内容区加宽不等于放大：主列宽 860（1156 屏内宽 − 236 导航 − 左右各 30）、轮播 860×216、歌单卡与榜单卡 <b>4 列</b>（首页推荐池、歌单页那张池子都是同一族 <code>.pl-grid</code>）、电台排行榜行与设定页分组、音源与「⋯」那些选项行 <b>摊 2 列</b>、左右各留 30px 边距；<em>整行的列表不摊两列</em>（歌曲行、歌单详情的曲目、播客的单集列都是一行到底，只是行内封面与字号上一档）；首页「每日推荐」卡与「我的」统计条一样收到 660 / 620 档，不让一行正文铺满 860。<code>.viewport</code> 的 <code>padding-top</code> 同步改成 94px 与 Pad 顶栏等高，胶囊吸顶仍然是 <code>top:0</code></li>
+        <li>歌单详情改成 iPad 那种主从布局：左列 318px 放封面（正方向撑满）+ 标题 / 标签 + 播放全部，右列曲目列表<em>自己滚</em>（<code>overflow:hidden</code> + 内层 <code>max-height:100%</code>），滚动条藏在卡内，标题不再被长列表顶出屏幕。这一档的<em>滚动轴换了人</em>：手机是整层在滚，Pad 是右侧那列曲目在滚，所以触底续取的判据同时绑到这两根候选轴上、进的滚位置也两头一起写（<code>plAxisTop()</code> / <code>plAxisTopSet()</code> 只读「非零的那一根」）——判据<em>不认设备</em>：谁不是滚动容器谁就永不触发，手机侧原样退化成层自己在滚</li>
+        <li>电台那三层与单集屏这一轮补到位：<em>电台首页</em>顶排内边距从手机的 58/16 回正成 Pad 的 32/30（Pad 状态栏只有 32px，照吃 58 就是在返回钮上面留一段空），榜列两行两列摊开、行内封面 64px；<em>播客详情</em>仍是「上半固定 + 单集一根轴」，只是封面升到 168、标题 23px，正文与那颗「播放最新一集」收进 620 档，不再横跨 860；<em>搜节目</em>与搜歌共用 <code>.sc-*</code> 那一族，Pad 覆盖自动生效，结果行同样摊两列；<em>单集屏</em>是这一档唯一整层滚的电台屏，主列（封面行 / 简介 / 进度 / 控制 / 倍速）一起收进 660 居中，与 Pad 播放页那两排同档</li>
+        <li>播放页开歌词时左右分栏（封面 440 ｜ 歌词 372），转盘留在原地继续转；不开歌词仍是竖排。<em>定时 / 评论 / 播放列表 / 音源</em> 这些 sheet 从底部弹出改为居中模态（660px，最大高 74%），拖动条隐藏，出现动画换成 scale + fade；居中的那一档宽度算在<em>导航右侧的内容区</em>里（<code>padding-left:var(--nav-w)</code>），与 toast 同一口径，遮罩照旧盖满整屏</li>
         <li>设定页分组两列排布；「我的」的统计条限宽 620px，不被拉到整页宽显得空洞</li>
-        <li>三档外形切换一律收回浮层与推入页并清掉浮窗的手拖坐标（内联像素是上一个外框的），避免带着旧几何进新布局；toast、LRC 浮窗的位置都按 <code>--nav-w</code> 重算，浮窗拖拽还把屏幕像素除回逻辑像素（<code>frameZoom()</code>）</li>
+        <li>两档外形切换一律收回浮层与推入页并清掉浮窗的手拖坐标（内联像素是上一个外框的），避免带着旧几何进新布局；toast、LRC 浮窗的位置都按 <code>--nav-w</code> 重算，浮窗拖拽还把屏幕像素除回逻辑像素（<code>frameZoom()</code>）</li>
         <li>状态栏保留（时间 / 信号 / 电量）但去掉灵动岛，Pad 外框没有挖孔</li>
         <li>「屏幕方向 / 设备外形」是<em>查看器</em>的控件、不属于 App，此前放在手机壳上方，页面一滚就看不见，等于「没有这个功能」。现在它是 <code>position:sticky</code> 常驻条，始终贴在浏览器顶部，深色毛玻璃底与手机外壳分开一层；窗口窄到 860px 以下（裸机预览档）时它压成一条 42px 的窄条、手机高度改 <code>calc(100vh - 42px)</code>，保证切换开关永远露在可视区里</li>
       </ul>
@@ -763,7 +788,7 @@
         <li><b>详情屏只留一颗按钮</b>：hero 下面那一排现在只有<em>继续播放</em>——听过就把文案换成「继续播放 · 还剩 X」并接着上次那集，没听过就是「播最新单集 · X」，同一颗钮两种状态。跟着一起撤掉的是<em>另外三处</em>：顶排右侧那颗收听（<code>#podSubBtn</code>，含它的 <code>.on</code> 实心渐变）、<code>#podSubBtn</code> 的接线与 <code>paintPodSubBtn()</code>、每一集右侧那颗圆形播放钮（<code>.ep-play</code>）。点行进单集屏的动作<em>保留</em>——那是导航不是按钮。<em>代价要说清</em>：摘掉收听那颗之后，「把一个节目收进这台设备」<em>在原型里没有入口了</em>（电台首页那一区只剩取消收听的 ×），名单靠 <code>POD_SUB_SEED</code> 两条种子演示；要不要补一颗（放回顶排、还是落到行内「⋯」）请用户定，本轮按指令先只留继续播放。列表侧两处同时改了：<em>没有简介位</em>（节目简介不在 lookup 返回里，不摆一个等着被填的空段落，这条设计说明留在这里、屏上不留痕迹）；<em>给回多少集列多少集</em>——<code>podEpisodesOf()</code> 原先为演示写死 8 集，现在取 <code>min(接口一批的上限 50, 这个节目的 trackCount)</code>，手写的那几行只是这批的前几行、其余按这个节目自己的更新间隔续满，<em>不分页、不放「加载更多」、列表尾不写任何解释行</em>（原先那句「一次只能取到最近这些…」整条撤掉）</li>
         <li><b>搜播客这一屏</b>与搜歌那一屏是同一套写法（<code>.sc-top</code> 输入框 + 取消、回车才发、命中数）。无输入时<em>只剩本机搜过的词</em>（<code>LS.podSearchHistory</code>，可清空）：原先那句「按节目名或作者搜 · 点进去看最近几集，听到的位置记在这台设备上」整条撤掉——播客没有「热搜」这件事（三条接口都不给），也不需要向用户解释自己能干什么。命中后底部只留一个数「N 个节目」。搜索结果比榜单多的那两样——总集数与<em>一条订阅源地址</em>——总集数直接落到详情屏的「共 N 集」位上；<em>订阅源地址不上屏也不提</em>：它是 RSS 的入口，解析 RSS（取全量历史剧集、取节目简介、拿真正的订阅更新）<em>不在这三条接口的能力里</em>，要不要再开一条 RSS 通道由用户定，见 <code>todo-list.md</code></li>
         <li><b>单集屏只表现界面</b>：<code>episodeUrl</code> 是这一集的音频直链，和项目现有那条<em>音源解码 → <code>musicUrl</code></em>的链路<em>不是一回事</em>（后者由用户自配的音源脚本给地址，走 track-player 那一套队列）。所以这一屏不接播放器、不占迷你条、不进播放列表面板，<em>屏上也不挂任何角标</em>（这一层「只做界面」的性质只写在本节，不做成给用户看的标注）；那一行倍速与进度只走本地计时，为的是把「倍速 / 步进 / 剩余位置」这几个控件的<em>尺寸与位置</em>定下来。落地时它需要的是「一条能直接喂给 track-player 的地址」，属于核心侧的活，本轮没动</li>
-        <li><b>滚动结构：电台首页与播客详情都是<em>上半固定 + 列表独立滚</em></b>（本轮改动；上一轮那条「四层都是一张滚动面、<code>podChartScroll</code> 绑在 <code>#radioLayer</code>」的核对结论<em>作废</em>，「全站右推层没有第二处吸顶顶栏、别造 sticky」那条一并作废——这两屏的顶排现在根本不在滚动容器里）。写法照<em>搜索屏</em>那一套：外层定死 <code>#radioLayer / #podcastLayer{padding:0;overflow:hidden}</code> → 固定段 <code>.pl-head{flex:none;padding:58px 16px 0}</code> → 滚动段 <code>flex:1;overflow-y:auto</code>。滚动段<em>就是各自的列表本体</em>（<code>#radioLayer&gt;.pod-list</code> / <code>#podcastLayer&gt;.ep-list</code>，不再套一层壳，判例是 <code>.pad / .land #plLayer #plTracks</code>）；水平内边距与底部留白从层的 <code>padding</code> 平移到固定段与滚动段各自身上（58/16/0 与 16/34，数值与改前逐字相同）。类名沿用 <code>.pl-*</code> / <code>.pod-*</code> / <code>.ep-*</code> 这一族，<em>不引入 <code>.sc-*</code> 的语义</em>。固定段里放的是：电台首页＝顶排 + 订阅那一区 + 当前地区那一行；播客详情＝顶排 + <code>.pl-hero</code> + <code>.pl-actions</code> + <code>.ep-head</code>——小标题「单集」移出滚动轴，落成静态节点 <code>#podEpHead</code>，文字仍由 <code>openPodcast()</code> 灌（<code>POD_TXT.epHead</code>），hero 与操作行一起进固定段后不再被层的 <code>padding</code> 撑出一段滚不掉的空白。滚的只有列表：<code>.pl-status</code> 两条状态行（<em>正在载入这一区…</em> / <em>这一区没有取到名单 · 点击重试</em>）与收行 <em>没有更多了</em> 由列表自己携带、跟着一起滚、留在列表尾；<code>podChartScroll</code> 换绑到 <code>#podChartList</code>，判据仍是<em>距底 160px</em>；进层与换区（<code>openRadio()</code> / <code>loadPodRegion()</code>）都把这根轴的 <code>scrollTop</code> 归零，单集列在 <code>openPodcast()</code> 里同样归零。间距三处都收成 18 档：订阅区与顶排之间（<code>.subs-block</code> 的 <code>margin-top</code> 2 → 18，取 <code>.pl-actions</code> 那一档）、地区行与榜列之间（6 + 2 + 滚动段 <code>padding-top</code> 10）、小标题与首行之间（4 + 8 + 滚动段 <code>padding-top</code> 6）——<em>全部取现成档位，未新开数值</em>，<code>--fill-*</code> / <code>--hairline</code> 那套叠色与描边不动。固定段变高会吃掉列表，三档分别量过（一次性量测页 + 无头 Chromium，按最满的一档：节目名占两行、单集行带摘要；不是设备验收）：<em>手机档</em>屏内高 822，电台固定段 382、轴可视 438（榜行 74，一屏 5 行以上），播客详情固定段 348、轴可视 466（单集行 89，一屏 5 行）；<em>Pad 档</em>屏内高 796，电台固定段 400（含 <code>.pad .subs-card</code> 现成的 150 档）、轴可视 394，播客详情固定段 348、轴可视 440，不用另收；<em>横屏档</em>屏内高只有 368，<em>订阅区与 hero 各收一档</em>——<code>.land .pl-head{padding:26px 22px 0}</code>、订阅卡走 <code>.land .daily-card</code> 的 84 档、<code>.subs-head</code>/<code>.subs-block</code>/<code>.pod-region</code> 的外边距走 12/6/4 档、hero 封面 84 + <code>min-height:0</code> 且 <code>.pl-hero</code>/<code>.pl-actions</code>/<code>.ep-head</code> 上外边距走 14 档——收到电台固定段 286、轴可视 80（榜行两列并排，首屏两个节目），播客详情固定段 256、轴可视 104；<em>榜行与单集行行高一律不动</em>，<em>横屏档还要更宽裕就得走 <code>.land #plLayer</code> 那条左右两栏判例，本轮不在这两屏起</em>。两屏的外层 <code>scrollHeight - clientHeight</code> 实测为 0（层自己不滚，只剩列表这一根轴），列表的 <code>scrollHeight - clientHeight</code> 在三个档位都远大于 160（触底判据才够得着）。RN 落地点：固定段＝一个不滚的 <code>View</code>，其下列表单独一根 <code>ScrollView</code>，这一屏只有这一根轴、<em>不给顶栏做 sticky</em>。其余三层不变：<em>歌单详情 <code>#plLayer</code> 与单集屏 <code>#episodeLayer</code> 仍是整层滚</em>，搜播客仍是 <code>.sc-body</code> 内滚</li>
+        <li><b>滚动结构：电台首页与播客详情都是<em>上半固定 + 列表独立滚</em></b>（本轮改动；上一轮那条「四层都是一张滚动面、<code>podChartScroll</code> 绑在 <code>#radioLayer</code>」的核对结论<em>作废</em>，「全站右推层没有第二处吸顶顶栏、别造 sticky」那条一并作废——这两屏的顶排现在根本不在滚动容器里）。写法照<em>搜索屏</em>那一套：外层定死 <code>#radioLayer / #podcastLayer{padding:0;overflow:hidden}</code> → 固定段 <code>.pl-head{flex:none;padding:58px 16px 0}</code> → 滚动段 <code>flex:1;overflow-y:auto</code>。滚动段<em>就是各自的列表本体</em>（<code>#radioLayer&gt;.pod-list</code> / <code>#podcastLayer&gt;.ep-list</code>，不再套一层壳，判例是 <code>.pad #plLayer #plTracks</code>）；水平内边距与底部留白从层的 <code>padding</code> 平移到固定段与滚动段各自身上（58/16/0 与 16/34，数值与改前逐字相同）。类名沿用 <code>.pl-*</code> / <code>.pod-*</code> / <code>.ep-*</code> 这一族，<em>不引入 <code>.sc-*</code> 的语义</em>。固定段里放的是：电台首页＝顶排 + 订阅那一区 + 当前地区那一行；播客详情＝顶排 + <code>.pl-hero</code> + <code>.pl-actions</code> + <code>.ep-head</code>——小标题「单集」移出滚动轴，落成静态节点 <code>#podEpHead</code>，文字仍由 <code>openPodcast()</code> 灌（<code>POD_TXT.epHead</code>），hero 与操作行一起进固定段后不再被层的 <code>padding</code> 撑出一段滚不掉的空白。滚的只有列表：<code>.pl-status</code> 两条状态行（<em>正在载入这一区…</em> / <em>这一区没有取到名单 · 点击重试</em>）与收行 <em>没有更多了</em> 由列表自己携带、跟着一起滚、留在列表尾；<code>podChartScroll</code> 换绑到 <code>#podChartList</code>，判据仍是<em>距底 160px</em>；进层与换区（<code>openRadio()</code> / <code>loadPodRegion()</code>）都把这根轴的 <code>scrollTop</code> 归零，单集列在 <code>openPodcast()</code> 里同样归零。间距三处都收成 18 档：订阅区与顶排之间（<code>.subs-block</code> 的 <code>margin-top</code> 2 → 18，取 <code>.pl-actions</code> 那一档）、地区行与榜列之间（6 + 2 + 滚动段 <code>padding-top</code> 10）、小标题与首行之间（4 + 8 + 滚动段 <code>padding-top</code> 6）——<em>全部取现成档位，未新开数值</em>，<code>--fill-*</code> / <code>--hairline</code> 那套叠色与描边不动。固定段变高会吃掉列表，两档分别量过（一次性量测页 + 无头 Chromium，按最满的一档：节目名占两行、单集行带摘要；不是设备验收）：<em>手机档</em>屏内高 822，电台固定段 382、轴可视 438（榜行 74，一屏 5 行以上），播客详情固定段 348、轴可视 466（单集行 89，一屏 5 行）；<em>Pad 档</em>屏内高 796，这一轮改的是<em>档位</em>不是<em>结构</em>：顶排内边距从手机的 58/16 回正成 32/30（Pad 状态栏只有 32，固定段因此比上一轮那组数矮 26，全还给轴），榜行行内封面 56→64、单集行内边距 12→14，<em>手机档那组 382 / 438 / 348 / 466 与「榜行 74、单集行 89」的行高本轮一字未动</em>；Pad 这一档改后未再跑量测（只做静态核对），但两列摊开的榜行与「外层不滚、只有列表一根轴」这两件事由 <code>padding:0;overflow:hidden</code> 与 <code>flex:1</code> 保证，与内边距取值无关。两屏的外层 <code>scrollHeight - clientHeight</code> 实测为 0（层自己不滚，只剩列表这一根轴），列表的 <code>scrollHeight - clientHeight</code> 在两档都远大于 160（触底判据才够得着）。RN 落地点：固定段＝一个不滚的 <code>View</code>，其下列表单独一根 <code>ScrollView</code>，这一屏只有这一根轴、<em>不给顶栏做 sticky</em>。其余三层不变：<em>歌单详情 <code>#plLayer</code> 与单集屏 <code>#episodeLayer</code> 仍是整层滚</em>，搜播客仍是 <code>.sc-body</code> 内滚</li>
         <li><b>用词照 Apple 官方简体中文，不自创</b>（依据：Apple 播客创作入口《如何设置播客单集的顺序》全篇用「单集 / 附赠单集 / 单集编号 / 最新单集」、《热门系列》排行用「多个单集」、<code>podcasts.apple.com/cn</code> 各分类页是「热门节目排行」与「热门单集」并列、iPhone 支持文档原话「轻点单集列表上方的『单集』」）：一期内容叫<em>单集</em>（<em>不是</em>「剧集 / 集 / 本期」），一个 show 叫<em>节目</em>（<em>不是</em>「播客」），量词是<em>个节目 / N 集</em>；<em>「播客」只留作整个频道的名字</em>（首页那一格、本节标题、模块名），当内容单位用的地方一律换掉；原先屏上那个量词「档」不是 Apple 的说法。这一轮真改的屏上文案是这几处：订阅区标题右侧「N 档」→<em>N 个节目</em>、搜播客命中数「N 档」→<em>N 个节目</em>、hero 那颗「播最新一集 · X」→<em>播最新单集 · X</em>、meta 那位「最近一集 10 月 15 日」→<em>最新单集 10 月 15 日</em>；搜索框占位「搜播客节目名或作者」→<em>搜节目名或作者</em>，右上那颗的 <code>aria-label</code> 同改。<em>单集列表的小标题「单集」两字保留</em>——Apple 原话就是「轻点单集列表上方的『单集』」，列表区标题就该叫这个。顶栏那颗一并换了口径：<em>不写类别词，写节目名</em>——原先 <code>show.name.length&gt;8</code> 就退回「播客」那个做法撤了，名字长只截断一行（<code>#podcastLayer / #episodeLayer</code> 两条 <code>crumb&gt;span</code> 截断规则，登记归 <code>U67</code> 顶排共通件；<em>flex 容器里的裸文字挂不出省略号，所以详情屏那颗也改成 <code>.player-crumb&gt;span</code> 这个形状</em>，与播放页、单集屏同一个判例）；单集屏的 crumb 早就在回显节目名，只是静态标记里还挂着「单集」两字，一并清空。<em>仍待用户定的一处</em>：地区抽屉标题「<em>收听地区</em>」是自己拟的说法，Apple 那边没有可对标的中文界面词（它的区切换藏在账户设置里，不在收听路径上），本轮<em>不擅自铺开改名</em>，只把这件事记在这里</li>
         <li><b>件与图标</b>：这四层是 <code>U81–U84</code>（<code>parts/radio/</code>），这一轮<em>新起一件 U85</em>（<code>parts/sheets/region-sheet</code>，那只地区抽屉——抽屉本体是 <code>.sheet</code>，按既有约定归 <code>sheets/</code>）；同时<em>退役 U33</em>（首页电台区块，编号不回收）。顶排 / 头图 / 操作行 / 分组小标题与选项行族 / 分页状态行 / 进度条 / 传输行 / 倍速胶囊 / 空态全部<em>复用既有原子</em>，所以这些元素在拆件时被各自的原子件（U67 / U68 / U69 / U18 / U19 / U57 / U59 / U11 / U17 …）认走，<code>radio/</code> 那几件只持有壳与新骨架（<code>.pod-*</code> 榜单行、<code>.subs-*</code> 订阅区、<code>.pod-region</code> 当前地区行、<code>.ep-*</code> 单集行、<code>.epl-*</code> 单集屏）。原先被 U81 借用的 <code>.cat-row</code>（U28_35）与 <code>.foot-note</code>（U10）已经不再出现在这一屏；<code>.wip-tag</code> 的样式本体从退役的 U33 <em>挪到 U84</em>，但<em>屏上已无任何实例</em>——单集屏那枚「界面示意」本轮撤掉，随之删掉 <code>.epl-wip</code> 那条覆盖规则，U84 的样式登记里也只摘掉 <code>.epl-wip</code>（角标本体留着备用）。样式全部引用现有 token，明亮档不用另写一份。<em>没有新增 sprite symbol</em>（RN 的 <code>icons.ts</code> 因此不需要重跑），撤掉收听钮后 <code>#i-plus</code> / <code>#i-heart-fill</code> 在电台这四层不再被引用，但全站别处仍在用，sprite 不动；后退 15 秒 / 前进 30 秒先借 sprite 里现成的前后跳转图标，正式落地时要补的是带数字的环形图标那一枚，走 <code>scripts/gen-newui-icons.mjs</code> 重跑</li>
         <li><b>RN 侧后续落点（本轮没动）</b>：<code>src/newui/const/home.ts</code> 的 L73 / L94 / L113 三处「电台建设中」文案与 <code>hooks/useHomeBanners.ts</code> L62 那条 banner（这两处本轮原型已经<em>反向否掉</em>：首页只留快捷入口那一格，轮播不留电台条）、<code>components/RadioCard/</code>、<code>components/QuickRow/</code>、<code>screens/Main/pages/HomePage.tsx</code>；新屏建议起 <code>src/newui/screens/Radio/</code>（或 HomePage 内三层 push 屏），取数落 <code>src/newui/const/</code> + 一个新 hook，订阅与进度沿用既有本机存储通道，地区抽屉沿用既有浮层通道（对标音源设置那一只）。<em><code>components/RadioCard/</code> 这两张卡在原型里已经没有任何对应屏</em>（U33 退役），RN 侧是删件还是改造成别的入口，等用户定</li>
@@ -774,11 +799,15 @@
       <ul class="notes-list">
         <li>统计条只留本地能算准的三项（喜欢 / 歌单 / 最近播放）——「可播来源」是音源的能力，不是我的内容，挪到设定页的「接入的平台」去讲</li>
         <li>右上入口是设定（齿轮）：<code>#i-gear</code> 重画成外圈 + 内孔 + 八颗齿轮牙，原来那版只有中心圆加几根射线，看着像亮度调节</li>
-        <li>「我喜欢」卡片直接播放收藏里当前音源能解析的第一首，放不出的会被跳过</li>
+        <li>「我喜欢」<em>整卡（合成后的左半）只做一件事：进详情</em>。原先挂在卡右下那颗直接开播的小圆钮撤了——卡只剩一半宽，那颗钮与数字行挤不下；「播收藏里当前音源解得开的第一首」这件事仍在，只是回到<em>它自己的现场</em>：点进「我喜欢」那一屏，用<em>播放全部</em>（走 <code>plPlayableQueue</code>，起播的这一列照样标成「我喜欢」，播放列表面板里那条「移出」因此仍说得出单子名）</li>
+        <li><b>「已缓存」这一屏（U86：入口是「我的」那张合一卡的<em>右半</em> <code>#offlineCard</code> + 整屏右推层 <code>#offlineLayer</code>）</b>：解决的是「没有网络的时候听什么」。<em>清单不是接口给的</em>——两边都没有可枚举的缓存清单（<code>src/utils/nativeModules/cache.ts:5-6</code> 只有总量与清空），真实做法是把「本机已知道的歌」（收藏 ∪ 最近播放 ∪ 自建与收藏歌单里的歌目）<em>逐首过两关</em>：① 取流先查本机——每首播成功一次就写一条「歌id_音质 → 取流地址」映射（<code>src/utils/data.ts:351</code>），<code>getStoreMusicUrl</code> 命中就直接返回、根本不叫音源脚本（<code>src/core/music/utils.ts:163/:262</code>）；② 再拿那条地址问 track-player 磁盘缓存 <code>isCached(url)</code>（<code>src/plugins/player/utils.ts:184</code>），字节真在盘上才算数。两关都过的进这一列；原型的过关键写在 <code>data.js</code> 的 <code>LOCAL_CACHE_KEYS</code>，<em>键格式照真实映射表原样（id_音质）</em>，所以每首能如实标出存的是哪一档</li>
+        <li>这一屏的<em>判据差别只有一处，说清楚</em>：别的屏「播放全部」交给播放器的是「当前音源现在解得开的批」（<code>plPlayableQueue</code>），这一屏交的是<em>整列</em>——存在这台机器上的歌，取流走本机映射、不叫音源，所以 <code>play()</code> 多收第三个参数 <code>fromCache</code>，只有这一屏传（别处调用一律不带，行为不变）。同理，行<em>不标灰</em>、不给「暂不能播」：进列即出声。每行能看出「为什么是这首」的就一个信息——<em>行内 q-tag 读「存在哪一档」</em>（别的屏读「这次会按哪档播」），同一枚 <code>.q-tag</code> 原子、换了语义；同一首存过几档只上最高那档。屏上不写逐首大小：真实侧逐首占用给不出，「占用 N MB」那条是<em>本机缓存总量的报数</em>（含封面歌词），故意不是逐行加和，行内也就不装这个尺寸</li>
+        <li><em>没有网络状态检测这个能力</em>（项目里没有 NetInfo 这类依赖），所以屏上不许出现「已检测到无网络 / 离线模式已开启」这种谎话——「不联网也能播」是这台机器存过货的<em>结果</em>，不是运行时状态；这一屏任何时候都进得去，空着就说空的（空态句「还没有存下的歌 · 连网络听一遍，之后不联网也能播」，入口那一半的副行与这一屏的空态同一句）。<em>空的时候没有按钮可点</em>：「播放全部」整个撤掉，与「清空记录」随空态一起隐藏是同一判据。两行正文只有名词与数字：口径句「你听过的歌里，已经存在这台机器上的这些」+「共 N 首 · 占用 X MB」，不写开发者术语、不挂「建设中 / 界面示意」那类元标注</li>
+        <li><em>「我喜欢」与「已缓存」在「我的」页只占同一处、同一张卡</em>（<code>.fav-card.fav-duo</code>，整宽一只，中间一条<em>斜线</em>切成左右两半，左 <code>#favCard</code> 右 <code>#offlineCard</code>，各 50%）：斜线是 <code>.fav-duo::after</code> 画的一道 <em>4px 宽、<code>rotate(18deg)</code></em> 的白色半透明实心线（上下各出血 20%、两端圆角 4px，<em>不占 DOM 节点</em>，容器 <code>overflow:hidden</code> 把它裁在圆角里），<em>斜的是那道线，不是命中边界</em>——两半仍是左右两个矩形，各自 <code>role=button</code>、各进各的屏，互不叠加。图标位是<em>本轮新增的两颗实心 Material symbol</em> <code>i-heart-solid</code> / <code>i-phone-solid</code>（<em>单独新开、不改现有</em> <code>i-heart-fill</code> / <code>i-phone</code>——那两颗别处照旧在用；<code>icons.ts</code> 要等下一轮重跑 <code>gen-newui-icons.mjs</code> 才带上这两颗）；卡面配色<em>跟随外观走两档</em>（几何一套，两档都不吃 <code>--text</code> / <code>--grad</code> 那套页面 token）：<em>明亮档</em>按参考——<code>linear-gradient(90deg,#FDE2EE,#D6C3F9)</code> 浅粉→浅紫底、<em>深色字</em>、白色 70% 图标框，左半图标 <code>#D233F8</code>、右半 <code>#7129E8</code>；<em>黑暗档</em>是深梅紫→深靛紫渐变底（<code>#3A1B30 → #241C45</code>）、浅色字、白色 11% 图标框，左半图标 <code>#F06BFF</code>、右半 <code>#A78BFF</code>。24 圆角、上下 16 内边距；图标框 44 见方、圆角 14、加 4px 毛玻璃；卡里<em>不再挂那颗直接开播的圆钮</em>（半宽放不下，落点收回各自屏里的「播放全部」），标题 16/700、副行 12/500，副行<em>只留名词与数字</em>：左「N 首」、右「N 首 · X MB」，空态那两句原文照挂、<em>单行省略</em>（<code>white-space:nowrap</code> + 省略号，长句会被截断，这是参考那一行布局的取舍，文案一个字不改）。整屏复用「上半固定 + 列表独立滚」那套（外层定死 + <code>.pl-head</code> + 列表自己当轴，判例 <code>#radioLayer</code>），<em>这一屏不分页</em>：清单是本机筛出来的有限集，一次铺完，所以没有 <code>.pl-status</code> 状态行、没有触底续取；行是 <code>.song-row</code> 原子族自造（判例 podRow），<em>没有序号列</em>——真实清单来自枚举存储键，那顺序本来就说不清，与其编一个排序不如不画。Esc 与返回钮同口径、一次只收最上面这一层；两档外形：手机 58/16，Pad 顶排回正 32/30（吃现成 <code>.pad .pl-head</code>）、轴左右 30、口径段与那颗播放全部收进 660 主列居中、<em>整行列表不摊两列</em></li>
         <li>「我的歌单」标题右侧那角是<em>新建歌单</em>：原型旧版写的是「去歌单页」，跳过去只是换个 Tab，给不了用户想要的动作。<code>#createSheet</code> 起个名字就能建，规则与旧屏一致——空名不建、超 100 字截断、同名先问一句「已经有一份同名歌单了，还要继续建吗？」，按钮在落库期间亮「创建中」</li>
         <li>本地自建歌单（含新建的、试听）在详情层是<em>本地形态</em>：右上角那颗不是心钮而是删除钮，按下必过二次确认，说清掉的是这张单子和它列出的歌目记录，歌本身的文件不动</li>
         <li>播放记录由 <code>state.history</code> 去重累积；清空后标题右侧的「清空记录」随空态一起隐藏，不给一个点了没反应的按钮</li>
-        <li>「我的歌单」这一格现在列<em>两种单子</em>，卡面按有没有平台坐标分叉（<code>listCover</code>）：自建的那张平台侧本就无图，封面位走内置版式，不画一张随机图冒充平台封面；收藏来的那份（<code>collectedPlaylists()</code>）直接用<em>平台那张真封面图</em>，与【歌单】页推荐卡是同一套写法（同为 <code>&lt;img class="art-img"&gt;</code> 那条路，图取不到时自己回落），副行写「收藏自 某平台 · N 首」，点进去还是原来的「歌单」形态——右上角那颗心是整份移出收藏</li>
+        <li>「我的歌单」这一格现在列<em>两种单子</em>，卡面按有没有平台坐标分叉（<code>listCover</code>）：自建的那张平台侧本就无图，<em>有歌就拿单子里第一首歌的专辑封面</em>（<code>coverSeedOf(songById(p.tracks[0]))</code> 那条路，同为 <code>&lt;img class="art-img"&gt;</code>），<em>一首都没有的空单</em>（新建的、歌被移空的）才回落到内置版式，不画一张随机图冒充平台封面；收藏来的那份（<code>collectedPlaylists()</code>）直接用<em>平台那张真封面图</em>，与【歌单】页推荐卡是同一套写法（同为 <code>&lt;img class="art-img"&gt;</code> 那条路，图取不到时自己回落），副行写「收藏自 某平台 · N 首」，点进去还是原来的「歌单」形态——右上角那颗心是整份移出收藏</li>
         <li>自建歌单里的歌支持<em>从这张单子移出</em>：落点在歌曲右侧的「⋯」里（<code>MORE_TXT.remove</code>，图标位用报错墨色与「加入」那一批分开），移掉的只是这张单子在本地列出的那条歌目记录，歌本身、别的单子、平台端的收藏一概不动；移完原地重铺这一层并保住 <code>scrollTop</code>，不把人弹回顶部；移空了不说「换一份听听」，改说「在歌曲右侧的「⋯」里加入」（<code>PLD_EMPTY.local</code>）</li>
         <li>「⋯」里的加入候选<em>只有自建歌单</em>（<code>addablePlaylists()</code>）：收藏来的那份挂在平台侧，往里塞歌平台不认，所以它根本不进这份名单，名单上方就写一句「加入自建歌单」；一份自建都没有时这句换成「还没有自建歌单 · 先去「我的」新建一份」。加入与移出都会立刻反映到本页与【歌单】页的曲目数；反馈句不带计数（真实侧计数在异步写库之后才更新，按下那一瞬报出来的数不可信）</li>
         <li>页头副行是「没有账号 · 收听都记在这台设备上」：原来那行「听众 ID 8842 0613」是编的，本项目没有用户 ID 概念</li>
@@ -806,7 +835,7 @@
         <li>定时停止播放：选档后按钮换成带填充的那枚时计图标，分秒倒计时写进 <code>aria-label</code>，并由 <code>tick()</code> 每秒回写进定时面板自己的副标题。图标后面不塞数字——那等于把刚撤掉的文字状态请回来；到点是停下还是继续，由「听完当前这首」那个开关决定，不是只会暂停</li>
         <li>均衡器整块撤掉：音源只注册了 <code>musicUrl</code>，播放内核没有频段增益通道，六段 <code>±10dB</code> 拖了也不会改变声音，那是假能力</li>
         <li>歌词与封面是<em>同一个舞台的左右两页</em>，只由横滑交替：右滑进歌词、左滑回封面（判据与 newui 的 <code>PlayerStageSwipe</code> 一致，|dx| ≥ 24 且 |dx| ≥ |dy|×1.5，纵向一律让给歌词自己的滚动），播放页里没有任何一颗「歌词」按钮。舞台下方留两枚指示点，是这一处手势唯一的可见提示，当前页拉长成胶囊，用 <code>currentColor</code> + 透明度上色，浅色主题不用另写一套底色。音源无 <code>lyric</code> 事件，文案为原型占位（非任何真实歌曲的歌词），屏内只写「歌词由各平台提供」</li>
-        <li>Pad 与手机横屏的歌词态是「唱片 + 歌词同屏」的分栏，滑动只开合歌词栏，不存在翻页，所以指示点在这两种外形里藏掉</li>
+        <li>Pad 的歌词态是「唱片 + 歌词同屏」的分栏，滑动只开合歌词栏，不存在翻页，所以指示点在这一档外形里藏掉</li>
         <li>LRC 浮窗：可拖动的歌词气泡，浮在首页/各 Tab 之上并跟随进度换行，点它回到播放页；全屏播放页打开时自动让位</li>
         <li>收藏 / 评论：收藏落在本地 Set 并同步迷你条；评论按页翻（第 1 页也是一次取数，先亮「评论在取了」），回复是<em>嵌套树</em>，逐层缩进带线程竖线，第 2 级起加「回复 @某人」浅色前缀；工具行那颗评论图标不带条数（真实侧此刻还没取到数），面板里那句「其中 N 条乐评人长评」也撤了——接口没这个口径，那个数是拿总数除出来的。浮层滚动只给评论列表这一段：<em>标题、说明、那行「总数 + 热度排序」和拖动条一起钉住不动</em>，滚到底翻下一页的判据也换到列表自身上，滑多了标题与总数不会被顶出视野</li>
         <li><em>播放列表入口放工具行最右，不放顶部</em>：顶部那颗 <code>playerClose</code> 已经把这一层收下去了，再挤一颗会撞车；而「接下来播什么」与循环模式、定时、评论是同一层意图（都是"听法"而非"控件"），并排最省事。图标复用 sprite 里现成的 <code>i-list</code>，不新增 symbol；共几首写进 <code>aria-label</code>（<code>播放列表 · 共 N 首</code>），屏内不加文字，与另外四颗同一口径</li>

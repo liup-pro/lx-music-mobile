@@ -10,13 +10,14 @@
  */
 export type NewUiSonglistDetailKind = 'pl' | 'rank' | 'mine' | 'local' | 'fav'
 
-/** .pl-top 中部面包屑（原型 PLD_CRUMB 逐字，含 fav:'内置歌单'） */
+/** .pl-top 中部面包屑（原型 PLD_CRUMB 逐字；fav 一档 2026-10-27 随「我喜欢」合一卡改称「我喜欢」，
+ *  与我的页那颗卡片的标题同名，用户从卡片进来能看到同一个词） */
 export const NEW_UI_PLD_CRUMB: Record<NewUiSonglistDetailKind, string> = {
   rank: '排行榜',
   mine: '自建歌单',
   pl: '歌单',
   local: '我的歌单',
-  fav: '内置歌单',
+  fav: '我喜欢',
 }
 
 /** .foot-note 页脚说明（原型 PLD_FOOT 逐字，含 fav 项） */

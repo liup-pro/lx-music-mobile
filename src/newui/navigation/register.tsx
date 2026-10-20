@@ -5,6 +5,7 @@ import { Provider } from '@/store/Provider'
 import {
   EpisodeScreen,
   MainScreen,
+  OfflineScreen,
   PlayerScreen,
   PodcastDetailScreen,
   PodcastSearchScreen,
@@ -17,6 +18,7 @@ import { ThemeProvider } from '@/newui/theme'
 import {
   NEW_UI_EPISODE_SCREEN,
   NEW_UI_MAIN_SCREEN,
+  NEW_UI_OFFLINE_SCREEN,
   NEW_UI_PLAYER_SCREEN,
   NEW_UI_PODCAST_DETAIL_SCREEN,
   NEW_UI_PODCAST_SEARCH_SCREEN,
@@ -48,6 +50,7 @@ export const registerNewUiScreens = () => {
   Navigation.registerComponent(NEW_UI_SEARCH_SCREEN, () => withNewUiProviders(SearchScreen))
   Navigation.registerComponent(NEW_UI_SONGLIST_DETAIL_SCREEN, () =>
     withNewUiProviders(SonglistDetailScreen))
+  Navigation.registerComponent(NEW_UI_OFFLINE_SCREEN, () => withNewUiProviders(OfflineScreen))
   Navigation.registerComponent(NEW_UI_RADIO_HOME_SCREEN, () => withNewUiProviders(RadioHomeScreen))
   Navigation.registerComponent(NEW_UI_PODCAST_DETAIL_SCREEN, () =>
     withNewUiProviders(PodcastDetailScreen))

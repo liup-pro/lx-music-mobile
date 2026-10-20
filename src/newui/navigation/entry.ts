@@ -13,6 +13,7 @@ import { PL_LAYER, PLAYER, SEARCH, getCachedNewUiScheme, readPersistedNewUiSchem
 import {
   NEW_UI_EPISODE_SCREEN,
   NEW_UI_MAIN_SCREEN,
+  NEW_UI_OFFLINE_SCREEN,
   NEW_UI_PODCAST_DETAIL_SCREEN,
   NEW_UI_PODCAST_SEARCH_SCREEN,
   NEW_UI_PLAYER_SCREEN,
@@ -225,6 +226,15 @@ export const pushNewUiLocalListDetail = (
     fromTab != null
       ? { kind, listId: list.id, listName: list.name, fromTab }
       : { kind, listId: list.id, listName: list.name })
+}
+
+/**
+ * 打开「已缓存」（离线收听）层（U86，原型 #offlineLayer）。
+ * 不带 passProps：候选池（收藏 ∪ 最近播放 ∪ 各份歌单）与扫描结果都由屏自己从
+ * `@/newui/hooks` 的 useOfflineCache 取；这一屏没有任何可传参数。
+ */
+export const pushNewUiOffline = (componentId: string) => {
+  return pushPlLayer(componentId, NEW_UI_OFFLINE_SCREEN, 'newui.offline.content')
 }
 
 /**

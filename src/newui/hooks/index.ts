@@ -20,6 +20,11 @@ export {
 } from './useNickName'
 export { useNowPlaying, type NewUiNowPlaying } from './useNowPlaying'
 export {
+  useOfflineCache,
+  type OfflineCacheState,
+  type OfflineRow,
+} from './useOfflineCache'
+export {
   usePlaylistCategories,
   NEW_UI_PLAYLIST_REC_TAG,
   NEW_UI_PLAYLIST_REC_LABEL,

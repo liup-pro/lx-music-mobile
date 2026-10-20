@@ -111,6 +111,11 @@
     "mine/mine-head": [
       "components/MineHeader/MineHeader.tsx"
     ],
+    "mine/offline": [
+      "screens/Offline/OfflineScreen.tsx",
+      "components/FavCard/FavCard.tsx",
+      "screens/Main/pages/MinePage.tsx"
+    ],
     "mine/song-list-compact": [
       "components/SongRow/SongRow.tsx",
       "screens/Main/pages/MinePage.tsx",
@@ -282,6 +287,9 @@
     ]
   },
   "manual": {
+    "mine/offline": [
+      "screens/Offline/OfflineScreen.tsx"
+    ],
     "mine/mine-head": [
       "components/MineHeader/MineHeader.tsx",
       "components/BrandAvatar/BrandAvatar.tsx",

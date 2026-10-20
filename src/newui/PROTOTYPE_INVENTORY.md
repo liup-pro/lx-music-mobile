@@ -612,3 +612,161 @@ PageViewport/PageListView/usePageEndReached/useViewportScroll（R1）、CatStick
 ---
 
 *本节为 2026-10-17 追加，改写范围 = 本文件（新增第七节）；`new_design/` 四源与 `new_design/parts/` 全程只读，未写任何 RN 组件/屏代码，未加依赖，未起服务。**代码完成度为零、未经设备验收**（本轮只出契约）。*
+
+---
+
+### 7.10 两档口径对撞：原型撤「手机横屏 land」档 ↔ RN 响应式实位（B 轮 · 只出结论与工单，未动一行实现代码）
+
+> **触发**：A 轮按用户指令把原型查看器由三档（竖屏 / 横屏 land / Pad）收成两档（手机竖屏 390×844 / Pad 横屏 1180×820）。四源实测改动量：`styles.css` 1337→**1224** 行（删 old L1177-L1291 的 land 族 115 行、在 new L1139-L1140 补回 `.pad .stage-dots` 那条共用规则）、`index.html` **删 old L63 那颗「横屏」按钮**（其余 notes 行只改文字不增删，故 old→new 一律 **-1**）、`app.js` 删 old L3345 / L3366-L3367 / L3369（合计 -3，全在 ≥3345 的查看器区）、`data.js` 未动。
+> **本轮性质**：对撞 + 工单。**未改任何 `.ts/.tsx`**、未改 `new_design/` 四源、未改 `new_design/parts/`、未改 `scripts/newui-parity*` 与 `gen-newui-parts.mjs`。唯一改动 = 本小节（外加 7.10.④ 工单里点名、由 C 轮执行的既有行）。
+> **闸门复跑（Node v22.23.2）**：`node scripts/newui-parity.mjs` → 新鲜度全绿（68 件 / 490 条规则）、映射 66 件 + 未建映射 1 件（`common-control/sprite`）、**flags = 0（A 0 / B 0）**、白名单抑制 4 项、无实例豁免 3 条、**exit 0**——本轮没动代码，它纹丝不动即为越界自证。`npx tsc --noEmit` → `src/newui` **0 错**；旧 UI 基线 5 行（`src/core/player/timeoutExit.ts:35`、`src/plugins/player/hook.ts:126`、`src/screens/Home/Views/SongList/HeaderBar/SourceSelector.tsx:35`、`src/store/player/action.ts:92/:93`）不归本层、未碰。
+
+#### 7.10.① 最终结论（两档口径）
+
+**结论：原型的档位是「两档」，RN 的布局档位是「一档（竖屏）」；这两句不冲突，但差集不只在 Pad 上——手机横过来今天能转，而原型已经不再为它写任何规范。**
+
+三条事实，逐条给判例：
+
+1. **撤的是查看器档位，不是「禁用手机横屏」这件事**。原型自己就把档位开关定性为壳外控件：`index.html:669`（HEAD 号 670，−1 漂移）逐字「**「屏幕方向 / 设备外形」是<em>查看器</em>的控件、不属于 App**」；被删的 land 块头注释（HEAD `styles.css:1177-1178`）写的也是「这是查看器档位，不是 App 功能：RN 侧当前固定竖屏，本档只用来在宽窗口里把每页排布看得更清楚」。所以「原型没有 land 档」推不出「App 不许横」，只能推出「**land 档的排布从此没有判例**」。
+2. **RN 侧确实没有 land 分支可删（A 轮这条成立）**：`src/newui/**.{ts,tsx}` 里 `land` / `landscape` / `isLand` 的全部命中都是同形假命中（见 7.10.③ 表 C），零设备档位分支；`844` 也只在一处合法引用（`theme/tokens.ts:1385` 折算 toast 净高，竖屏档 `.phone{height:844}` 仍在 `styles.css:71`）。RN 从头到尾只实现竖屏一档。
+3. **手机横过来 = 跟随系统、不锁**（只查未改，逐处实位）：
+   | 层 | 实位 | 现状 |
+   |---|---|---|
+   | Android | `android/app/src/main/AndroidManifest.xml:23-28` `<activity>` | **没有 `android:screenOrientation`**；`:26` `configChanges` 含 `orientation\|screenLayout\|screenSize\|smallestScreenSize` → 转屏不重建 Activity，只重排 |
+   | iOS | `ios/LxMusicMobile/Info.plist:43-48` | `Portrait` + `LandscapeLeft` + `LandscapeRight` 三向都放 |
+   | RNN | `src/navigation/index.ts:17` `Navigation.setDefaultOptions({})` | 空；`src/navigation/navigation.ts:41 / :108 / :326` 那三处 `orientation: ['portrait']` **全在注释块里**（`/*` 22-53 / 89-120 / 307-338），`:410` 也是 `//`——旧 UI 曾经想锁、后来注掉了，现在没有任何活的锁定声明 |
+   | 新 UI 层 | `src/newui/navigation/options.ts:26-28` | `layout` 只给 `componentBackgroundColor`，不含 orientation |
+   | 依赖 | `package.json` | 无 `react-native-orientation-*`，也没有任何原生模块调 `setOrientation` |
+   转屏后 RN 的真实行为：**没有第二套布局，只是把竖屏那张拉宽**——三个宽度驱动件会重算（`hooks/useGridItemWidth.ts:11-17` 单卡宽、`components/Banner/Banner.tsx:69-75` 轮播卡宽与 snap 步长、`components/Sheet/Sheet.tsx:116/:230` 面板高按窗口高 78% 折算、`components/LrcFloat/LrcFloat.tsx:117-123` 手拖边界），**列数一列都不加**（`CARD_GRID.columns=2` 恒定，`tokens.ts:627-633`），Tab 栏仍在底部（Pad 的侧栏没实现）。
+4. **定性判定：这一条属「需要用户决策」，不属「维持现状即可」。** 两档口径之后，手机横屏成了一个**原型不再规范的形态**：它不会崩（没有横屏专属代码，也就没有横屏专属 BUG 面），但也没有任何判例支撑它的观感。B 轮给的推荐是 **② 锁竖屏**——`AndroidManifest.xml` 加 `android:screenOrientation="portrait"`（iOS 那三条一并收正 `PortraitUpsideDown`/两个 Landscape），因为：主流音乐 App 手机端基本锁竖屏（网易云 / QQ 音乐 / Spotify 手机段），且原型今天只剩竖屏 + Pad 两档、竖屏是唯一能自证正确的形态。**这条不能由 C 轮顺手做**：改动落在 `android/` 与 `ios/`，跨出 `src/newui` 命名空间、动的是旧 UI 与新 UI 共用的全局行为（红线），必须用户点头。
+
+#### 7.10.② Pad 覆盖 ↔ RN 承接差集（成表）
+
+**口径先钉死**：`.pad` 前缀规则现存 **109 条**，源 `styles.css L1017-L1177`，**全部归 `_chrome` 件**（`_chrome.css L149-L406`，件头明写「RN 有意不承接；本件仅作归属收容」）；另 3 条 `body.pad`（`styles.css L1010-L1012` / `_chrome.css L142-L146`）是查看器外盒，与 App 无关。**RN 侧的 Pad 概念只有两处，且都不是布局**：`hooks/useSafeArea.ts:12-13/:19/:32-33` 的 `isPad` 只用来算 iOS 状态栏高与底部安全区（注释自带「RN 类型只把 isPad 挂在 iOS 分支上，Android 运行时该字段不存在」），以及 `StatRow` 那条限宽（下表第 6 行）。
+
+| # | Pad 覆盖族（源行 / `_chrome.css` 行） | 条数 | 手机档 ↔ Pad 档 | RN 承接实位 | 判定 |
+|---|---|---|---|---|---|
+| 1 | 外框与假状态栏 `styles.css:1017-1025` / `_chrome:149-161` | 5 | `.phone.pad` 1180×820、藏灵动岛、statusbar 32 | `useSafeArea.ts:26-33`（真安全区） | **不是缺口**：假机框与假状态栏本属查看器，RN 用实测 insets |
+| 2 | 侧栏导航 `styles.css:1028-1064` / `_chrome:164-223`（基线 `styles.css:672` `.nav-brand,.nav-sep,.nav-label,.nav-foot{display:none}` = `_chrome:54-56`） | 24 | 底部 Tab（高 `safe-b+60`）↔ 左侧栏 `--nav-w:236px`、42px 行、品牌行、「导航」小标、底部音源状态行 | `components/TabBar/TabBar.tsx:66` 注释「Pad 侧栏形态…留待响应式轮次」；`tokens.ts:470-490 TAB_BAR` 只有底部一档；**无侧栏件** | **未承接（形态级大件）**：要 Pad 就得新做容器 + 4 个新节点 |
+| 3 | 内容留白与页头 `styles.css:1067-1075` / `_chrome:226-242` | 9 | page 16↔30、topbar 54/16/10↔36/30/12、viewport 110/168↔94/132、page-title 24↔28、section 26↔34、section-title 19↔21、chip 28↔32 | `tokens.ts:248-255 LAYOUT.screenPaddingX=16`、`tokens.ts:439-468 TOP_BAR`、`tokens.ts:629` 等，全取手机档 | **只取手机档值**：Pad 未承接 |
+| 4 | 首页栅格增列 `styles.css:1078-1089` / `_chrome:245-267` | 12 | banner 150↔216、quick .qa 60↔68（行 max-width 760）、recent-card 112↔150、artist-card 76/68↔104/94、`.pl-grid`/`.rank-grid` **2 列↔4 列** | `tokens.ts:627-633 CARD_GRID.columns=2` + `components/CardGrid/CardGrid.tsx:20-31`（flexWrap 两列）、`tokens.ts:1008-1020 BANNER.height=150`、`:1041-1050 QUICK_ROW.artSize=60`、`:1066-1070 RECENT_CARD.width=112`、`:1097-1104 ARTIST_CARD 76/68` | **只取手机档 + 列数不随宽增**：横屏/Pad 下单卡被 `useGridItemWidth` 越拉越宽（2 列 ÷ 812dp ≈ 390dp），**这条是 Pad 与横屏共同的实质缺口** |
+| 5 | 电台 `styles.css:1091-1095` / `_chrome:270-278` | 5 | `.pod-list` 单列↔**2 列**（`>.pl-status`/`>.pl-end` 跨列）、`.subs-card` 132↔150、`.rk-name` 15↔16.5 | `screens/Radio/RadioHomeScreen.tsx:294` 裸 `FlatList` 无 `numColumns`；`tokens.ts:791 subsCardWidth=132`；`tokens.ts:748` 已声明这组不承接 | **未承接**（`tokens.ts:748` 那条声明本身要按 7.10.③ 改文字） |
+| 6 | 歌曲行 / 我的页限宽 `styles.css:1096-1100` / `_chrome:280-288` | 5 | song-row gap 11↔14、art 46↔52、sr-title 14.5↔15；`.stat-row` 与 `.fav-card` `max-width:620px` | `tokens.ts:340-372 SONG_ROW`（46/14.5 手机档）；**StatRow 已把 620 写进样式**（`components/StatRow/StatRow.tsx:53`，值走 `tokens.ts:945 statMaxWidth`）；**FavCard 没有**（`components/FavCard/FavCard.tsx:106-112 root`） | **唯一「不该按档位做」的一族**：限宽是窗口宽阈值型规则，两档都不需要分支——竖屏 358 无感、横屏/Pad 才生效。**stat 已承接、fav 漏一条 = 同族两件的口径不一致** → 工单 S1 |
+| 7 | 迷你条 `styles.css:1103-1107` / `_chrome:291-299` | 5 | `left:calc(var(--nav-w)+22)`、高 58↔66、radius 20↔22、mini-art 42↔46、mini-title 13↔14 | `tokens.ts:1272-1298 MINIBAR`（58/20/42） | **未承接** |
+| 8 | 歌单详情主从 `styles.css:1110-1122` / `_chrome:302-323` | 10 | 整层单列滚 ↔ **左 318px（封面 100% 正方 + 标题 + 播放全部）/ 右曲目列自己滚**（`grid-template-rows:auto minmax(0,1fr) auto auto`） | `screens/SonglistDetail/SonglistDetailScreen.tsx:121` 逐字「整层单滚动容器：顶排 + hero + 操作排进 FlatList 头部」、`:717` 单根 `FlatList` | **未承接（形态级）**；A 轮留的线索成立：**两栏判例现在唯一就是 `.pad #plLayer #plTracks`**（`_chrome:321`），radio 两件头里那句「判例是 `.pad #plLayer` 里 `#plTracks`」也指向它 |
+| 9 | 设定页两列 `styles.css:1125-1127` / `_chrome:326-330` | 3 | `#setBody` 1fr↔**1fr 1fr**、`.set-group` 26↔22、`.sh-sub` 12↔12.5 | `screens/Main/pages/SettingPage.tsx:111-169` 三组 `SettingsGroup` 单列；`tokens.ts:1602-1603 groupMarginTop=26` 注释已写「Pad 侧 .pad 规则为 22，手机端取主规则 26」 | **未承接**；但这条**是我方主动声明过的「Pad 侧不另写一份」**（数值常驻手机档），不算暗账 |
+| 10 | 搜索宽屏 `styles.css:1130-1134` / `_chrome:333-341` | 5 | sc-top 54/14/12↔36/24/12、sc-body 16↔30、sc-tabs gap 22↔30（字号 13.5↔15.5）、sc-empty 46↔64 | `screens/Search/*` 全取手机档（`tokens.ts:1485` 一带） | **未承接** |
+| 11 | 播放页分栏 `styles.css:1137-1159` / `_chrome:344-381` | 17 | padding 32/34/24、disc 206↔268（歌词态 236）、**歌词态由「翻页」改「唱片 \| 歌词 372 同屏」**、`.lyric-wrap` 裸容器↔带底卡片（radius 22 + `--card`）、ln 13.5/26↔14.5/30、ln.on 17↔19、controls/tools 居中限宽 660/520、pc.main 64↔70、**`.pad .stage-dots{display:none}`** | `screens/Player/index.tsx:229-253`（`PlayerStageSwipe` + `StageDots lyricOn`）＝手机翻页范式；`tokens.ts:1133 discSize=206`；`tokens.ts:1183-1190 stageDots*` + `components/StageDots/StageDots.tsx:15`「RN 固定竖屏 → 常显」；`components/LyricList/LyricList.tsx:134` 绝对铺满（手机档口径） | **未承接（形态级）**；stage-dots 那条**不是缺口**——Pad 藏点的原因是「同屏无翻页」，RN 有翻页，常显才是对的 |
+| 12 | 浮层 → 居中模态 `styles.css:1162-1172` / `_chrome:384-399` | 6 | `.sheet` 底部弹出↔**居中 660 宽、max-height 74%、radius 26**、藏 `.sheet-handle`、title 18↔21、`.opt-list` 单列↔**2 列** | `components/Sheet/Sheet.tsx:230 maxHeightRatio`、`tokens.ts:1305-1330`（radiusTop 28 / radiusBottom 0 / max-height **78%**）、`.opt-list` 各浮层自己摆单列（`screens/Radio/sheets/PodRegionSheet.tsx:83`、`screens/Main/sheets/SourceSheet.tsx:610` 都是「列向 gap 7」） | **未承接（形态级）** |
+| 13 | 其它覆盖层 `styles.css:1175-1177` / `_chrome:402-406` | 3 | toast / lrc-float 的 `left` 按 `--nav-w` 重算、top 590、lf-line 220 | `tokens.ts:1384-1386 bottomGap=168`、`LRC_FLOAT` 族 | **本来就是「Pad 侧不另写一份」的反向情形**：`index.html:661` 逐字「`--nav-w` 手机 `0px`、Pad `236px`…手机侧的计算式原样退化成 0，**不需要第二套定位**」→ 手机档即退化档；不做 Pad 就没有缺口 |
+
+**按两档口径三分（哪些应当真做分支、哪些本来就不另写）**
+
+- **应当真做 Pad 分支才有意义（8 族，全是形态级）**：#2 侧栏、#3 留白与字号档、#4 栅格增列、#5 电台两列、#7 迷你条、#8 主从详情、#10 搜索宽屏、#11 播放页分栏、#12 模态浮层。这些**必须靠档位判定**（`isPad` / 窗口宽阈值）才成立，RN 一条都没有 → 差集是真的，**但要不要补 = 待用户拍板**（7.10.⑥ P2）。其中 **#4 栅格列数**是唯一一条在**手机横屏**下也会被用户直接看到的实质走样（4 列 vs 2 列巨卡），优先级最高。
+- **本来就声明为「Pad 侧不另写一份」（2 族，做了反而多余）**：#13 `--nav-w` 退化族（原型自述不需要第二套定位）、#6 限宽族里 `stat-row/fav-card` 620（`tokens.ts:943-944` 原话「手机竖屏视口本就窄于该值，这条天然不生效，落进 theme 只为宽屏形态留口径」）——限宽族**不该等 Pad 那一轮**，它数值常驻就自动对两档都成立：`StatRow` 已经这么做了，`FavCard` 差一行（工单 S1）。
+- **不是缺口（3 族）**：#1 假机框/假状态栏（真机用实测 insets）、#11 里的 `.pad .stage-dots{display:none}`（Pad 无翻页才藏，RN 有翻页，常显正确）、#9 的 `set-group 22`（已注释声明取手机主规则）。
+- **A 轮判断的边界要说清**：A 轮报「RN 侧没有 land 分支可删」——**成立**；但它同时也意味着 **RN 从来没有过任何横屏规范**，所以撤 land 之后 RN 并没有「少了一块」，Pad 那一族才是缺口所在。二者不要混着讲（见 7.10.⑤ E2）。
+
+#### 7.10.③ 撤档后的注释与台账口径漂移（逐条判定）
+
+**行号漂移对照表（先记规则，再逐条）**：`styles.css` 引用 **≤ L1138 一律未漂**（land 全在文件尾）；old **1139-1176 → new +2**；old **1177-1291 已删**；old **≥1292 → new −113**。`index.html` 引用 **≥ L64 一律 new = old − 1**（只删了 old L63 一行）。`app.js` 引用 **≥ L3345 → new −3**，≤3344 未漂。`data.js` 未动。`parts/*.css` 引用：`_chrome.css` 因件内规则 246→**160** 条而整体重排，其余件（`_base.css` / `radio/home.css` / `radio/detail.css` / `radio/episode.css` / `songlist-detail/*`）**逐条复核后行号未变**。
+
+**表 A｜档位口径叙述（提到三档 / 横屏 / land / 84）**
+
+| 位置 | 现文 | 判定 | 依据（重跑后） |
+|---|---|---|---|
+| `PROTOTYPE_INVENTORY.md:151`（K 组 V4） | 「Pad/land 覆盖层 + 侧栏专属件 …手机竖屏 display:none（L290-306）」 | **需改文字 + 需改行号** | land 档不存在；`display:none` 基线是 `styles.css:672`（`_chrome.css:54-56`），侧栏 DOM 是 `index.html:284-300`（现号，非 290-306）；Pad 族整体现存 `_chrome.css:149-406` |
+| `PROTOTYPE_INVENTORY.md:350`（7.0 判例） | 「横屏 / Pad 档的订阅卡 84/150、`.pl-head` 内衬、hero 84 …实测 `_chrome.css:274-276 / 458-478`…判例 `theme/tokens.ts:1066`」 | **需改文字 + 需改行号（三处错）** | ① 84 档已随撤档消失，`.pad .subs-card` 只剩 150（`styles.css:1093-1094` = `_chrome.css:274-276`，**这一半恰好还准**）；② `_chrome.css` 现仅 **406** 行，`458-478` 越界——主从 hero 现为 `_chrome.css:309-315`（源 `styles.css:1115-1121`）；③ `.pl-head` 从来不是 Pad 覆盖，它是跨件原子 `_base.css:211`（源 `styles.css:365`）；④ 「RN 固定竖屏」的真判例是 `tokens.ts:748`，`:1066` 现为 `RECENT_CARD` 注释、文不对题 |
+| `theme/tokens.ts:748` | 「RN 固定竖屏：横屏 / Pad 的订阅卡 84/150、hero 84 那组覆盖归原型 `_chrome`」 | **需改文字**（「横屏 /」去掉、「84/150」「hero 84」按现值改） | 同上：`styles.css:1093-1094` + `1115-1116`，`_chrome.css:274-276` + `309-311` |
+| `theme/tokens.ts:1185` | 「原型横屏/Pad 隐藏是「同屏无翻页」所致」 | **需改文字**（只剩 Pad 一档） | `.pad .stage-dots{display:none}` = `styles.css:1140` / `_chrome.css:349`；原型 notes 同调 `index.html:808` |
+| `components/StageDots/StageDots.tsx:15` | 「原型横屏/Pad 隐藏是「唱片与歌词同屏、不存在翻页」」 | **需改文字**（同上） | 同 `styles.css:1140` |
+| `components/TabBar/TabBar.tsx:66` | 「手机竖屏形态；Pad 侧栏形态（`.phone.pad .tabbar`）留待响应式轮次」 | **保持不动**（Pad 档还在，这句话仍然真），建议补判例行号 | `styles.css:1017`（`.phone.pad`）+ `1028-1034`（`.pad .tabbar`）/ `_chrome.css:149`、`164-170` |
+| `README.md:565` | 「原型 `.land/.pad` 隐藏是「同屏无翻页」，RN 固定竖屏 → 常显」 | **保持不动**（StageDots 上线轮的历史流水账，历史记录不回改；现行口径以 `tokens.ts:1185` + 本节为准） | — |
+| `README.md:714` | 「`.pad .lyric-wrap` 那套…是 Pad 横屏专属覆盖，手机不适用，也没搬」 | **保持不动**（历史条目；且 Pad 本就是横屏，文字未失实） | `styles.css:1144-1147` / `_chrome.css:357-360` |
+| `screens/Radio/RadioHomeScreen.tsx:142`、`screens/Radio/PodcastDetailScreen.tsx:89` | 命中串是 `app.js L1844-1847` 里的子串「844/84」 | **保持不动**——**A 轮把它当成「84 收档叙述」是误判**（见 7.10.⑤ E1） | 这两处引的是 `unsubPod`（`app.js:1844-1848`，未漂，全部 ≤3344），与设备档位毫无关系；两文件里没有任何档位叙述 |
+
+**表 B｜「三档」同形词（全部与设备档位无关，一律保持不动）**
+`SettingsRow.tsx:61`、`IconButton.tsx:122`、`screens/Radio/EpisodeRow.tsx:13`、`SonglistDetailScreen.tsx:663`、`Main/pages/SettingPage.tsx:24 / :109`、`const/sourceSheet.ts:121`、`theme/ThemeProvider.tsx:12`、`README.md:40 / :64 / :91 / :405 / :462`——这些说的是**主题 light/dark/system 三档、叠色三档、分页状态行三态、音质四档里的三档**等，不是设备三档。**C 轮不许顺手改**（改了就是自作主张）。
+
+**表 C｜land / Pad 的同形假命中（一律保持不动，列出来防"顺手清理"）**
+`screens/Search/SearchScreen.tsx:113 / :129 / :135 / :138 / :139` 的 `landedRef`（搜索结果"落位"闸，见 README:472）；`tokens.ts:1485 tabIndicatorPad`、`tokens.ts:777-779 / :842-844 listAxisPadding*/epAxisPadding*`（`padding` 里含子串 `pad`）；`StatRow.tsx:48` 注释里的「原型 `.pad` 档」（这一条**是真 Pad 引用**，不是假命中，保持不动）。
+
+**表 D｜行号引用需更正**
+
+| 位置 | 现引 | 真值（重跑后） | 判定 |
+|---|---|---|---|
+| `theme/tokens.ts:98` | `.phone.light .ln.on` 在 `styles.css L1171` | **`styles.css L1223`**（件内 `parts/_base.css:270`） | 需改行号（A 轮已点名：这处**进场前就已偏**，A 轮之后又叠了 −113） |
+| `components/LyricList/LyricList.tsx:161` | `styles.css L612 / L1171` | **`L711 / L1223`**（现 `L612` 是 `.cf-btn:active`、`L611` 是 `.cf-btn.go`） | 需改行号（两个都错；`L612` 先于 A 轮就偏，`L1171` 被 A 轮再推 113 行） |
+| `theme/tokens.ts:942` | `.pad .stat-row{max-width:620px}` 在 `styles.css L934` | **`styles.css L1099`**（`_chrome.css:286`） | 需改行号 |
+| `theme/tokens.ts:1602` | 「Pad 侧 `.pad` 规则为 22」（未给行号） | `styles.css L1126`（`_chrome.css:328`） | 需补行号（建议级） |
+| `PROTOTYPE_INVENTORY.md:148`（V1） | `.viewer-bar` 「L59-67」 | `index.html **L58-L66**` | 需改行号（−1 漂移） |
+| `PROTOTYPE_INVENTORY.md:149`（V2） | 「L70-81」 | `styles.css:70-81`（`.phone`/`.screen`）未漂；按 `index.html` 读则 69-80 | **保持不动**（两种读法都成立、不失实） |
+| `PROTOTYPE_INVENTORY.md:150`（V3） | `.notes` 面板「L518-689」 | `index.html **L605-L823**`（`<aside class="notes">`→`</aside>`）、`.swatches` **L633**、样式 `styles.css L968-L983`（`_chrome.css:76-105`） | 需改行号（这条**先于 A 轮就已偏得不止 1 行**，−1 规则救不回来，必须重取） |
+| `screens/Radio/PodcastSearchScreen.tsx:56` | `app.js L3467` | **`app.js L3464`** | 需改行号（app.js 只删了 ≥3345 的 3 行） |
+| `theme/tokens.ts:1183` + `components/StageDots/StageDots.tsx:12` | `.stage-dots` 本体在 `styles.css L634-638` | **`styles.css L743-L747`**（HEAD 也是 743-747，**与 A 轮无关**；件内被吞进 `_chrome.css:57-65`，见 7.10.⑤ E5）；同两处引的 `index.html L323` → **`L317`**（HEAD 为 318，A 轮 −1，引用本身先偏 5 行） | 需改行号（并入工单 M2/M3 顺手更正，改动面为零） |
+| `src/newui/**` 内其余 `index.html L≥64` 锚点 | 全部 old 值 | 一律 **new = old − 1** | **不逐条改**（理由见工单 N1），由本张对照表兜住。量级实测：`grep -rn "index\.html L[0-9]"` 命中代码 **100 行 / 141 个 L 号**、md **60 行 / 244 个 L 号**；其中 ≥64 的分别 137 / 233 个。**该口径会把同一行里的 `styles.css L<n>`、`app.js L<n>` 一并计入，故只作量级参考，不是精确条数** |
+
+**表 D2｜先于 A 轮的 `styles.css L<n>` 锚点系统性失效（本轮新查，与撤档无关，只登记不修）**
+
+判据（可复跑的一次性脚本 `/tmp/anchor-scan.cjs`，Node v22.23.2，只读，不进版本库）：取注释行及其上一行里的 CSS 类名/ID（剔掉 `.css`、`.ts`、`#色值` 这类噪声），检查被引号行号 ±5 的窗口里是否出现该选择器；出现 = 命中，没出现 = 候选失效，注释里压根没类名 = 不可判。
+
+- `src/newui/**/*.ts(x)` 全域（排除生成物 `components/Icon/icons.ts`）`styles.css L<n>` 锚点 **共 204 处：命中 35 / 候选失效 150 / 不可判 19**。
+- `theme/tokens.ts` 一家就占 **73 处：命中 10 / 候选失效 50 / 不可判 13**。
+- 失效**不是统一位移**，逐条实测偏移（引用 → 真值）样本：`.icon-btn L111→130`(+19)、`.song-list L246→274`(+28)、`.stage-dots L634→743` / `.player-controls L641→750` / `.player-tools L649→758`(+109)、`.rank-grid L376→487` / `.rank-group L379→490`(+111)、`.sheet L716→821`(+105)、`.search-layer L776→923`(+147)、`.toast L795→958`(+163)、`.minibar L453→624`(+171)、`.tabbar L479→650`(+171)、`.group-label L670→849`(+179)、`.opt-ic L688→887`(+199)、`.pl-layer L319→550`(+231)。
+- 同一文件里新老混杂（例：`Sheet.tsx:53` 引 `L839-841` 是对的，`Sheet.tsx:93` 引 `L716-733` 是旧的）→ 成因是**每轮只顺手修了自己碰到的那几条**，不是某次批量漂移。
+- 根因：**闸门只校验数值，不校验注释里的行号**。件头行号由 `gen-newui-parts.mjs` 重跑时自动刷新，RN 侧注释是人手写的，原型涨一千行它不涨 → 无人报警。**这正是 E5 那条 StageDots 数值盲区能长期存在同一个病根。**
+- 判定：候选失效 **不阻塞渲染**（值本身另有闸门与本轮 7.10.② 人工核对兜着），属"人肉指针坏了"。是否单开一轮清扫挂 **P3**。
+
+**表 E｜原型自身口径与 CSS 不符（先于 A 轮存在，我方可读不可改）**
+`index.html:663` 那句「内容区加宽不等于放大：轮播 **860×216**、歌单 / 榜单 4 列、**电台 3 列**、**歌曲行 860 宽**」里——4 列对（`styles.css:1088-1089`），**「电台 3 列」对不上 CSS**（`.pad .pod-list{grid-template-columns:1fr 1fr}` = **2 列**，`styles.css:1091`），**「860 宽」在 CSS 里根本不存在**（现 `styles.css` 与 HEAD 的 `860` 命中只有两条 `@media (max-width:860px)`，`styles.css:985` / `:1012`，是预览窗口等比缩放、不是设备档位）。**判定：C 轮不得按 notes 做 3 列或 860 宽**；这一条属原型下一轮（A 轮位）自己该修的文字，本轮只如实登记。
+
+#### 7.10.④ C 轮工单（逐条可执行）
+
+**必须改（M1-M4，全是注释/台账口径，零渲染影响、零闸门风险）**
+
+- **M1** `src/newui/theme/tokens.ts:748` — 整行替换为：
+  `// RN 只做竖屏一档：Pad 档的订阅卡 150（styles.css L1093-L1094 / _chrome.css L274-L276）与歌单详情主从 hero（L1115-L1116 / _chrome.css L309-L311）那组覆盖归原型 `_chrome`，本表不承接（契约 7.0；Pad 差集全表见契约 7.10）。手机横屏 land 档已由原型撤除，旧注释那句「84/150、hero 84」里的 84 档不再存在。`
+  判例：`styles.css:1093-1094`、`:1115-1116`；`_chrome.css:274-276`、`:309-311`。
+- **M2** `src/newui/theme/tokens.ts:1185` — 把「原型横屏/Pad 隐藏是「同屏无翻页」所致」改为「原型 **Pad 档**藏点是 `.pad .stage-dots{display:none}`（styles.css L1140 / _chrome.css L349），理由是「唱片与歌词同屏、不存在翻页」」。同段 `:1183` 那句 `styles.css L634-638` **是错的**（真值 `L743-L747`，HEAD 同为 743-747，与 A 轮无关；见 7.10.③ 表 D 与 7.10.⑤ E5/E6）→ **本条顺手一并改成 `styles.css L743-L747`**（同一处注释，零额外改动面）。
+- **M3** `src/newui/components/StageDots/StageDots.tsx:15` — 与 M2 同一句话口径：「原型 **Pad 档**（`.pad .stage-dots{display:none}`，styles.css L1140）藏点是「唱片与歌词同屏、不存在翻页」，RN 只做竖屏一档 → 常显。」同行块 `:12` 的两处锚点一并更正：`index.html L323` → **`L317`**（HEAD 318，A 轮 −1，引用本身先偏 5 行）、`styles.css L634-638` → **`L743-L747`**。
+- **M4** `src/newui/PROTOTYPE_INVENTORY.md` 两处历史行按现状更正（并按 7.10.⑤ E3 在 `:331` 的例外句里补记一笔）：
+  - `:151`（K 组 V4）改为：`| V4 | Pad 覆盖层 + 侧栏专属件（land 档已于 A 轮撤除） | _chrome | 侧栏四节点手机竖屏 display:none（styles.css:672 / _chrome.css:54-56）；DOM index.html:284-300；Pad 族现存 _chrome.css:149-406 |`
+  - `:350` 改为：`- Pad 档的订阅卡 150（styles.css:1093-1094）与主从 hero（1115-1116）等覆盖归 `_chrome`（`_chrome.css:274-276 / 309-311`），本文件不承接；`.pl-head` 不是 Pad 覆盖而是跨件原子 `_base.css:211`（源 styles.css:365）；RN 只做竖屏一档（判例 `theme/tokens.ts:748`、`components/StageDots/StageDots.tsx:15`）。**Pad 覆盖 ↔ RN 承接的全表差集见 7.10.②。**`
+  - （同表 `:148` / `:150` 两行的行号按表 D 更正：V1 → `index.html L58-L66`；V3 → `index.html L605-L823`、`.swatches L633`、样式 `styles.css L968-L983`。）
+
+**建议改（S1-S4，S1 是唯一一条碰渲染代码的，且竖屏无感）**
+
+- **S1** `src/newui/components/FavCard/FavCard.tsx:108`（`styles.root`）补 `maxWidth`，值走 `src/newui/theme/tokens.ts` 的 `MINE` 块——建议新增键 `favMaxWidth: 620`（与既有 `statMaxWidth: 620`（`tokens.ts:945`）并排、同注释族），组件 `styles.root` 加 `maxWidth: MINE.favMaxWidth`。判例：`.pad .fav-card{max-width:620px}`（`styles.css:1100` / `_chrome.css:288`）。**理由**：同族两条限宽里 `StatRow` 已接（`StatRow.tsx:53`），`FavCard` 漏一条 = 我方口径不一致；**竖屏 390 下净宽 358 < 620，视觉零变化**，只在宽窗口（含手机横屏）生效。`_chrome` 是不参与对撞的件，加这条不会动 flags。
+- **S2** `src/newui/screens/Radio/PodcastSearchScreen.tsx:56` — `app.js L3467` → **`L3464`**。
+- **S3** `src/newui/theme/tokens.ts:98` — `styles.css L1171` → **`styles.css L1223`（件内 `parts/_base.css:270`）**；连带 `src/newui/components/LyricList/LyricList.tsx:161` — `L612 / L1171` → **`L711 / L1223`**。
+- **S4** `src/newui/components/TabBar/TabBar.tsx:66` — 在「留待响应式轮次」后补判例与挂账去向：「（`.pad .tabbar` = styles.css L1028-L1034 / _chrome.css L164-L170；差集与拍板项登记在 PROTOTYPE_INVENTORY 7.10.②/⑥）」；`tokens.ts:1602` 补 `（styles.css L1126 / _chrome.css L328）`。
+
+**不改并说明为什么（N1-N6）**
+
+- **N1** 不做 `index.html L≥64` 那批锚点的批量改写（量级见 7.10.③ 表 D 末行：代码 100 行 / 141 个 L 号、md 60 行 / 244 个 L 号，口径偏大）。理由：① 内容全部未变，只是编号 −1，读者拿 7.10.③ 那张对照表一眼可推；② 批量正则在同形串上必出错——`index.html:768` 那行正文里就写着「`src/newui/const/home.ts` 的 **L73 / L94 / L113**」（那是 RN 自家文件的行号），一条 sed 就能把不该动的行号动掉；③ 把上百处注释改写塞进 C 轮会把真正要改的 diff 埋掉。
+- **N7** 不做 `styles.css L<n>` 那 150 处候选失效锚点的批量改写。理由：① 偏移**不统一**（+19 到 +231 都有，见 7.10.③ 表 D2 样本），不存在一条能套的换算式；② 每条都要人眼回指选择器，实测一条平均要打开两处文件，150 处 ≈ 一整轮；③ 它不阻塞渲染、也不影响闸门（闸门比的是值，不是行号）。要做就单开一轮，判据用表 D2 那三条（可脚本化：注释里的选择器是否落在引用行号 ±5 窗口内），逐条改完再复跑脚本看命中数——是否排期挂 **P3**。
+- **N2** 不改 `README.md` 的变更日志条目（`:565` / `:714` / `:40-91` 等）。历史记录不回改，现行口径以第 7.10 节为准——这也是 `:283` 那轮「注释锚点纠偏」已经用过的手法（改注释本体 + 台账留痕，不改流水账）。
+- **N3** 不动表 B / 表 C 的任何同形串（外观三档、`landedRef`、`tabIndicatorPad`、`tokens.ts:1385` 的 844）。
+- **N4** **不做 Pad 形态分支**（侧栏 / 4 列栅格 / 主从详情 / 模态浮层 / 歌词分栏 / 两列设定 / 两列 opt-list / 迷你条 66 / 页头 30 档）。理由三条，逐条有判例：① 原型自述档位是查看器控件（`index.html:669`）；② `--nav-w` 退化族说明 Pad 族从一开始就不要求手机侧留第二套定位（`index.html:661`）；③ 这一族要动 `TabBar` 容器 + 6 个屏 + `Sheet` 形态 = 一整轮工程，超出「一次任务只做一件事」，且「Pad 是不是目标设备」还没拍板 → 挂 **P2** 等用户。
+- **N5** **不改 `android/` 与 `ios/` 的屏幕方向**。现状 = 跟随系统、不锁（`AndroidManifest.xml:23-28`、`Info.plist:43-48`、RNN 无活声明），改它跨出 `src/newui` 命名空间并动全局既有行为 → 挂 **P1** 等用户。
+- **N6** **不按 `index.html:663` 做「电台 3 列」或「860 宽」**（表 E：notes 与 CSS 不符，CSS 才是数值真相；且 860 在 CSS 里只作预览缩放断点）。
+
+#### 7.10.⑤ A 轮结论需更正 / 需补记
+
+- **E1（需更正）**：A 轮把 `screens/Radio/RadioHomeScreen.tsx` 与 `PodcastDetailScreen.tsx` 列为「84 收档叙述已作废」的受影响 RN 件——**不成立**。两文件里没有任何档位叙述；命中的是我自己 grep `844`/`84` 时撞到的 `app.js L1844-1847`（`unsubPod` 行号，未漂移）。真正的受影响面只有 `StageDots` + `tokens.ts` 那四处（M2/M3）与 `SonglistDetail` 的两栏判例（判例本身没变，仍是 `.pad #plLayer #plTracks`，`_chrome.css:321`）。
+- **E2（需补记，口径纠偏）**：A 轮报「RN 侧没有 land 分支可删」——**这条成立**，但它只排除了「删代码」这一半；**没有排除 Pad 那一族的实质差集**（7.10.② 表 #2/#4/#8/#11/#12 五族是形态级的、RN 全空）。把这两件事混成「RN 不受影响」会把一个需要拍板的缺口读成已结案。
+- **E3（需补记，本文件自证）**：A 轮只点名了 `:151` 与 `:350` 两处；本节的 7.10.③ 表 A/D 又补出 `:148`/`:150`、`LyricList.tsx:161`、`PodcastSearchScreen.tsx:56`，以及 **`index.html` 锚点整体 −1（100 处）** 与 **`app.js` ≥3345 的 −3** 这两条系统性漂移——A 轮未挂账。**改第 151 行属对本文件「一~六节原文一字未改」声明的第二次例外**，需同步在 `:331` 那句例外说明里补记（第一次例外 = 2026-10-20 把 U33 那行改判）。
+- **E4（越界项，本轮不动）**：`scripts/newui-parity-whitelist.json:14` 的豁免理由正文引了 `index.html L684 / L768`，现值为 **L683 / L767**。这是纯文字锚点、不影响闸门判定（闸门回查的是选择器实例，不是引号里的行号），但改它属"改闸门三件套"，本轮按纪律未碰 → 记为需用户点头的越界项。
+- **E5（闸门校验盲区，先于 A 轮存在，修复须动生成脚本 → 越界项）**：`scripts/gen-newui-parts.mjs:485` 的 `_chrome` 匹配表里挂了裸子串 `'.stage'`。语义链实测：`BOUND`（`:443`）含 `-`，故 `containsSel('.stage-dots', '.stage')` 成立；`_chrome` 是 `CSS_MATCHERS` 的第一项，先到先得（`:561-566`、`:576-580`），于是排在后面的 `['U54', ['.stage-dots']]`（`:527`）**永远吃不到**。后果三条，全部实测：① `.stage-dots` 四条手机档规则（源 `styles.css L743 / L744-L745 / L746 / L747`）被登记进 `parts/_chrome.css:57-65`；② `parts/player/stage-dots.css` **不存在**（只有 `.html`），`src/newui/PROTOTYPE_PARTS.md:70` 记为 `| U54 | player/stage-dots | 3 | 0 |`——3 个元素、**0 条规则**；③ `scripts/newui-parity-map.json` 里没有 `player/stage-dots` 这个键，`components/StageDots/StageDots.tsx` 只出现在 `player/_layer` 名下（`:123-126`）→ **`tokens.ts:1183-1190` 的 `stageDotsGap/Margin*/stageDotSize/stageDotActiveWidth/stageDotIdleOpacity` 全组数值不在闸门 A/B 校验射程内**，StageDots 的正确性目前只靠人眼。旁证：`.pad .stage-dots`（`styles.css:1140`）本来就由 `.pad ` 前缀模式接走，`'.stage'` 这条**是冗余项**，删掉不影响 Pad 族归属；`.player-stage`（U52）因 `containsSel` 的前界判据（`:452`）不吃 `.stage` 于词中，仍在 `parts/player/stage.css`，不受影响。**归因**：`git diff --cached scripts/gen-newui-parts.mjs` 显示 A 轮在 `:485` 只删了 `'.land '` 与 `'.phone.land'` 两项，`'.stage'` 是既有项 → **非 A 轮造成**。**本轮不修**（纪律禁改生成脚本与 parts）；修复是四步连动：删 `:485` 的 `'.stage'` → 重跑 `node scripts/gen-newui-parts.mjs`（U54 得 4 条、`_chrome` 由 160 条降到 156 条、`PROTOTYPE_PARTS.md:70` 与无损校验数字要重取）→ `newui-parity-map.json` 补 `player/stage-dots` → 重跑闸门。**风险如实写明**：一旦把 `stageDots*` 纳入校验，flags 可能从 0 变非 0（若 RN 侧数值与 `styles.css:743-747` 有出入），所以这是"要不要新开一个校验面"的决策，不是纯修 BUG → 挂 **P4** 等用户点头。
+- **E6（本轮自我更正）**：本工单初稿在 M2 里写过「同段 `:1183` 那句 `styles.css L634-638` 未漂，**不动**」——**这句不成立**，已就地改掉。实测 `git show HEAD:new_design/styles.css` 里 `.stage-dots` 就在 **L743-L747**，与现值一致：A 轮确实没挪它（"未漂"半句对），但引用本身**先于 A 轮就偏了 109 行**（"不动"错）。顺着这条把全量扫描做了，才得出 7.10.③ 表 D2 那组数（代码 204 处锚点、候选失效 150 处）。这一条不圆场：**B 轮初稿在这处判错，且错因与我方长期依赖「注释里的手工行号」而不依赖机器校验的习惯同源。**
+
+#### 7.10.⑥ 需用户拍板（各带推荐，B 轮不自作决定）
+
+| # | 议题 | 选项 | **B 轮推荐 + 参照** | 若不定的后果 |
+|---|---|---|---|---|
+| **P1** | 手机横屏要不要锁竖屏 | ① 维持现状（跟随系统，横屏 = 被拉宽的竖屏，无原型判例）／② 锁竖屏（`AndroidManifest.xml` 补 `android:screenOrientation="portrait"`，iOS `Info.plist:43-48` 收成一个 Portrait） | **推荐 ②（锁竖屏）**：主流音乐 App（网易云音乐 / QQ 音乐 / Spotify）手机端一律锁竖屏，横屏只在 Pad 类设备给分栏；且原型今天只剩竖屏 + Pad 两档，竖屏是唯一能自证正确的形态 | 不锁，则 #4 栅格列数这条缺口在**手机横屏**下就会被普通用户直接看见（两列巨卡 + 20px 卡距），等于把一个 Pad 议题提前漏到手机端 |
+| **P2** | Pad 是不是目标设备（决定 7.10.② 那 8 族形态级差集做不做） | ① 不是 → 维持一档，Pad 差集永久登记不实现／② 是 → 按 #2 侧栏 → #8 主从详情 → #4 栅格增列 的顺序分轮做（每轮一族） | **推荐 ①（暂不做）**：包名 `cn.toside.music.mobile`、`targetSdkVersion 29`、旧 UI 全线手机版式，Pad 分支要重开 TabBar/Sheet/6 屏，投入远大于这一轮的维护带宽；先只补 S1 那种"数值常驻即两档都对"的小项 | 不定，则 Pad 差集一直挂着"注释里说了不承接、表里其实是没做"的灰账 |
+| **P3** | 要不要单开一轮清扫 `styles.css L<n>` 注释锚点（代码侧 204 处，候选失效 150 处，见 7.10.③ 表 D2） | ① 不扫，永久按 N7 挂账（值由闸门与人工核对兜着，注释行号只当近似指针）／② 单开一轮，用表 D2 的判据脚本逐条改到命中 204/204／③ 不逐条改，但给闸门加一条「注释锚点自检」探针（引号里行号与选择器不符就报 warn，不计 flags） | **推荐 ③**：②的 150 处人肉核对 ≈ 一整轮，收益只是注释好看；③一次投入长期有效，且与 E5 那条「StageDots 数值不在校验射程」是同一病根——**行号与校验都不报警，就一定会烂** | 不定，则每轮都会再撞一次"照着注释行号找不到原型规则"，且下轮 A 撤档时又会叠一批新的 −N 漂移 |
+| **P4** | 要不要收紧 `gen-newui-parts.mjs:485` 的裸子串 `'.stage'`，把 U54 `.stage-dots` 四条手机档规则收进本件并纳入闸门（见 7.10.⑤ E5） | ① 不动，维持现状（U54 收纳 0 条规则，StageDots 数值靠人眼）／② 删 `'.stage'` + 重跑 parts + 补 map 键 + 重跑闸门 | **推荐 ②，但单开一轮做**：`.pad .stage-dots` 已由 `.pad ` 前缀接走，`'.stage'` 是冗余项；四步连动会改 `PROTOTYPE_PARTS.md` 的无损校验数字（`_chrome` 160 → 156、U54 0 → 4），且**新纳入校验后 flags 可能从 0 变非 0**（若 `stageDots*` 与 `styles.css:743-747` 有出入）——属新开校验面，不是纯修 BUG，需与 C 轮的注释/工单项分开 | 不定，则 `tokens.ts:1183-1190` 那 6 个键永远是闸门盲区，改错了闸门不会响 |
+
+*本节为 B 轮（两档口径对撞）追加：结论 + 工单，**未改任何 `.ts/.tsx` 实现代码**、未改 `new_design/` 四源与 `parts/`、未改闸门三件套与生成脚本；`new_design/` 全程只读。闸门 `node scripts/newui-parity.mjs` flags=0 / exit 0 与 `npx tsc --noEmit` `src/newui` 0 错均为本轮实测。**代码完成度为零、未经设备验收**（本轮只出结论）。*

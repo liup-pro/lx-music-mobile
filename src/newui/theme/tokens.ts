@@ -128,12 +128,6 @@ export const GRADIENTS = {
     start: { x: 0.25, y: 0 },
     end: { x: 0.75, y: 1 },
   },
-  /** 「我喜欢」卡底 .fav-card：120deg rgba(255,92,138,.26) → rgba(122,59,255,.24)（120deg 端点同 brand） */
-  favWash: {
-    colors: ['rgba(255, 92, 138, 0.26)', 'rgba(122, 59, 255, 0.24)'],
-    start: { x: 0, y: 0.25 },
-    end: { x: 1, y: 0.75 },
-  },
 } as const satisfies Record<string, GradientSpec>
 
 /* ================= 平台色（提取自 data.js） ================= */
@@ -950,24 +944,142 @@ export const MINE = {
   statRadius: 16,
   /** .stat span margin-top:3 */
   statLabelMarginTop: 3,
-  /** .fav-card margin-top:20 / padding:14 / gap:13 */
-  favMarginTop: 20,
-  favPadding: 14,
-  favGap: 13,
-  // .fav-card 描边走色板 lineStrong 原值（原型 inset 0 0 0 1px var(--line-strong)，深 .14 白 / 浅 .16 墨，
-  // 随主题反相）——此前自造的 favRingAlpha（固定压白 .13、浅底颜色族不对）已废，QA D79
-  /** .fc-art 62×62 圆角 17，图标 heartFill 25（渐变底 --grad + SHADOW.glow） */
-  favArtSize: 62,
-  favArtRadius: 17,
-  favArtIcon: 25,
-  /** .fav-card p margin-top:4 */
-  favSubMarginTop: 4,
-  /** .fc-go 32×32 圆底 rgba(0,0,0,.3)，play 图标 15 */
-  favGoSize: 32,
-  favGoAlpha: 0.3,
-  favGoIcon: 15,
-  /** .fav-card:active scale(.99) */
-  favPressScale: 0.99,
+  /**
+   * 「我喜欢 / 已缓存」合一卡的限宽（原型 styles.css L1140 `.pad .fav-card{max-width:620px}`，
+   * inventory S1）：与上面 statMaxWidth 同值同族，宽窗口下不被拉到整页宽；竖屏净宽本就窄于它。
+   * 卡片自身的度量与两套配色见下方 FAV_DUO。
+   */
+  favMaxWidth: 620,
+} as const
+
+/* ============ 「我喜欢 / 已缓存」合一卡（.fav-card.fav-duo，U44 + U86） ============ */
+
+/**
+ * 「我的」页这一处现在只有**一张整宽卡**：中间一道斜线切成左右两半，
+ * 左半「我喜欢」（U44）、右半「已缓存」（U86）。度量逐值取自件 `parts/mine/fav-card.css`
+ * 12 条规则（源 styles.css L554-L577），浅色档配色取自 `_base.css` 的 `.phone.light .fav-card` 覆盖
+ * （styles.css L1342-L1349）——几何 / 字号 / 斜线角度两档共用，只有配色按档换。
+ * 图标是两颗实心 Material 版（heartSolid / phoneSolid），尺寸同为 22。
+ * 口径：原先那颗直接开播的圆钮（.fc-go）整族已随「两张卡合一」撤掉，开播回到各自屏的「播放全部」。
+ */
+export const FAV_DUO = {
+  /** .fav-card margin-top:20px */
+  marginTop: 20,
+  /** .fav-card padding:16px 0（左右内衬由两半各自管） */
+  paddingVertical: 16,
+  /** .fav-card border-radius:24px（与 RADIUS.card 的 22 不是一档，就近定义） */
+  radius: 24,
+  /** .fc-half padding:0 16px；:first-child / :last-child 的 padding-left:20px */
+  halfPaddingLeft: 20,
+  halfPaddingRight: 16,
+  /** .fc-half column-gap:12px（图标框与文字列） */
+  columnGap: 12,
+  /** .fc-half row-gap:2px（标题与副行） */
+  rowGap: 2,
+  /** .fc-art 44×44 / 圆角 14 / 内部 .ic 22 */
+  artSize: 44,
+  artRadius: 14,
+  artIcon: 22,
+  /** .fc-art box-shadow:0 2px 8px（颜色与浓度两档各给，见 palette） */
+  artShadowOffsetY: 2,
+  artShadowRadius: 8,
+  artShadowElevation: 2,
+  /** .fav-duo::after：4px 实心斜线，left:50% + translateX(-50%)（负半宽 margin 表达）+ rotate(18deg) */
+  dividerWidth: 4,
+  dividerRadius: 4,
+  dividerRotate: '18deg',
+  dividerLeft: '50%',
+  /** 斜线上下各溢出 20%（top/bottom:-20%），由卡面 overflow:hidden 裁掉 */
+  dividerSpan: '-20%',
+  /** .fav-card:active transform:scale(.99)（两半任一按下都缩整卡） */
+  pressScale: 0.99,
+  /** .fav-card h3 16px / 700 / letter-spacing:.5px */
+  titleSize: 16,
+  titleWeight: '700',
+  titleLetterSpacing: 0.5,
+  /** .fav-card p 12px / 500 */
+  subSize: 12,
+  subWeight: '500',
+  /** 外阴影 0 8px 24px（颜色与浓度两档各给，见 palette） */
+  shadowOffsetY: 8,
+  shadowRadius: 24,
+  shadowElevation: 8,
+  /** 两档配色：深色基线在 .fav-card 那一族，浅色在 .phone.light 覆盖段 */
+  palette: {
+    dark: {
+      /** background:linear-gradient(90deg,#3A1B30 0%,#241C45 100%) */
+      gradient: { colors: ['#3A1B30', '#241C45'], start: { x: 0, y: 0.5 }, end: { x: 1, y: 0.5 } },
+      /** 阴影载体的不透明底（Android 无背景不投影；内层渐变整块盖住它，取渐变起点色） */
+      surface: '#3A1B30',
+      /** box-shadow:0 8px 24px rgba(0,0,0,.42) */
+      shadowColor: '#000000',
+      shadowOpacity: 0.42,
+      /** inset 0 0 0 1px rgba(255,255,255,.06)：深色档的内描边 */
+      ringColor: 'rgba(255, 255, 255, 0.06)',
+      /** .fav-duo::after 的线色 */
+      dividerColor: 'rgba(255, 255, 255, 0.22)',
+      /** .fc-art background（原型另有 backdrop blur 4px，44dp 小方块上不迁移，保留半透明底） */
+      artBg: 'rgba(255, 255, 255, 0.11)',
+      /** .fc-art box-shadow:0 2px 8px rgba(0,0,0,.18) */
+      artShadowColor: '#000000',
+      artShadowOpacity: 0.18,
+      /** .fav-card h3 / p */
+      titleColor: '#F5F1FB',
+      subColor: 'rgba(255, 255, 255, 0.52)',
+      /** 左半心形 #F06BFF；右半（.fc-half:last-child）电话 #A78BFF */
+      loveIcon: '#F06BFF',
+      offlineIcon: '#A78BFF',
+    },
+    light: {
+      /** background:linear-gradient(90deg,#FDE2EE 0%,#D6C3F9 100%) */
+      gradient: { colors: ['#FDE2EE', '#D6C3F9'], start: { x: 0, y: 0.5 }, end: { x: 1, y: 0.5 } },
+      surface: '#FDE2EE',
+      /** box-shadow:0 8px 24px rgba(147,69,230,.12) */
+      shadowColor: '#9345E6',
+      shadowOpacity: 0.12,
+      /** 浅色档没有 inset 描边：显式 transparent（组件照常渲染那一层，视觉为零） */
+      ringColor: 'transparent',
+      /** .phone.light .fav-duo::after{background:rgba(255,255,255,.75)} */
+      dividerColor: 'rgba(255, 255, 255, 0.75)',
+      /** .phone.light .fav-card .fc-art{background:rgba(255,255,255,.7)} */
+      artBg: 'rgba(255, 255, 255, 0.7)',
+      /** .phone.light .fav-card .fc-art{box-shadow:0 2px 8px rgba(0,0,0,.04)} */
+      artShadowColor: '#000000',
+      artShadowOpacity: 0.04,
+      /** .phone.light .fav-card h3 / p */
+      titleColor: '#1A1A1A',
+      subColor: 'rgba(0, 0, 0, 0.45)',
+      /** .phone.light 左半心形 #D233F8；右半（.fc-half:last-child）电话 #7129E8 */
+      loveIcon: '#D233F8',
+      offlineIcon: '#7129E8',
+    },
+  },
+} as const
+
+/* ================= 已缓存屏（.off-*，U86 件 parts/mine/offline.css） ================= */
+
+/**
+ * 「已缓存」（离线收听）整屏的度量：外层 `.pl-layer{padding:0;overflow:hidden}` 归屏根
+ * （screens/Offline），固定段 `.pl-head` 与顶排 `.pl-top` 是跨件原子（PL_LAYER / PlTop），
+ * 本块只收口径段 `.off-meta` / `.off-n` / `.off-lede` 与那根轴 `.off-list` 自己的内衬与列距。
+ */
+export const OFFLINE = {
+  /** .off-meta{margin:18px 0 0;gap:5px} */
+  metaMarginTop: 18,
+  metaGap: 5,
+  /** .off-n{font-size:15px;font-weight:900;letter-spacing:.2px;font-variant-numeric:tabular-nums} */
+  countSize: 15,
+  countWeight: '900',
+  countLetterSpacing: 0.2,
+  /** .off-lede{font-size:11.5px;line-height:1.6;color:var(--text-2)} */
+  ledeSize: 11.5,
+  ledeLineHeightRatio: 1.6,
+  /** #offlineLayer>.off-list{padding:10px 16px 34px}（底部再补真机安全区） */
+  listPaddingTop: 10,
+  listPaddingX: 16,
+  listPaddingBottom: 34,
+  /** .off-list{gap:2px} */
+  listGap: 2,
 } as const
 
 /* ================= 封面播放角标（.play-badge） ================= */

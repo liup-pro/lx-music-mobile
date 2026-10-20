@@ -433,6 +433,20 @@ export const SonglistDetailScreen = ({
     : `${info?.source ?? ''}__${info?.id ?? ''}`
   const [bgC1, bgC2] = useMemo(() => pickArtPalette(artSeed), [artSeed])
 
+  /**
+   * hero 封面（2026-10-27，与入口卡面同一口径 listCover app.js L909-913）：
+   * 只有「本地歌单」形态跟着第一首走——从「我的歌单」点进来时卡上看到的就是第一首的封面，
+   * 进层后头图得是同一张；空单回落内置版式种子，没图则 Art 自己画种子底。
+   * **「我喜欢」与平台歌单 / 榜单不动**：fav 仍走内置版式（它的头图不是某一首的专辑图），
+   * 平台 / 榜单仍用平台给的 `headerInfo.img`（件 parts/songlist-detail/pl-hero U68）。
+   * 氛围底纹 .pl-bg 原型对所有形态都用 palette(seed)（openPlaylist 给底纹那一步），仍用上面的 artSeed。
+   */
+  const localHero = kind === 'local' && tracks.length > 0
+    ? toSongDisplay(tracks[0], true)
+    : null
+  const heroArtSeed = localHero?.artSeed ?? artSeed
+  const heroArtUri = kind === 'local' ? localHero?.artUri : headerInfo.img
+
   // rank 形态头图（原型 app.js L891）：方块换 ChartArt，符号由真实榜名查 rankBoardKind——
   // 与榜单页 RankCard 同一颗查表（useRankBoards L72 的 kind 也是它算的），点进详情认的还是同一张脸。
   // 非 rank 形态恒 undefined，PlaylistHero 走原 Art 封面路径（真实封面图优先、无图程序化底），零变化。
@@ -640,8 +654,8 @@ export const SonglistDetailScreen = ({
       />
 
       <PlaylistHero
-        artSeed={artSeed}
-        artUri={headerInfo.img}
+        artSeed={heroArtSeed}
+        artUri={heroArtUri}
         name={headerInfo.name}
         sub={headerInfo.desc || headerInfo.author}
         metaTag={metaTag}

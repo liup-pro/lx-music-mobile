@@ -1,5 +1,7 @@
 export { MainScreen } from './Main'
 export type { MainScreenProps } from './Main'
+export { OfflineScreen } from './Offline'
+export type { OfflineScreenProps } from './Offline'
 export { PlayerScreen } from './Player'
 export type { PlayerScreenProps } from './Player'
 export {

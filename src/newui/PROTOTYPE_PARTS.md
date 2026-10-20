@@ -5,8 +5,8 @@
 
 ## 无损校验数字（本次生成实测，运行时断言）
 
-- index.html 元素：原件 **1415** = 各件持有之和 **1415**（重复 0 / 丢失 0 / 无归属 0）。
-- styles.css 规则：原件 **739** 条 = 各件收纳之和 **739**；选择器 **765** 个，逐条唯一归属（@media 2 块整体归 _chrome，@keyframes 按登记表归属）。
+- index.html 元素：原件 **1516** = 各件持有之和 **1516**（重复 0 / 丢失 0 / 无归属 0）。
+- styles.css 规则：原件 **714** 条 = 各件收纳之和 **714**；选择器 **743** 个，逐条唯一归属（@media 2 块整体归 _chrome，@keyframes 按登记表归属）。
 - app.js：只读；件头注释的符号行号在运行时实探，符号缺失即报错退出。
 - 四个原型文件（index.html / styles.css / app.js / data.js）零改动。
 
@@ -15,7 +15,7 @@
 | 单元 | 件（相对 parts/） | 持有元素 | 收纳规则 | 一句话 |
 |---|---|---|---|---|
 | 壳层 | `_shell` | 16 | 3 | 文档壳与页面骨架：html/head/body、#viewport、五只 .page |
-| V1–V4 | `_chrome` | 887 | 246 | 查看器 chrome |
+| V1–V4 | `_chrome` | 972 | 204 | 查看器 chrome |
 | U01 | `common-control/topbar` | 12 | 8 | .topbar 吸顶头部 |
 | U02 | `common-control/icon-btn` | 0 | 0 | .icon-btn 圆钮原子 |
 | U03 | `common-control/pulse-dot` | 0 | 3 | .pulse-dot 音源告警呼吸点 |
@@ -38,7 +38,7 @@
 | U20 | `common-control/op-box` | 0 | 11 | .op-box / .op-input / .op-go / .op-err / .op-file 输入行族 |
 | U21 | `common-control/q-chips` | 0 | 2 | .q-chips |
 | U22 | `common-control/toggle` | 0 | 4 | .toggle / .sw-row 开关行唯一定义 |
-| U23 | `common-control/sprite` | 100 | 1 | SVG sprite |
+| U23 | `common-control/sprite` | 104 | 1 | SVG sprite |
 | U30 | `common-control/eq-bars` | 0 | 5 | .sr-title .eq 播放中三柱均衡器 |
 | U28+U35 | `common-control/chip-row` | 2 | 4 | chip 行：首页 .rank-tabs 与<em>一处</em> .cat-row(sticky) |
 | U34 | `common-control/page-head` | 9 | 5 | .page-head 公共页头 |
@@ -57,7 +57,7 @@
 | U41 | `rank/chart-art` | 0 | 1 | chartArt 符号体系：色按榜名 |
 | U42 | `mine/mine-head` | 8 | 9 | .mine-head 个人头部 |
 | U43 | `mine/stat-row` | 1 | 4 | .stat-row / .stat 本地统计三项 |
-| U44 | `mine/fav-card` | 1 | 9 | .fav-card 我喜欢卡 |
+| U44 | `mine/fav-card` | 2 | 12 | .fav-card 入口卡家族：「我的」页这一处现在只有<em>一张整宽卡</em> |
 | U45 | `mine/song-list-compact` | 7 | 3 | .song-list.compact 最近播放区块 |
 | U46 | `mine/my-pl-mine` | 7 | 0 | 我的歌单区 |
 | U48 | `setting/set-hero` | 2 | 2 | .set-hero / .sh-sub 设定页说明头 |
@@ -82,7 +82,7 @@
 | U65 | `search/sc-result` | 0 | 3 | .sc-empty / .sc-hint 结果空态与提示族 |
 | 详情层壳 | `songlist-detail/_layer` | 1 | 4 | pl-layer 推入壳层 |
 | U66 | `songlist-detail/pl-bg` | 1 | 1 | .pl-bg 封面氛围层 |
-| U67 | `songlist-detail/pl-top` | 28 | 5 | .pl-top / .pl-crumb / .pl-fav-btn 顶排 |
+| U67 | `songlist-detail/pl-top` | 33 | 5 | .pl-top / .pl-crumb / .pl-fav-btn 顶排 |
 | U68 | `songlist-detail/pl-hero` | 1 | 7 | .pl-hero 头图区 |
 | U69 | `songlist-detail/pl-actions` | 1 | 5 | .pl-actions 播放全部 + 随机钮 |
 | U70 | `songlist-detail/pl-tracks` | 1 | 1 | #plTracks 曲目表 |
@@ -91,6 +91,7 @@
 | U83 | `radio/search` | 2 | 0 | 搜播客层 |
 | U84 | `radio/episode` | 10 | 9 | 单集屏 |
 | U85 | `sheets/region-sheet` | 6 | 0 | podRegionSheet 地区抽屉实例件 |
+| U86 | `mine/offline` | 6 | 7 | 已缓存 |
 | U72 | `sheets/source-sheet` | 29 | 2 | sourceSheet 音源浮层实例 |
 | U73 | `sheets/plid-sheet` | 15 | 1 | plIdSheet 打开歌单浮层实例 |
 | U74 | `sheets/create-sheet` | 11 | 0 | createSheet 新建歌单浮层实例 |
