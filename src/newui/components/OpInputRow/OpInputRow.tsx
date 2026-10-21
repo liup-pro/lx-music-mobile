@@ -1,5 +1,6 @@
 import { forwardRef, useState } from 'react'
 import {
+  Animated,
   Pressable,
   StyleSheet,
   Text,
@@ -11,6 +12,7 @@ import {
 } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import {
   FONT_SIZE,
   FONT_WEIGHT,
@@ -19,6 +21,9 @@ import {
   SHADOW,
   useTheme,
 } from '@/newui/theme'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface OpInputRowProps {
   value: string
@@ -66,6 +71,12 @@ export const OpInputRow = forwardRef<TextInput, OpInputRowProps>(({
   const theme = useTheme()
   // .op-input:focus 主色描边（styles.css L767）
   const [focused, setFocused] = useState(false)
+  /**
+   * `.op-go:active{transform:scale(.955)}`（styles.css L942），过渡 `.16s var(--ease)`（L941）——
+   * 本族最快的一档（OP_BOX.goPressMs=160），不是 MOTION.fast 的 200。
+   * busy 时不可再触发：缩放收到 1（只留整枚压暗）。
+   */
+  const goFx = usePressFx({ scale: busy ? 1 : OP_BOX.goPressScale, duration: OP_BOX.goPressMs })
   return (
     <View style={[styles.root, style]}>
       <TextInput
@@ -92,13 +103,15 @@ export const OpInputRow = forwardRef<TextInput, OpInputRowProps>(({
         autoFocus={autoFocus}
         onSubmitEditing={onSubmitEditing}
       />
-      <Pressable
+      <AnimatedPressable
         accessibilityRole="button"
         onPress={busy ? undefined : onGo}
-        style={({ pressed }) => [
+        onPressIn={goFx.onPressIn}
+        onPressOut={goFx.onPressOut}
+        style={[
           styles.go,
           SHADOW.playerMain,
-          pressed && !busy && styles.goPressed,
+          goFx.animatedStyle,
           busy && styles.goBusy,
         ]}
       >
@@ -111,7 +124,7 @@ export const OpInputRow = forwardRef<TextInput, OpInputRowProps>(({
         <Text style={[styles.goText, { color: theme.colors.onGradient }]}>
           {busy && busyLabel != null ? busyLabel : goLabel}
         </Text>
-      </Pressable>
+      </AnimatedPressable>
     </View>
   )
 })
@@ -145,10 +158,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-  },
-  /** .op-go:active scale(.955) */
-  goPressed: {
-    transform: [{ scale: OP_BOX.goPressScale }],
   },
   goBusy: {
     opacity: 0.6,

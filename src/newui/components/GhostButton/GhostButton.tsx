@@ -1,7 +1,8 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import {
   BUTTON,
   FONT_SIZE,
@@ -17,9 +18,14 @@ import { Icon, type IconName } from '../Icon'
 
 /** .ghost-btn.solid:active 的 filter:brightness(.9)（_base L204）——RN 无滤镜，直接压渐变本身 */
 const SOLID_PRESS_BRIGHTNESS = 0.9
+/** `.ghost-btn:active{transform:scale(.98)}`（styles.css L329） */
+const GHOST_PRESS_SCALE = 0.98
 /** 实心档常态 / 按压态的品牌渐变三端点（GRADIENTS.brand 的 shade 派生，不另立色） */
 const SOLID_COLORS = [...GRADIENTS.brand.colors] as string[]
 const SOLID_COLORS_PRESSED = SOLID_COLORS.map(color => shade(color, SOLID_PRESS_BRIGHTNESS))
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface GhostButtonProps {
   /** 文案（.ghost-btn 内文字） */
@@ -48,60 +54,79 @@ export interface GhostButtonProps {
 export const GhostButton = memo(
   ({ label, icon, onPress, disabled, fill = true, solid = false, style }: GhostButtonProps) => {
     const theme = useTheme()
+    /**
+     * `.ghost-btn{transition:.2s var(--ease)}`：原子档按压缩 .98 且底 fill-2 → fill-3，
+     * 实心档按压缩 .98 且渐变整条 brightness(.9)。两档共用同一条 200ms 补间。
+     *
+     * `solid` 是调用点上的静止档位（同一颗钮不会在运行期翻档），所以这条 Value 的 driver
+     * 一经确定就不再变：实心档只动 transform / opacity（native），原子档带底色插值（JS）。
+     */
+    const pressFx = usePressFx({
+      scale: GHOST_PRESS_SCALE,
+      background: solid ? undefined : { from: theme.colors.fill2, to: theme.colors.fill3 },
+    })
 
     // .ghost-btn.solid：品牌渐变铺底、深色墨、主色光晕；按压 = scale(.98) + brightness(.9)
     if (solid) {
       const ink = theme.colors.onBrand
       return (
-        <Pressable
+        <AnimatedPressable
           accessibilityRole="button"
           accessibilityState={{ disabled: disabled ?? false }}
           disabled={disabled}
           onPress={onPress}
-          style={({ pressed }) => [
+          onPressIn={pressFx.onPressIn}
+          onPressOut={pressFx.onPressOut}
+          style={[
             styles.root,
             styles.solid,
             fill ? styles.fill : null,
             SHADOW.ghostSolid,
-            pressed && !disabled && styles.pressed,
+            pressFx.animatedStyle,
             disabled && styles.disabled,
             style,
           ]}
         >
-          {({ pressed }) => (
-            <>
-              {/* .ghost-btn.solid:active 的 brightness(.9) —— 渐变三端点整体压暗一档（shade 派生） */}
-              <LinearGradient
-                colors={pressed && !disabled ? SOLID_COLORS_PRESSED : SOLID_COLORS}
-                start={GRADIENTS.brand.start}
-                end={GRADIENTS.brand.end}
-                pointerEvents="none"
-                style={StyleSheet.absoluteFill}
-              />
-              {icon != null && <Icon name={icon} size={BUTTON.ghostIcon} color={ink} />}
-              <Text numberOfLines={1} style={[styles.label, { color: ink }]}>
-                {label}
-              </Text>
-            </>
-          )}
-        </Pressable>
+          <LinearGradient
+            colors={SOLID_COLORS}
+            start={GRADIENTS.brand.start}
+            end={GRADIENTS.brand.end}
+            pointerEvents="none"
+            style={StyleSheet.absoluteFill}
+          />
+          {/* .ghost-btn.solid:active 的 brightness(.9)：常态渐变不动，盖一层压暗的渐变淡入（同一条补间） */}
+          <Animated.View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, { opacity: pressFx.progress }]}
+          >
+            <LinearGradient
+              colors={SOLID_COLORS_PRESSED}
+              start={GRADIENTS.brand.start}
+              end={GRADIENTS.brand.end}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
+          {icon != null && <Icon name={icon} size={BUTTON.ghostIcon} color={ink} />}
+          <Text numberOfLines={1} style={[styles.label, { color: ink }]}>
+            {label}
+          </Text>
+        </AnimatedPressable>
       )
     }
 
     return (
-      <Pressable
+      <AnimatedPressable
         accessibilityRole="button"
         accessibilityState={{ disabled: disabled ?? false }}
         disabled={disabled}
         onPress={onPress}
-        style={({ pressed }) => [
+        onPressIn={pressFx.onPressIn}
+        onPressOut={pressFx.onPressOut}
+        style={[
           styles.root,
           fill ? styles.fill : null,
-          {
-            backgroundColor: pressed && !disabled ? theme.colors.fill3 : theme.colors.fill2,
-            borderColor: theme.colors.line,
-          },
-          pressed && !disabled && styles.pressed,
+          { borderColor: theme.colors.line },
+          pressFx.animatedStyle,
           disabled && styles.disabled,
           style,
         ]}
@@ -110,7 +135,7 @@ export const GhostButton = memo(
         <Text numberOfLines={1} style={[styles.label, { color: theme.colors.text2 }]}>
           {label}
         </Text>
-      </Pressable>
+      </AnimatedPressable>
     )
   },
 )
@@ -141,10 +166,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FONT_SIZE.bodyLg,
     fontWeight: FONT_WEIGHT.bold,
-  },
-  /** .ghost-btn:active 缩放反馈 */
-  pressed: {
-    transform: [{ scale: 0.98 }],
   },
   disabled: {
     opacity: 0.45,

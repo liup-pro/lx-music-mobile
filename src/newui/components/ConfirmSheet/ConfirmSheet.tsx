@@ -1,10 +1,14 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
 import { NEW_UI_SHEET_CONFIRM } from '@/newui/const'
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { CONFIRM_SHEET, FONT_WEIGHT, GRADIENTS, useTheme } from '@/newui/theme'
 
 import { Sheet } from '../Sheet'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface ConfirmSheetProps {
   /** 显隐（透传 Sheet：false 时播完退场动画后自动卸载） */
@@ -44,6 +48,9 @@ export const ConfirmSheet = ({
   bottomInset,
 }: ConfirmSheetProps) => {
   const theme = useTheme()
+  // `.cf-btn:active{transform:scale(.98)}`（styles.css L648），`.cf-btn{transition:.2s var(--ease)}`（L646）
+  const cancelFx = usePressFx({ scale: CONFIRM_SHEET.pressScale })
+  const okFx = usePressFx({ scale: CONFIRM_SHEET.pressScale })
 
   return (
     <Sheet
@@ -56,23 +63,25 @@ export const ConfirmSheet = ({
       {/* .cf-actions：两枚等宽键，间距 10（styles.css L501） */}
       <View style={styles.actions}>
         {/* .cf-btn（左键）：fill-2 底 + 1px line 描边（原型 inset 描边转真实 border，高度不变） */}
-        <Pressable
+        <AnimatedPressable
           onPress={onClose}
           accessibilityRole="button"
           accessibilityLabel={cancelLabel}
-          style={({ pressed }) => [
+          onPressIn={cancelFx.onPressIn}
+          onPressOut={cancelFx.onPressOut}
+          style={[
             styles.btn,
-            pressed && styles.btnPressed,
             {
               backgroundColor: theme.colors.fill2,
               borderColor: theme.colors.line,
             },
+            cancelFx.animatedStyle,
           ]}
         >
           <Text style={[styles.btnText, { color: theme.colors.text2 }]}>{cancelLabel}</Text>
-        </Pressable>
+        </AnimatedPressable>
         {/* .cf-btn.go（右键）：--grad 渐变底 + 白字（原型 box-shadow:none，L505） */}
-        <Pressable
+        <AnimatedPressable
           onPress={() => {
             // 原型 cfOk.onclick：先 closeLayer 再 onOk——确认动作触发后立即收层
             onClose()
@@ -80,7 +89,9 @@ export const ConfirmSheet = ({
           }}
           accessibilityRole="button"
           accessibilityLabel={okLabel}
-          style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
+          onPressIn={okFx.onPressIn}
+          onPressOut={okFx.onPressOut}
+          style={[styles.btn, okFx.animatedStyle]}
         >
           <LinearGradient
             colors={[...GRADIENTS.brand.colors]}
@@ -90,7 +101,7 @@ export const ConfirmSheet = ({
           >
             <Text style={[styles.btnText, { color: theme.colors.onGradient }]}>{okLabel}</Text>
           </LinearGradient>
-        </Pressable>
+        </AnimatedPressable>
       </View>
     </Sheet>
   )
@@ -114,10 +125,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'transparent',
-  },
-  /** .cf-btn:active transform:scale(.98)（styles.css L504） */
-  btnPressed: {
-    transform: [{ scale: CONFIRM_SHEET.pressScale }],
   },
   /** 渐变层撑满键面（LinearGradient 不吃 flex，需显式 absolute 铺满） */
   btnFill: {

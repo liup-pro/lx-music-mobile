@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { BackHandler, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Animated, BackHandler, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 
 import { Art } from '@/newui/components/Art'
@@ -30,7 +30,7 @@ import {
   type PodShowRow,
   type PodSubEntry,
 } from '@/newui/podcast'
-import { useNewUiSystemBar, useSafeArea, useWideLayout } from '@/newui/hooks'
+import { useNewUiSystemBar, usePressFx, useSafeArea, useWideLayout } from '@/newui/hooks'
 // 直连 entry 而非 '@/newui/navigation' 桶口：避免 navigation/index → register → screens → 本文件的循环引用
 import { pushNewUiPodcastDetail, pushNewUiPodcastSearch } from '@/newui/navigation/entry'
 import {
@@ -47,6 +47,14 @@ import {
 import { showNewUiToast } from '@/newui/utils'
 
 import { PodRegionSheet } from './sheets/PodRegionSheet'
+
+/** `.subs-card:active{transform:scale(.96)}`（styles.css L378，`transition:.2s`） */
+const SUBS_CARD_PRESS_SCALE = 0.96
+/** `.subs-x` 原型没写 `:active`，沿用 `.icon-btn` 家族那一档（.9，见件内说明） */
+const SUBS_X_PRESS_SCALE = 0.9
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface RadioHomeScreenProps {
   componentId: string
@@ -353,12 +361,18 @@ const SubsCard = ({
   onUnsub: () => void
 }) => {
   const theme = useTheme()
+  // `.subs-card:active{transform:scale(.96)}`：卡片类按原型缩放，200ms 缓动
+  const cardFx = usePressFx({ scale: SUBS_CARD_PRESS_SCALE })
+  // 取消收听那颗 22dp 小圆贴片按 `.icon-btn` 家族同一档收缩（原型没给 `.subs-x:active`）
+  const unsubFx = usePressFx({ scale: SUBS_X_PRESS_SCALE })
   return (
     <View style={styles.subsWrap}>
-      <Pressable
+      <AnimatedPressable
         accessibilityRole="button"
         onPress={onPress}
-        style={({ pressed }) => [styles.subsCard, pressed && styles.subsCardPressed]}
+        onPressIn={cardFx.onPressIn}
+        onPressOut={cardFx.onPressOut}
+        style={[styles.subsCard, cardFx.animatedStyle]}
       >
         <Art
           width={POD.subsArtSize}
@@ -378,22 +392,24 @@ const SubsCard = ({
             {remainingText}
           </Text>
         )}
-      </Pressable>
+      </AnimatedPressable>
       {/* .subs-x：玻璃贴片底（--glass + --glass-ink + inset 1px --line，home.css L37-L41）。
           原型带 backdrop-filter blur(10)：22dp 的小圆贴片上模糊几乎不可辨，且新 GLASS 规格位要动
           tokens.ts（本轮禁改），故只取 glassPatch 染色 + line 描边这一档，模糊留作设备验收后的单点决定。 */}
-      <Pressable
+      <AnimatedPressable
         accessibilityRole="button"
         accessibilityLabel={NEW_UI_RADIO_HOME_LABELS.unsub(entry.name)}
         onPress={onUnsub}
+        onPressIn={unsubFx.onPressIn}
+        onPressOut={unsubFx.onPressOut}
         hitSlop={CONTROL.moreHitSlop}
-        style={({ pressed }) => [
+        style={[
           styles.subsX,
           {
             backgroundColor: theme.colors.glassPatch,
             borderColor: theme.colors.line,
           },
-          pressed && styles.subsXPressed,
+          unsubFx.animatedStyle,
         ]}
       >
         <Icon
@@ -401,7 +417,7 @@ const SubsCard = ({
           size={POD.subsXIconSize}
           color={theme.colors.glassPatchInk}
         />
-      </Pressable>
+      </AnimatedPressable>
     </View>
   )
 }
@@ -467,10 +483,6 @@ const styles = StyleSheet.create({
   subsCard: {
     width: POD.subsCardWidth,
   },
-  /** .subs-card:active{transform:scale(.96)} */
-  subsCardPressed: {
-    transform: [{ scale: 0.96 }],
-  },
   /** .sub-n：12.5 / 700 / margin-top 8 / 行高 1.4 / 两行截断 */
   subsName: {
     marginTop: POD.subsNameMarginTop,
@@ -496,10 +508,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  /** .subs-x 按下按 .icon-btn 家族同一档收缩 */
-  subsXPressed: {
-    transform: [{ scale: 0.9 }],
   },
   /** .subs-empty：card 底 + hairline 描边 + 11.5/行高1.6 的**色块**（与 EmptyTip 不同族） */
   subsEmpty: {

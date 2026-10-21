@@ -1,7 +1,11 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { FOLD_MORE, FONT_WEIGHT, useTheme } from '@/newui/theme'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface FoldMoreProps {
   /** 整行文案（原型 renderSheet L2285：「还有 N 个音源没显示 · 点这里看全（其中 M 个已就绪）」） */
@@ -19,19 +23,22 @@ export interface FoldMoreProps {
  */
 export const FoldMore = memo(({ text, onPress, style }: FoldMoreProps) => {
   const theme = useTheme()
+  // `.fold-more:active{background:var(--fill-3);transform:scale(.99)}`（件 opt-list.css L55），
+  // 过渡 `.2s var(--ease)`（件 L54）→ MOTION.fast 缺省档；常态底 fill-1，故 from 给常态色
+  const pressFx = usePressFx({
+    scale: FOLD_MORE.pressScale,
+    background: { from: theme.colors.fill1, to: theme.colors.fill3 },
+  })
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.root,
-        // .fold-more:active{background:var(--fill-3)}（件 L55）——按下整行底色抬一档
-        { backgroundColor: pressed ? theme.colors.fill3 : theme.colors.fill1, borderColor: theme.colors.hairline },
-        pressed && styles.pressed,
-      ]}
+      onPressIn={pressFx.onPressIn}
+      onPressOut={pressFx.onPressOut}
+      style={[styles.root, { borderColor: theme.colors.hairline }, pressFx.animatedStyle, style]}
     >
       <Text style={[styles.text, { color: theme.colors.text3 }]}>{text}</Text>
-    </Pressable>
+    </AnimatedPressable>
   )
 })
 
@@ -47,10 +54,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  /** .fold-more:active transform:scale(.99)（底色见渲染期） */
-  pressed: {
-    transform: [{ scale: FOLD_MORE.pressScale }],
   },
   /** 11.5 / 700 / 居中 */
   text: {

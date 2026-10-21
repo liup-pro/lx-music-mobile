@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { PanResponder, StyleSheet, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native'
+import { Animated, PanResponder, StyleSheet, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
 // 直接复用旧 UI 进度条用的同一个拖拽计算 hook（纯 UI 工具，无状态副作用）：
@@ -7,6 +7,7 @@ import LinearGradient from 'react-native-linear-gradient'
 // 不依赖 Android move 事件里不可靠的 locationX —— 这是旧 UI 100% 落位的关键之一
 import { useDrag } from '@/utils/hooks/useDrag'
 
+import { useSmoothProgress } from '@/newui/hooks/useSmoothProgress'
 import { GRADIENTS, PLAYER, SHADOW, useTheme } from '@/newui/theme'
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value))
@@ -79,8 +80,14 @@ PressLayer.displayName = 'NewUISeekPressLayer'
  *    没有第二套逻辑，两者落位精度一致。
  * 3. 提交即 app_event.setProgress，核心层会同步把 store 进度写成目标值再 seek 原生，
  *    所以松手瞬间交还给外部真相时，两者本来就是同一个数，视觉无缝接续。
- * 4. 显示用百分比 width 直写（旧 UI 手法），不用 Animated 追赶：
- *    动画插值会把「store 已等于目标」这一事实盖住，正是上一版随机回跳的来源。
+ * 4. **正常播放推进做 300ms 线性补间**（原型 `.seek i{transition:width .3s linear}` /
+ *    `.seek em{transition:left .3s linear}`，styles.css L769-L770），填充与旋钮共用同一个
+ *    0..1 的 Animated 值，所以两者天然同步。判据见 `hooks/useSmoothProgress`：
+ *    拖拽中、松手提交后、换曲 / 回退 / 单拍跨度超过 2% 的跳转**一律立即落位**，
+ *    对应原型 `.seek.drag i,.seek.drag em{transition:none}`（L772）那一档。
+ *    上一版「不用 Animated 追赶」的结论到此作废：那时是拿动画去追每一拍的真相，追不上的残差
+ *    被看成回跳；现在动画只负责一拍之内的视觉推进，目标值本身仍是 store 的原值，
+ *    落位时机由上面三条决定，不会出现「动画还没跑完、真相又变了」的竞赛。
  */
 export const SeekControl = memo(({ ratio, onCommit, style }: SeekControlProps) => {
   const theme = useTheme()
@@ -96,15 +103,35 @@ export const SeekControl = memo(({ ratio, onCommit, style }: SeekControlProps) =
     commitRef.current = onCommit
   }, [onCommit])
 
+  // 显示值：拖拽中由本组件接管（enabled:false），其余时候 300ms 线性补间把每秒一步抹平
+  const { value: shown, setImmediate } = useSmoothProgress(ratio, { enabled: !dragging })
+
+  /** 松手那一刻提交的 0..1：落位用它，不等外部 ratio 晚一拍才回来 */
+  const committedRef = useRef(0)
+
   const handleCommit = useCallback((progress: number) => {
+    committedRef.current = progress
     commitRef.current(progress)
   }, [])
 
-  // 拖拽中显示手指位置，松手后显示真相
-  const shown = dragging ? dragProgress : clamp01(ratio)
-  const shownPct: `${number}%` = `${shown * 100}%`
+  const handleDragState = useCallback((next: boolean) => {
+    // 松手即真值（同第 3 条）；按下那一下由下面那条 effect 把显示值接到手指位置
+    if (!next) setImmediate(committedRef.current)
+    setDragging(next)
+  }, [setImmediate])
 
-  const fillStyle = useMemo(() => ({ width: shownPct }), [shownPct])
+  // 拖拽中显示的是手指位置：外部 1Hz 值不参与显示，因此不存在「回跳」
+  useEffect(() => {
+    if (!dragging) return
+    shown.stopAnimation()
+    shown.setValue(clamp01(dragProgress))
+  }, [dragProgress, dragging, shown])
+
+  // 填充宽度与旋钮位置共用这一条插值：同一时刻取同一个数，不会各跑各的
+  const shownPct = useMemo(
+    () => shown.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+    [shown],
+  )
 
   return (
     <View style={[styles.hit, style]}>
@@ -112,17 +139,17 @@ export const SeekControl = memo(({ ratio, onCommit, style }: SeekControlProps) =
         {/* 填充层：外层百分比裁切宽度，内层渐变固定为整条像素宽，
             这样渐变配色不随进度伸缩（等价原型 background-size 铺满轨道） */}
         {trackWidth > 0 && (
-          <View style={[styles.fill, fillStyle]}>
+          <Animated.View style={[styles.fill, { width: shownPct }]}>
             <LinearGradient
               colors={[...GRADIENTS.brand.colors]}
               start={GRADIENTS.brand.start}
               end={GRADIENTS.brand.end}
               style={{ width: trackWidth, height: '100%' }}
             />
-          </View>
+          </Animated.View>
         )}
         {/* 旋钮圆心对齐进度点：left 走百分比，再静态左移半个旋钮 */}
-        <View
+        <Animated.View
           style={[
             styles.thumb,
             SHADOW.glow,
@@ -132,7 +159,7 @@ export const SeekControl = memo(({ ratio, onCommit, style }: SeekControlProps) =
         />
       </View>
       <PressLayer
-        onDragState={setDragging}
+        onDragState={handleDragState}
         setDragProgress={setDragProgress}
         onSetProgress={handleCommit}
         onWidthChange={setTrackWidth}

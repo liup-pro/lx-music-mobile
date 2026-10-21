@@ -1,10 +1,14 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, Text } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text } from 'react-native'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { FONT_SIZE, FONT_WEIGHT, RECENT_CARD, useTheme } from '@/newui/theme'
 
 import { Art } from '../Art'
 import { PlayBadge } from '../PlayBadge'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface RecentCardProps {
   /** 曲名（.rt 单行省略） */
@@ -27,10 +31,14 @@ export interface RecentCardProps {
 export const RecentCard = memo(
   ({ title, subtitle, artSeed, artUri, width = RECENT_CARD.width, onPress }: RecentCardProps) => {
     const theme = useTheme()
+    // `.recent-card:active{transform:scale(.95)}`（styles.css L232），过渡 `.2s` 即 MOTION.fast
+    const pressFx = usePressFx({ scale: RECENT_CARD.pressScale })
     return (
-      <Pressable
+      <AnimatedPressable
         onPress={onPress}
-        style={({ pressed }) => [styles.root, { width }, pressed && styles.pressed]}
+        onPressIn={pressFx.onPressIn}
+        onPressOut={pressFx.onPressOut}
+        style={[styles.root, { width }, pressFx.animatedStyle]}
       >
         <Art width={width} height={width} seed={artSeed} imageUri={artUri} scrim>
           <PlayBadge />
@@ -41,7 +49,7 @@ export const RecentCard = memo(
         <Text numberOfLines={1} style={[styles.subtitle, { color: theme.colors.text3 }]}>
           {subtitle}
         </Text>
-      </Pressable>
+      </AnimatedPressable>
     )
   },
 )
@@ -52,10 +60,6 @@ const styles = StyleSheet.create({
   /** 宽度由 props 决定（.recent-card width:112px），保证标题不会把卡撑宽 */
   root: {
     flexShrink: 0,
-  },
-  /** .recent-card:active 缩放反馈 */
-  pressed: {
-    transform: [{ scale: 0.95 }],
   },
   /** .rt 12.5px / 700，上边距 8（原型无字距）。
    * QA 2026-10-14 首页 D-05：原型卡片本体是 <button>（app.js L272），

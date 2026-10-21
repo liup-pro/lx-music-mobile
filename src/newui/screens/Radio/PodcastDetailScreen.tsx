@@ -4,6 +4,7 @@ import { Navigation } from 'react-native-navigation'
 
 import { pickArtPalette } from '@/newui/components/Art'
 import { CoverWash } from '@/newui/components/CoverWash'
+import { EmptyTip } from '@/newui/components/EmptyTip'
 import { GhostButton } from '@/newui/components/GhostButton'
 import { PagingStatus } from '@/newui/components/PagingStatus'
 import { PlTop } from '@/newui/components/PlTop'
@@ -160,8 +161,12 @@ export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenPr
   /**
    * 进单集屏（U84）。那一屏自己不发请求：节目名、封面与这一集的展示栏都由这里带过去
    * （passProps 全可序列化；③ 给的音频直链 `episodeUrl` 现在要真出声，所以也必须过桥）。
+   *
+   * `playNow`（用户 2026-10 拍板「点了就出声」）：只有上面那颗「继续播放 / 播最新单集」传 true，
+   * 行点进去仍是老行为（只看不播）。真正的起播发生在单集屏——本屏没有 toast 宿主，
+   * 定时停止播放那道闸的提示得落在单集屏头上（理由见 `EpisodeScreen` 的 autoPlay 注释）。
    */
-  const openEpisode = useCallback((index: number) => {
+  const openEpisode = useCallback((index: number, playNow = false) => {
     const episode = episodes[index]
     if (episode == null) return
     pushNewUiEpisode(componentId, {
@@ -179,6 +184,7 @@ export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenPr
         // 接口这集没给直链就是空串：单集屏据此让播放钮不做声（不猜地址、不编字段）
         episodeUrl: episode.episodeUrl ?? '',
       },
+      ...(playNow ? { autoPlay: true } : {}),
     })
   }, [artworkUrl, componentId, episodes, showId, showName])
 
@@ -247,6 +253,8 @@ export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenPr
         故不抽件、也不套 PlActions 那「播放全部 + 随机」两颗）。
         **两种状态同一颗钮**（app.js L2027-L2030）：听过 →「继续播放 · 还剩 X」，没听过 →「播最新单集 · X」。
         单集还没在手（首屏取数中 / 取失败）时不摆这颗钮：那时「播最新单集 · 0 分钟」是虚报。
+        点它 = 进单集屏并**当场起播**（`openEpisode(actionIndex, true)`，用户 2026-10 拍板），
+        不再让人进屏后还得再点一次播放钮。
       */}
       {episodes.length > 0 && (
         <View style={styles.actions}>
@@ -260,7 +268,7 @@ export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenPr
                 ? NEW_UI_POD_DETAIL_TXT.resume(podDurationText(progressEntry.left))
                 : NEW_UI_POD_DETAIL_TXT.playLatest(episodes[0].durationText)
             }
-            onPress={() => { openEpisode(actionIndex) }}
+            onPress={() => { openEpisode(actionIndex, true) }}
           />
         </View>
       )}
@@ -274,13 +282,19 @@ export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenPr
     </View>
   )
 
-  // 取数中 / 取不到：轴里那一行状态提示（`.pl-status` 原子复用）。
-  // 文案是本屏自补的两句（原型 U82 吃同步 mock、根本没有这两态），已挂「待用户定」。
+  // 取数中 / 取不到 / 一集都没有：轴里那一行状态提示（`.pl-status` 与 `.empty-tip` 两个原子复用）。
+  // 三态互斥：`episodes` 为空才轮到这一块，所以「还在载入」「载入失败」「真没有单集」各自只有一句、
+  // 不会两句话同时占屏（文案除 loading 外都是本屏自补的，原型 U82 吃同步 mock、根本没有这两态）。
   const axisEmpty = (
     <View>
       {detail.loading && <PagingStatus disabled loading text={NEW_UI_POD_DETAIL_STATUS.loading} />}
       {!detail.loading && detail.failed && (
         <PagingStatus text={NEW_UI_POD_DETAIL_STATUS.failed} onPress={detail.retry} />
+      )}
+      {/* 既不在载入、也没失败、单集就是空：这一句与上面「失败」那句分开说，
+          不然用户会去点一个并不存在的重试 */}
+      {!detail.loading && !detail.failed && (
+        <EmptyTip text={NEW_UI_POD_DETAIL_STATUS.empty} variant="layer" />
       )}
     </View>
   )

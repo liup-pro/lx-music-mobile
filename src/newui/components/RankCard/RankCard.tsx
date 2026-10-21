@@ -1,10 +1,14 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet } from 'react-native'
+import { Animated, Pressable, StyleSheet } from 'react-native'
 
 import { ChartArt } from '../ChartArt'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { ART_INK, RADIUS, RANK_CARD, type ChartArtKind } from '@/newui/theme'
 import { withAlpha } from '@/newui/utils'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface RankCardProps {
   /** 单卡边长（.rk-card aspect-ratio:1，两列网格由容器算出宽度传入） */
@@ -25,25 +29,31 @@ export interface RankCardProps {
  * 封面色由 ChartArt 走 const/rank.ts 的 rankChartTint 按榜名查表（同名榜跨平台同色）。
  * 纯展示组件；「点进去看完整排名」由容器接线。
  */
-export const RankCard = memo(({ width, name, sub, kind, onPress }: RankCardProps) => (
-  <Pressable
-    accessibilityRole="button"
-    onPress={onPress}
-    style={({ pressed }) => [
-      styles.root,
-      {
-        width,
-        height: width,
-        // .rk-card inset 0 0 0 1px rgba(255,255,255,.16)（原型的外投影 0 18px 34px -24px
-        // 带负 spread，RN shadow 表达不了，维持只用内描边表达层次）
-        borderColor: withAlpha(ART_INK.fg, RANK_CARD.ringAlpha),
-      },
-      pressed && styles.pressed,
-    ]}
-  >
-    <ChartArt height={width} kind={kind} name={name} sub={sub} width={width} />
-  </Pressable>
-))
+export const RankCard = memo(({ width, name, sub, kind, onPress }: RankCardProps) => {
+  // `.rk-card:active{transform:scale(.96)}`（styles.css L512），过渡 `.2s` 即 MOTION.fast
+  const pressFx = usePressFx({ scale: RANK_CARD.pressScale })
+  return (
+    <AnimatedPressable
+      accessibilityRole="button"
+      onPress={onPress}
+      onPressIn={pressFx.onPressIn}
+      onPressOut={pressFx.onPressOut}
+      style={[
+        styles.root,
+        {
+          width,
+          height: width,
+          // .rk-card inset 0 0 0 1px rgba(255,255,255,.16)（原型的外投影 0 18px 34px -24px
+          // 带负 spread，RN shadow 表达不了，维持只用内描边表达层次）
+          borderColor: withAlpha(ART_INK.fg, RANK_CARD.ringAlpha),
+        },
+        pressFx.animatedStyle,
+      ]}
+    >
+      <ChartArt height={width} kind={kind} name={name} sub={sub} width={width} />
+    </AnimatedPressable>
+  )
+})
 
 RankCard.displayName = 'NewUIRankCard'
 
@@ -53,8 +63,5 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.m,
     borderWidth: 1,
     overflow: 'hidden',
-  },
-  pressed: {
-    transform: [{ scale: RANK_CARD.pressScale }],
   },
 })

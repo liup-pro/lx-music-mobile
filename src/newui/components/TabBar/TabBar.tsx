@@ -1,8 +1,9 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
 import type { TabDefinition } from '@/newui/const'
+import { usePressFx } from '@/newui/hooks/usePressFx'
 // 直连具体 hook（不走 @/newui/hooks 桶口），与 PageViewport / CardGrid 同一做法
 import { useWideLayout } from '@/newui/hooks/useWideLayout'
 import {
@@ -19,6 +20,9 @@ import {
 
 import { Icon } from '../Icon'
 import { BlurredContainer } from '../Glass'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface TabBarProps {
   /** Tab 定义（key / 文案 / 图标），来自 @/newui/const 的 NEW_UI_TABS */
@@ -41,13 +45,17 @@ interface TabProps {
 /** 单个 Tab（原型 .tab：23px 图标 + 10.5px 文案 + 选中态顶部渐变指示条） */
 const Tab = memo(({ item, active, iconSize, onSelect }: TabProps) => {
   const theme = useTheme()
+  // `.tab:active{transform:scale(.92)}`，缩放那段 transition 是 .2s（MOTION.fast，见 TAB_BAR.pressScale）
+  const pressFx = usePressFx({ scale: TAB_BAR.pressScale })
   const color = active ? theme.colors.text : theme.colors.text3
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       onPress={() => onSelect(item.key)}
-      style={({ pressed }) => [styles.tab, pressed && styles.pressed]}
+      onPressIn={pressFx.onPressIn}
+      onPressOut={pressFx.onPressOut}
+      style={[styles.tab, pressFx.animatedStyle]}
     >
       {active && (
         <LinearGradient
@@ -59,7 +67,7 @@ const Tab = memo(({ item, active, iconSize, onSelect }: TabProps) => {
       )}
       <Icon name={item.icon} size={iconSize} color={color} />
       <Text style={[styles.label, { color }]}>{item.label}</Text>
-    </Pressable>
+    </AnimatedPressable>
   )
 })
 
@@ -150,9 +158,5 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.tiny,
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: LETTER_SPACING.wide,
-  },
-  /** .tab:active 缩放反馈 */
-  pressed: {
-    transform: [{ scale: 0.92 }],
   },
 })

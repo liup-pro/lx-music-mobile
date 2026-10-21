@@ -1,7 +1,16 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native'
 
 import { QTag } from '@/newui/components/QTag'
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { FONT_WEIGHT, POD, useTheme } from '@/newui/theme'
 
 /**
@@ -45,16 +54,24 @@ export const EpisodeRow = memo(({
   style,
 }: EpisodeRowProps) => {
   const theme = useTheme()
+  // `.ep-row{transition:.2s var(--ease)}`：与 `.pod-row` 同一条口径，行类只变底色、不缩放
+  const pressFx = usePressFx()
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        pressed ? { backgroundColor: theme.colors.fill1 } : null,
-        style,
-      ]}
+      onPressIn={pressFx.onPressIn}
+      onPressOut={pressFx.onPressOut}
+      style={[styles.row, style]}
     >
+      {/* .ep-row:active{background:var(--fill-1)}：不动的底色层淡入，正文与行距一概不受影响 */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.pressBg,
+          { backgroundColor: theme.colors.fill1, opacity: pressFx.progress },
+        ]}
+      />
       <View style={styles.body}>
         <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>
           {title}
@@ -86,6 +103,11 @@ const styles = StyleSheet.create({
     gap: POD.epRowGap,
     paddingVertical: POD.epRowPaddingY,
     paddingHorizontal: POD.epRowPaddingX,
+    borderRadius: POD.epRowRadius,
+  },
+  /** 按下底色层：铺满整行、跟行同圆角（行根没有 overflow:hidden，圆角得自己带） */
+  pressBg: {
+    ...StyleSheet.absoluteFillObject,
     borderRadius: POD.epRowRadius,
   },
   /** .ep-body{flex:1;min-width:0} */

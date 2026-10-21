@@ -1,10 +1,14 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { FONT_SIZE, FONT_WEIGHT, PL_CARD, RADIUS, useTheme } from '@/newui/theme'
 
 import { Art } from '../Art'
 import { PlayBadge } from '../PlayBadge'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface PlCardProps {
   /** 单卡宽度（封面为 1:1，由容器用 gridItemWidth 算出） */
@@ -33,10 +37,14 @@ export interface PlCardProps {
  */
 export const PlCard = memo(({ width, title, artSeed, artUri, meta, tint, badge = true, onPress }: PlCardProps) => {
   const theme = useTheme()
+  // `.pl-card:active{transform:scale(.96)}`（styles.css L262），过渡 `.2s` 即 MOTION.fast
+  const pressFx = usePressFx({ scale: PL_CARD.pressScale })
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
-      style={({ pressed }) => [styles.root, { width }, pressed && styles.pressed]}
+      onPressIn={pressFx.onPressIn}
+      onPressOut={pressFx.onPressOut}
+      style={[styles.root, { width }, pressFx.animatedStyle]}
     >
       <Art width={width} height={width} radius={RADIUS.s} seed={artSeed} imageUri={artUri} scrim>
         {badge ? <PlayBadge /> : null}
@@ -55,7 +63,7 @@ export const PlCard = memo(({ width, title, artSeed, artUri, meta, tint, badge =
           </Text>
         </View>
       ) : null}
-    </Pressable>
+    </AnimatedPressable>
   )
 })
 
@@ -64,10 +72,6 @@ PlCard.displayName = 'NewUIPlCard'
 const styles = StyleSheet.create({
   root: {
     flexShrink: 0,
-  },
-  /** .pl-card:active 缩放反馈 */
-  pressed: {
-    transform: [{ scale: 0.96 }],
   },
   /** .pt 13px / 700 / line-height 1.35 / 预留两行高度。
    * QA 2026-10-14 首页 D-05：原型卡片本体是 <button>（app.js L335），标题视觉居中；

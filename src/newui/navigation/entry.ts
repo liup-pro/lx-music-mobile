@@ -61,44 +61,88 @@ export const pushNewUiMain = (componentId: string) => {
 }
 
 /**
+ * 手快连点的防重入。除 `setNewUiRoot` 与并存调试入口 `pushNewUiMain`（都不是用户点出来的层），
+ * 本层所有 push 都过这一道。
+ *
+ * RNN 的 push 转场是 440ms（`PL_LAYER.enterDuration`）：第二下点击落在这段时间里，栈上就会
+ * 再叠一层同一个目标（真机表现：连点两下列表行，要多退一次才回到列表；播放页同理叠两层）。
+ * 锁按**目标**分桶、不是全局一把：连点同一个目标直接丢掉，快速跳不同层照样放行。
+ * 同一目标 400ms 内的第二个请求不发；`push` 失败当场解锁——一次失败不该把这一层锁到窗口结束
+ * （用户会再点一次，那一次必须能发出去）。成功路径的 Promise 原样返回，正常导航的错误不吞。
+ *
+ * **桶的粒度 = `screen` + 关键 id**（2026-10-21 第 4 批修正）：只按 screen 分桶时，
+ * 歌单详情这一屏有两个入口共用同一个 `NEW_UI_SONGLIST_DETAIL_SCREEN`
+ * （平台单 `pushNewUiSonglistDetail` / 本地单 `pushNewUiLocalListDetail`），
+ * 400ms 内先点平台单、紧接着点本地单，第二下会被当成「同一目标的连点」吞掉。
+ * 所以带标识的路由把标识拼进桶键（平台单 `pl:<source>:<id>`、本地单 `local:<id>`、
+ * 节目详情 `<show.id>`、单集 `<id>`）；没有标识的路由（播放页 / 搜索 / 已缓存 / 电台首页 /
+ * 搜节目）仍是 screen 粒度——它们本来就只有一个含义，连点丢掉才是对的。
+ */
+const PUSH_LOCK_MS = 400
+const pushLockAt = new Map<string, number>()
+
+/** 桶键拼装：`screen` 或 `screen#标识`。标识一律由调用方给可序列化的短串（id / source:id） */
+const pushLockKey = (name: string, id?: string): string =>
+  id == null || id.length === 0 ? name : `${name}#${id}`
+
+const guardedPush = async(
+  name: string,
+  start: () => Promise<string>,
+  lockId?: string,
+): Promise<string | undefined> => {
+  const key = pushLockKey(name, lockId)
+  const now = Date.now()
+  const last = pushLockAt.get(key)
+  if (last != null && now - last < PUSH_LOCK_MS) return undefined
+  pushLockAt.set(key, now)
+  const pushed = start()
+  pushed.catch(() => {
+    if (pushLockAt.get(key) === now) pushLockAt.delete(key)
+  })
+  return pushed
+}
+
+/**
  * 打开新 UI 播放页（对应原型 .player-layer 的 translateY 100% → 0 / .46s 上滑入场）。
  * RNN 侧用 elementTransitions 平移整层（nativeID 见 screens/Player 根 View），
  * 与旧 pushPlayDetailScreen 的头部/控制区动效同一套已验证机制（Android）。
  * 底色取运行中的主题快照（QA D-10：不再硬编深色打底，闪动两帧的根源在底色与真模式不符）。
  */
 export const pushNewUiPlayer = (componentId: string) => {
-  const { height } = Dimensions.get('window')
-  return Navigation.push(componentId, {
-    component: {
-      name: NEW_UI_PLAYER_SCREEN,
-      options: {
-        ...newUiScreenOptions(getCachedNewUiScheme()),
-        animations: {
-          push: {
-            elementTransitions: [
-              {
-                id: 'newui.player.content',
-                translationY: {
-                  from: height,
-                  duration: PLAYER.enterDuration,
+  return guardedPush(NEW_UI_PLAYER_SCREEN, async() => {
+    const { height } = Dimensions.get('window')
+    return Navigation.push(componentId, {
+      component: {
+        name: NEW_UI_PLAYER_SCREEN,
+        options: {
+          ...newUiScreenOptions(getCachedNewUiScheme()),
+          animations: {
+            push: {
+              elementTransitions: [
+                {
+                  id: 'newui.player.content',
+                  translationY: {
+                    from: height,
+                    duration: PLAYER.enterDuration,
+                  },
                 },
-              },
-            ],
-          },
-          pop: {
-            elementTransitions: [
-              {
-                id: 'newui.player.content',
-                translationY: {
-                  to: height,
-                  duration: PLAYER.enterDuration,
+              ],
+            },
+            pop: {
+              elementTransitions: [
+                {
+                  id: 'newui.player.content',
+                  translationY: {
+                    to: height,
+                    duration: PLAYER.enterDuration,
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
         },
       },
-    },
+    })
   })
 }
 
@@ -109,38 +153,40 @@ export const pushNewUiPlayer = (componentId: string) => {
  * 与播放页同一套底色策略：运行中 push，同步读主题快照（QA D-10）。
  */
 export const pushNewUiSearch = (componentId: string) => {
-  const { width } = Dimensions.get('window')
-  return Navigation.push(componentId, {
-    component: {
-      name: NEW_UI_SEARCH_SCREEN,
-      options: {
-        ...newUiScreenOptions(getCachedNewUiScheme()),
-        animations: {
-          push: {
-            elementTransitions: [
-              {
-                id: 'newui.search.content',
-                translationX: {
-                  from: width,
-                  duration: SEARCH.enterDuration,
+  return guardedPush(NEW_UI_SEARCH_SCREEN, async() => {
+    const { width } = Dimensions.get('window')
+    return Navigation.push(componentId, {
+      component: {
+        name: NEW_UI_SEARCH_SCREEN,
+        options: {
+          ...newUiScreenOptions(getCachedNewUiScheme()),
+          animations: {
+            push: {
+              elementTransitions: [
+                {
+                  id: 'newui.search.content',
+                  translationX: {
+                    from: width,
+                    duration: SEARCH.enterDuration,
+                  },
                 },
-              },
-            ],
-          },
-          pop: {
-            elementTransitions: [
-              {
-                id: 'newui.search.content',
-                translationX: {
-                  to: width,
-                  duration: SEARCH.enterDuration,
+              ],
+            },
+            pop: {
+              elementTransitions: [
+                {
+                  id: 'newui.search.content',
+                  translationX: {
+                    to: width,
+                    duration: SEARCH.enterDuration,
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
         },
       },
-    },
+    })
   })
 }
 
@@ -148,6 +194,9 @@ export const pushNewUiSearch = (componentId: string) => {
  * 右推层（原型 `.pl-layer`）的共用体：`translateX 100% → 0`，时长 `PL_LAYER.enterDuration` 440ms。
  * RNN 侧用 elementTransitions 平移整层，`contentId` 即目标屏根 View 的 nativeID。
  * **转场只在这一处持有**：屏内一律调下面的 helper，不各自写 Navigation.push。
+ * 连点同一个目标由 `guardedPush` 挡下（桶键 = `name` + 可选的 `lockId`，见那只助手）。
+ * `lockId` 由各 helper 按「这一层在看的是谁」给出：歌单详情两族（平台单 / 本地单）共用一个 screen，
+ * 只有把 `source:id` / `id` 拼进桶键，才不会出现「先点平台单、紧接点本地单，第二下被吞」。
  * passProps 必须全部可序列化（RNN 走原生桥），store 对象 / 函数不许进来。
  */
 const pushPlLayer = (
@@ -155,41 +204,44 @@ const pushPlLayer = (
   name: string,
   contentId: string,
   passProps?: Record<string, unknown>,
+  lockId?: string,
 ) => {
-  const { width } = Dimensions.get('window')
-  return Navigation.push(componentId, {
-    component: {
-      name,
-      ...(passProps != null ? { passProps } : {}),
-      options: {
-        ...newUiScreenOptions(getCachedNewUiScheme()),
-        animations: {
-          push: {
-            elementTransitions: [
-              {
-                id: contentId,
-                translationX: {
-                  from: width,
-                  duration: PL_LAYER.enterDuration,
+  return guardedPush(name, async() => {
+    const { width } = Dimensions.get('window')
+    return Navigation.push(componentId, {
+      component: {
+        name,
+        ...(passProps != null ? { passProps } : {}),
+        options: {
+          ...newUiScreenOptions(getCachedNewUiScheme()),
+          animations: {
+            push: {
+              elementTransitions: [
+                {
+                  id: contentId,
+                  translationX: {
+                    from: width,
+                    duration: PL_LAYER.enterDuration,
+                  },
                 },
-              },
-            ],
-          },
-          pop: {
-            elementTransitions: [
-              {
-                id: contentId,
-                translationX: {
-                  to: width,
-                  duration: PL_LAYER.enterDuration,
+              ],
+            },
+            pop: {
+              elementTransitions: [
+                {
+                  id: contentId,
+                  translationX: {
+                    to: width,
+                    duration: PL_LAYER.enterDuration,
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
         },
       },
-    },
-  })
+    })
+  }, lockId)
 }
 
 /**
@@ -205,7 +257,9 @@ export const pushNewUiSonglistDetail = (
   fromTab?: NewUiTabKey,
 ) => {
   return pushPlLayer(componentId, NEW_UI_SONGLIST_DETAIL_SCREEN, 'newui.songlistDetail.content',
-    fromTab != null ? { info, kind, fromTab } : { info, kind })
+    fromTab != null ? { info, kind, fromTab } : { info, kind },
+    // 平台单的桶键带平台 + id：与本地单（local:<id>）互不占位
+    `pl:${info.source}:${info.id}`)
 }
 
 /**
@@ -225,7 +279,9 @@ export const pushNewUiLocalListDetail = (
   return pushPlLayer(componentId, NEW_UI_SONGLIST_DETAIL_SCREEN, 'newui.songlistDetail.content',
     fromTab != null
       ? { kind, listId: list.id, listName: list.name, fromTab }
-      : { kind, listId: list.id, listName: list.name })
+      : { kind, listId: list.id, listName: list.name },
+    // 本地单的桶键：同一个清单 id 连点才吞；不同清单（含「先平台单后本地单」这一串）各自放行
+    `local:${list.id}`)
 }
 
 /**
@@ -251,7 +307,8 @@ export const pushNewUiRadioHome = (componentId: string) => {
  * `feedUrl` 与名次这一屏用不上、也不必要过原生桥；详情由本屏自己发 ③ 取。
  */
 export const pushNewUiPodcastDetail = (componentId: string, show: NewUiPodcastDetailPassShow) => {
-  return pushPlLayer(componentId, NEW_UI_PODCAST_DETAIL_SCREEN, 'newui.podcast.content', { show })
+  // 桶键带节目 id：同一份节目连点才吞，先点 A 节目再点 B 节目照常放行
+  return pushPlLayer(componentId, NEW_UI_PODCAST_DETAIL_SCREEN, 'newui.podcast.content', { show }, show.id)
 }
 
 /** 打开搜节目层（U83，原型 #podcastSearchLayer）；历史词与结果都在屏内经数据层自取 */
@@ -263,7 +320,11 @@ export const pushNewUiPodcastSearch = (componentId: string) => {
  * 打开单集屏（U84，原型 #episodeLayer）。
  * passProps 摊平进屏 props（屏那套 `NewUiEpisodePassProps` 就是单集视图模型，全字符串/数字；
  * ③ 给的音频直链 `episodeUrl` 要在那一屏真出声，所以得过原生桥）。
+ * `autoPlay`（可选，见 `NewUiEpisodePassProps`）由详情屏那颗「继续播放 / 播最新单集」传 true：
+ * 进屏即起播，一次性消费；行点进去不传，仍是「只看不播」。
  */
 export const pushNewUiEpisode = (componentId: string, passProps: NewUiEpisodePassProps) => {
-  return pushPlLayer(componentId, NEW_UI_EPISODE_SCREEN, 'newui.episode.content', { ...passProps })
+  // 单集没有独立 id：桶键取「节目 id + 集下标」，同一集连点才吞，换一集照常放行
+  return pushPlLayer(componentId, NEW_UI_EPISODE_SCREEN, 'newui.episode.content', { ...passProps },
+    `${passProps.showId}:${passProps.episodeIndex}`)
 }

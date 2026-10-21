@@ -1,5 +1,14 @@
-import { memo } from 'react'
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
+import { memo, useCallback, useMemo, useState } from 'react'
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
 import {
@@ -13,6 +22,8 @@ import {
 } from '@/newui/theme'
 
 // 直连具体 hook（不走 @/newui/hooks 桶口），与 PageViewport / TabBar 同一做法
+import { usePressFx } from '@/newui/hooks/usePressFx'
+import { useSmoothProgress } from '@/newui/hooks/useSmoothProgress'
 import { useWideLayout } from '@/newui/hooks/useWideLayout'
 
 import { Art } from '../Art'
@@ -20,6 +31,9 @@ import { Icon } from '../Icon'
 import { BlurredContainer } from '../Glass'
 import { QTag } from '../QTag'
 import { SrcBadge } from '../SongRow'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface MinibarProps {
   /** 封面种子（'album:' + 专辑名，同播放页口径） */
@@ -67,7 +81,8 @@ export interface MinibarProps {
  * 2. 底层 pointerEvents="none"，点击仍归整条 Pressable 与其上的圆钮；
  * 3. 浮在滚动内容之上的层叠数由容器（MinibarDock）经 Z_LAYER.minibar 显式声明，
  *    组件本体保持纯展示、不关心自己排在第几层。
- * 纯展示组件：进度每秒由容器（MinibarDock）传入，此处不订阅 store。
+ * 纯展示组件：进度每秒由容器（MinibarDock）传入，此处不订阅 store；
+ * 只把「一拍一步」抹成 300ms 线性补间（原型 `.mini-progress i` 的 transition，判据见 hooks/useSmoothProgress）。
  */
 export const Minibar = memo(
   ({
@@ -88,10 +103,28 @@ export const Minibar = memo(
     style,
   }: MinibarProps) => {
     const theme = useTheme()
+    /**
+     * `.mini-act:active{transform:scale(.9)}`（styles.css L682）。原型这条规则所在的 `.mini-act`
+     * 没有写 transition（`.mini-bar` 那族也没给 transform 时长），与 `.pc` / `.pt-btn` 同族；
+     * 这里沿用家族缺省 200ms 补间，三颗圆钮各持一条 Value（互不串）。
+     */
+    const favFx = usePressFx({ scale: MINIBAR.pressScale })
+    const playFx = usePressFx({ scale: MINIBAR.pressScale })
+    const nextFx = usePressFx({ scale: MINIBAR.pressScale })
     // 高按档覆盖：宽屏档 52（原型 `.wide .minibar{height:52px}`，styles.css:1326），
     // compact 回 MINIBAR.height 的 58 基线（判据只在 useWideLayout 一处）
     const { wide } = useWideLayout()
-    const fillWidth = `${Math.min(Math.max(ratio, 0), 1) * 100}%` as const
+    // 进度仍是容器每秒传进来的真值，补间只抹平「一拍一步」：判据（回退/跳变立即落位）在 hook 里
+    const { value: progressValue } = useSmoothProgress(ratio)
+    // 渐变要按整条像素宽铺（等价原型 background-size），所以先量一次细进度条的宽度
+    const [trackWidth, setTrackWidth] = useState(0)
+    const handleTrackLayout = useCallback((e: LayoutChangeEvent) => {
+      setTrackWidth(e.nativeEvent.layout.width)
+    }, [])
+    const fillWidth = useMemo(
+      () => progressValue.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+      [progressValue],
+    )
     return (
       <Pressable
         accessibilityRole="button"
@@ -103,14 +136,24 @@ export const Minibar = memo(
             不可用时退回不透明 surface2 底层，染色层两路径同源 */}
         <BlurredContainer spec={GLASS.minibar} />
         {/* .mini-progress：底为控件叠色 fill-2（原型 L529 background:var(--fill-2)，
-            结构件叠色 fill-4 是 .seek 那条规则，与此不是同一档），填充为品牌渐变（每秒一步，宽度动画省略） */}
-        <View pointerEvents="none" style={[styles.progressTrack, { backgroundColor: theme.colors.fill2 }]}>
-          <LinearGradient
-            colors={[...GRADIENTS.brand.colors]}
-            start={GRADIENTS.brand.start}
-            end={GRADIENTS.brand.end}
-            style={[styles.progressFill, { width: fillWidth }]}
-          />
+            结构件叠色 fill-4 是 .seek 那条规则，与此不是同一档），填充为品牌渐变。
+            `.mini-progress i{transition:width .3s linear}`（styles.css L671）→ 外层百分比裁切宽度做补间，
+            内层渐变固定为整条像素宽，配色不随进度伸缩（同 SeekControl 同一套写法） */}
+        <View
+          pointerEvents="none"
+          onLayout={handleTrackLayout}
+          style={[styles.progressTrack, { backgroundColor: theme.colors.fill2 }]}
+        >
+          {trackWidth > 0 && (
+            <Animated.View style={[styles.progressFill, { width: fillWidth }]}>
+              <LinearGradient
+                colors={[...GRADIENTS.brand.colors]}
+                start={GRADIENTS.brand.start}
+                end={GRADIENTS.brand.end}
+                style={{ width: trackWidth, height: '100%' }}
+              />
+            </Animated.View>
+          )}
         </View>
 
         <View style={styles.main}>
@@ -147,31 +190,27 @@ export const Minibar = memo(
             </View>
           </View>
 
-          <Pressable
+          <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel="喜欢"
             onPress={onToggleFav}
-            style={({ pressed }) => [
-              styles.act,
-              pressed && { transform: [{ scale: MINIBAR.pressScale }] },
-            ]}
+            onPressIn={favFx.onPressIn}
+            onPressOut={favFx.onPressOut}
+            style={[styles.act, favFx.animatedStyle]}
           >
             <Icon
               name={loved ? 'heartFill' : 'heart'}
               size={MINIBAR.actIcon}
               color={loved ? theme.colors.brand : theme.colors.text2}
             />
-          </Pressable>
-          <Pressable
+          </AnimatedPressable>
+          <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel="播放/暂停"
             onPress={onTogglePlay}
-            style={({ pressed }) => [
-              styles.act,
-              styles.actPrimary,
-              SHADOW.miniPrimary,
-              pressed && { transform: [{ scale: MINIBAR.pressScale }] },
-            ]}
+            onPressIn={playFx.onPressIn}
+            onPressOut={playFx.onPressOut}
+            style={[styles.act, styles.actPrimary, SHADOW.miniPrimary, playFx.animatedStyle]}
           >
             <LinearGradient
               colors={[...GRADIENTS.brand.colors]}
@@ -184,21 +223,20 @@ export const Minibar = memo(
               size={MINIBAR.primaryIcon}
               color={theme.colors.onBrand}
             />
-          </Pressable>
+          </AnimatedPressable>
           {/* 下一曲（2026-10-13 bug-fix「首页」第 2 条）：原型 .minibar 只有收藏 + 播停两枚，
               按用户口径在播停右侧新增一枚；视觉节奏与收藏钮同款（.mini-act 34 圆底 / 19 图标 / text-2），
               不缩封面不截曲名。无队列/单曲时行为由 core/player.playNext 自身兜底，不做假 disabled */}
-          <Pressable
+          <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel="下一曲"
             onPress={onPlayNext}
-            style={({ pressed }) => [
-              styles.act,
-              pressed && { transform: [{ scale: MINIBAR.pressScale }] },
-            ]}
+            onPressIn={nextFx.onPressIn}
+            onPressOut={nextFx.onPressOut}
+            style={[styles.act, nextFx.animatedStyle]}
           >
             <Icon name="next" size={MINIBAR.actIcon} color={theme.colors.text2} />
-          </Pressable>
+          </AnimatedPressable>
         </View>
       </Pressable>
     )
@@ -221,8 +259,13 @@ const styles = StyleSheet.create({
     right: 0,
     height: MINIBAR.progressHeight,
   },
+  /** .mini-progress i：从条左端起、宽度百分比裁切；渐变铺在它里面（固定像素宽） */
   progressFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
     height: '100%',
+    overflow: 'hidden',
   },
   /** .mini-main padding 0 12 / gap 11 */
   main: {

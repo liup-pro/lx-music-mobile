@@ -325,6 +325,12 @@ export const CONTROL = {
   moreGap: 1,
   /** 小尺寸文字链的点击热区外扩（原型无，RN 侧补可点区域，≥ 44 不合适时取最小可行值） */
   moreHitSlop: 8,
+  /**
+   * 触控最小目标边长（44 等效，原型无——CSS 不受手指尺寸约束）。
+   * 视觉边不足这一档的钮按缺口外扩热区：34 → 每边 5、42 → 每边 1（见 IconButton）。
+   * 只给热区，视觉尺寸 / 布局一位都不改。
+   */
+  hitTarget: 44,
 } as const
 
 /* ================= 歌曲行（.song-row） ================= */
@@ -366,6 +372,11 @@ export const SONG_ROW = {
   /** 右侧更多按钮 4px 内边距 + 16px 图标 */
   morePadding: 4,
   moreIconSize: 16,
+  /**
+   * `.song-row{transition:background .2s var(--ease)}` + `.song-row:active{background:var(--fill-1)}`
+   * （styles.css L292 / L294）：行类**只变底色、不缩放**，底色档位就是色板 fill1，
+   * 补间时长即 MOTION.fast（200ms），故本块不另留键 —— 调用点用 `usePressFx()` 缺省档 + fill1 蒙层。
+   */
   /** .eq 均衡条：2px 宽、3px↔11px 高、1.5px 间距（周期走 MOTION.eq） */
   eqWidth: 2,
   eqMinHeight: 3,
@@ -475,6 +486,9 @@ export const TAB_BAR = {
   indicatorWidth: 22,
   indicatorHeight: 3,
   indicatorTop: -8,
+  /** `.tab:active{transform:scale(.92)}` + `.tab{transition:color .25s,transform .2s}`（styles.css L696-698）：
+   *  缩放那一段是 200ms（= MOTION.fast）；颜色那段的 .25s 属选中态换色，不在按压缩放这一档 */
+  pressScale: 0.92,
   /**
    * 底栏底色（原型 .tabbar 盒内 linear-gradient(to top, bg 96%, bg 62%) + blur(26) saturate(180%)，
    * styles.css L551-557）：2026-10-13 起主路径为共通件 BlurredContainer（玻璃参数见 GLASS.tabBar）；
@@ -750,6 +764,8 @@ export const PL_CARD = {
   metaGap: 5,
   /** .src-dot 5px 圆点（颜色取平台 tint） */
   dotSize: 5,
+  /** `.pl-card:active{transform:scale(.96)}`（styles.css L262），过渡 `.2s` 即 MOTION.fast */
+  pressScale: 0.96,
 } as const
 
 /* ================= 榜单卡（.rank-grid / .rk-card，styles.css L376-397） ================= */
@@ -1024,6 +1040,8 @@ export const MY_PL = {
   nameMarginTop: 8,
   /** .mp-s margin-top:2px */
   subMarginTop: 2,
+  /** `.my-pl:active{transform:scale(.95)}`（styles.css L494），过渡 `.2s` 即 MOTION.fast */
+  pressScale: 0.95,
 } as const
 
 /* ================= 我的页（.mine-head / .stat-row / .fav-card，styles.css L353-391） ================= */
@@ -1114,6 +1132,9 @@ export const FAV_DUO = {
   dividerSpan: '-20%',
   /** .fav-card:active transform:scale(.99)（两半任一按下都缩整卡） */
   pressScale: 0.99,
+  /** `.fav-card{transition:transform .25s ease,...}`（styles.css L558）——本族唯一 .25s 档，
+   *  不是 MOTION.fast(200)；这里是直接值而非 MOTION 引用（token 文件内不前向引用 MOTION 之外的块） */
+  pressMs: 250,
   /** .fav-card h3 16px / 700 / letter-spacing:.5px */
   titleSize: 16,
   titleWeight: '700',
@@ -1282,6 +1303,8 @@ export const QUICK_ROW = {
   iconSize: 20,
   /** .quick 内图文 gap 8 */
   labelGap: 8,
+  /** `.quick:active{transform:scale(.92)}`（styles.css L223），过渡 `.2s` 即 MOTION.fast */
+  pressScale: 0.92,
 } as const
 
 /* ================= 横向滑动容器（.hscroll） ================= */
@@ -1302,6 +1325,8 @@ export const RECENT_CARD = {
   titleMarginTop: 8,
   /** .rs margin-top:2px */
   subMarginTop: 2,
+  /** `.recent-card:active{transform:scale(.95)}`（styles.css L232），过渡 `.2s` 即 MOTION.fast */
+  pressScale: 0.95,
 } as const
 
 /* ================= 每日推荐卡（.daily-card） ================= */
@@ -1334,6 +1359,8 @@ export const ARTIST_CARD = {
   artSize: 68,
   /** .artist-card gap:8px */
   gap: 8,
+  /** `.artist-card:active{transform:scale(.93)}`（styles.css L339），过渡 `.2s` 即 MOTION.fast */
+  pressScale: 0.93,
 } as const
 
 /* ================= 播放页（.player-layer，styles.css L504-588） ================= */
@@ -1858,6 +1885,14 @@ export const SETTINGS = {
   valueSize: 12,
   valueIconSize: 14,
   valueIconAlpha: 0.5,
+  /**
+   * 可点行的按压底色补间时长：`.set-row{transition:.18s var(--ease)}`（styles.css L626）
+   * + `.set-row:active{background:var(--fill-1)}`（L628）。
+   * `.18s` 是本族唯一一档（其余多为 .2s），故不能套 `MOTION.fast` 的 200。
+   * 另注：`.set-row.info`（不可点的信息行）原型写的是 `:active{background:transparent}`（L642）——
+   * RN 侧对应「onPress 不传 → 渲染成纯 View」，压根没有按压态，这一条无需另做键。
+   */
+  rowPressMs: 180,
 } as const
 
 /* ================= 单曲操作面板头部（.more-song，styles.css L446-451，阶段 9e） ================= */
@@ -1897,6 +1932,8 @@ export const OP_BOX = {
   goPaddingX: 18,
   /** .op-go:active scale(.955) */
   goPressScale: 0.955,
+  /** `.op-go{transition:.16s var(--ease)}`（styles.css L941）——本族最快的一档，比 MOTION.fast 还短 40ms */
+  goPressMs: 160,
   /** .op-err：margin-top 10 / 11.5 / 行高 1.65 / #FF8B7E（= 色板 err） */
   errMarginTop: 10,
   errLineHeight: 19,
@@ -2057,6 +2094,16 @@ export const MOTION = {
   easing: [0.22, 0.61, 0.36, 1],
   /** ScrollView.onScroll 事件节流（ms），分页触底检测用 */
   scrollThrottle: 16,
+  /**
+   * 封面图加载完成的淡入（ms）。RN 侧改进项：原型封面是硬切（CSS 没有对应 transition），
+   * 真机网络图解码完那一下会「啪」地换脸，补一层短淡入（150–200 档的中间值）。
+   */
+  artFade: 170,
+  /**
+   * 整块内容替换的状态档切换淡入（ms）。同样原型无（DOM 直换），RN 侧为「输入 → 在途 → 结果」
+   * 这类整块换面补一层轻淡入；只在状态档变化时触发，数据在同一档内刷新不重放。
+   */
+  contentFade: 120,
 } as const
 
 /* ================= 阴影 ================= */

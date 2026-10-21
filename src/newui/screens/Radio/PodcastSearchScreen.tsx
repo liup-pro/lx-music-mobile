@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import type { TextInput } from 'react-native'
+import {
+  Animated,
+  BackHandler,
+  Easing,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
+import type { ScrollView, TextInput } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 
 import type { PodShowRow } from '@/newui/podcast/types'
 import { usePodcastSearch } from '@/newui/podcast/hooks'
 
 import { ChipFlow } from '@/newui/components/ChipFlow'
-import { EmptyTip } from '@/newui/components/EmptyTip'
 import { Icon } from '@/newui/components/Icon'
 import { PagingStatus } from '@/newui/components/PagingStatus'
 import { PodcastRow } from '@/newui/components/PodcastRow'
@@ -16,6 +24,7 @@ import { SearchTop } from '@/newui/components/SearchTop'
 import { newUiPodArtSeed } from '@/newui/const/radio'
 import {
   NEW_UI_POD_SEARCH_CANCEL,
+  NEW_UI_POD_SEARCH_CLEAR_HISTORY_LABEL,
   NEW_UI_POD_SEARCH_CLEAR_INPUT_LABEL,
   NEW_UI_POD_SEARCH_CLEAR_LABEL,
   NEW_UI_POD_SEARCH_EMPTY_SUB,
@@ -29,7 +38,15 @@ import {
 import { useNewUiSystemBar, useSafeArea, useWideLayout } from '@/newui/hooks'
 // 直连 entry 而非 '@/newui/navigation' 桶口：避免 navigation/index → register → screens → 本文件的循环引用
 import { pushNewUiPodcastDetail } from '@/newui/navigation/entry'
-import { FONT_SIZE, FONT_WEIGHT, SEARCH, useTheme } from '@/newui/theme'
+import { CONTROL, FONT_SIZE, FONT_WEIGHT, MOTION, SEARCH, useTheme } from '@/newui/theme'
+
+/** 状态档整块换面的轻淡入缓动：与全站 `--ease` 同一条（MOTION.easing） */
+const CONTENT_FADE_EASE = Easing.bezier(
+  MOTION.easing[0],
+  MOTION.easing[1],
+  MOTION.easing[2],
+  MOTION.easing[3],
+)
 
 export interface PodcastSearchScreenProps {
   componentId: string
@@ -47,8 +64,9 @@ export interface PodcastSearchScreenProps {
  * 四态（原型逐条）：
  * - 无输入（idle）：只给本机「搜过的词」胶囊 + 清空（app.js L2105-2118）。**热搜不做**，
  *   那句能力说明本轮已撤，词表为空时屏上什么都不放。
- * - 提交后在途：`.empty-tip`「正在搜索…」（app.js L2122，用 EmptyTip 的 layer 档，
- *   件壳是 `.pl-layer.search-layer`，`.pl-layer .empty-tip{padding:34px 0}` 生效）。
+ * - 提交后在途：文案仍是原型那句「正在搜索…」（app.js L2122），**壳从 `.empty-tip` 换成 `.pl-status` 状态行**
+ *   （2026-10 口味统一：全 App 的「在途」都用 `RunningDots` 三点接力跳动 + 文案，别一个在动一个是死字；
+ *   紧随其后的失败态本来就是这一行，两态现在是同一族）。
  * - 接口失败：状态行「这一词没有载入 · 点击重试」——**失败不假装成空结果**。
  * - 零命中：`.sc-empty` 两句；有命中：`.pod-list`（行复用 U81 的 `PodcastRow`，
  *   命中行无名次）+ 尾注 `.sc-hint`「N 个节目」。
@@ -98,9 +116,54 @@ export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) =
     bodyRef.current?.scrollTo({ y: 0, animated: false })
   }, [keyword])
 
-  const handleCancel = useCallback(() => {
+  /**
+   * 退层只有这一条出口（取消钮 / 硬件返回键同落点）。**先收键盘再 pop**：
+   * 带着键盘退层，转场会拖着输入法一路缩下去，而且回来时那颗 autoFocus 过的输入框
+   * 还攥着焦点——键盘会自己再弹一次。
+   */
+  const goBack = useCallback(() => {
+    Keyboard.dismiss()
     void Navigation.pop(componentId)
   }, [componentId])
+
+  // 硬件返回键（判例 RadioHomeScreen.tsx:107-115：本屏存续期始终注册，消费后走 goBack）。
+  // 本屏多一道闸：键盘开着时第一下只收键盘，不要连键盘带这一层一起收走。
+  // （部分输入法把返回键自己吃掉、事件到不了这里；漏过来的由这道闸兜住，两种设备都只退一层。）
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (Keyboard.isVisible()) {
+        Keyboard.dismiss()
+        return true
+      }
+      goBack()
+      return true
+    })
+    return () => { subscription.remove() }
+  }, [goBack])
+
+  /**
+   * 离屏 / 回屏都收键盘：
+   * - 回屏那一下兜住「输入框还留着焦点 → 键盘自己弹回来」（自动聚焦只在挂载时发生一次，
+   *   这里不再补 focus，回来就是干净的 idle / 结果态）；
+   * - 第一次 `componentDidAppear` 是进层本身，那次要留给 SearchTop 的 autoFocus，跳过。
+   */
+  const appearedRef = useRef(false)
+  useEffect(() => {
+    const subscription = Navigation.events().registerComponentListener({
+      componentDidAppear: () => {
+        if (!appearedRef.current) {
+          appearedRef.current = true
+          return
+        }
+        Keyboard.dismiss()
+      },
+      componentDidDisappear: () => { Keyboard.dismiss() },
+    }, componentId)
+    return () => { subscription.remove() }
+  }, [componentId])
+
+  // 卸载兜底：层被路由侧整棵拆掉时 componentDidDisappear 不一定还送达，键盘不能留在屏上
+  useEffect(() => () => { Keyboard.dismiss() }, [])
 
   /** 清空输入：回到 idle，并作废在途的那一次（hook.reset 里抬代次） */
   const handleClearText = useCallback(() => {
@@ -123,6 +186,8 @@ export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) =
    * `feedUrl` 是 RSS 入口，本轮不上屏也不往外传。
    */
   const openPodcast = useCallback((row: PodShowRow) => {
+    // 进详情前先收键盘：转场不拖输入法，回来时也不会「一睁眼就弹键盘」（回屏那道闸见上）
+    Keyboard.dismiss()
     pushNewUiPodcastDetail(componentId, {
       id: row.id,
       name: row.name,
@@ -149,6 +214,32 @@ export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) =
     paddingBottom: SEARCH.bodyPaddingBottom + bottom,
   }), [bottom, layerPaddingX])
 
+  /**
+   * 五个状态档（无输入 / 在途 / 失败 / 零命中 / 命中）就是几块整面互斥的面板，原生这里是硬切。
+   * 加一层 120ms 轻淡入，**按档位而不是按数据触发**：同一档里结果刷新（重试回来、历史词增删）
+   * 不重放；淡的是轴自己的透明度，不额外套壳，滚动位置与内衬测量一位不变。
+   */
+  const stateKey = !hasQuery
+    ? 'idle'
+    : loading
+      ? 'loading'
+      : failed
+        ? 'failed'
+        : results.length === 0
+          ? 'empty'
+          : 'results'
+  // 初值 0：进层那一帧就从透明淡出来，与右推转场同起，不会先亮一帧再淡
+  const contentFade = useRef(new Animated.Value(0)).current
+  useEffect(() => {
+    contentFade.setValue(0)
+    Animated.timing(contentFade, {
+      toValue: 1,
+      duration: MOTION.contentFade,
+      easing: CONTENT_FADE_EASE,
+      useNativeDriver: true,
+    }).start()
+  }, [contentFade, stateKey])
+
   return (
     <View
       nativeID="newui.podSearch.content"
@@ -168,13 +259,14 @@ export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) =
         onBlur={() => { setFocused(false) }}
         onSubmit={() => { submit(text) }}
         onClear={handleClearText}
-        onCancel={handleCancel}
+        onCancel={goBack}
       />
 
-      {/* .sc-body：本屏唯一的滚动轴（头部不在里面）；命中固定 ≤20 条，不虚拟化 */}
-      <ScrollView
+      {/* .sc-body：本屏唯一的滚动轴（头部不在里面）；命中固定 ≤20 条，不虚拟化。
+          状态档切换只挂透明度（`Animated.ScrollView`）：轴、内衬与命中行的测量一位不变 */}
+      <Animated.ScrollView
         ref={bodyRef}
-        style={styles.body}
+        style={[styles.body, { opacity: contentFade }]}
         contentContainerStyle={[styles.bodyContent, bodyContentStyle]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -188,11 +280,11 @@ export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) =
                   {NEW_UI_POD_SEARCH_HISTORY_LABEL}
                 </Text>
                 <Pressable
-                  hitSlop={8}
+                  hitSlop={CONTROL.moreHitSlop}
                   onPress={clearHistory}
                   style={({ pressed }) => [styles.clear, pressed && styles.pressed]}
                   accessibilityRole="button"
-                  accessibilityLabel="清空搜过的词"
+                  accessibilityLabel={NEW_UI_POD_SEARCH_CLEAR_HISTORY_LABEL}
                 >
                   <Icon name="close" size={SEARCH.clearWordIcon} color={theme.colors.text3} />
                   <Text style={[styles.clearText, { color: theme.colors.text3 }]}>
@@ -207,8 +299,12 @@ export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) =
             </>
           )
         ) : loading ? (
-          // .empty-tip（件壳是 .pl-layer，走 layer 档内距）
-          <EmptyTip text={NEW_UI_POD_SEARCH_LOADING} variant="layer" />
+          /*
+           * 在途与下面那条失败现在是同一族状态行（`.pl-status`）：文案前挂三点接力跳动的
+           * `RunningDots`，失败那条是本行可点重试 —— 别一个在动、一个是死字。
+           * 文案仍是原型 `renderPodSearch` L2122 那句「正在搜索…」，一个字没改。
+           */
+          <PagingStatus disabled loading text={NEW_UI_POD_SEARCH_LOADING} />
         ) : failed ? (
           // 接口失败：状态行就是重试入口，不拿空结果冒充
           <PagingStatus text={NEW_UI_POD_SEARCH_RETRY} onPress={retry} />
@@ -245,7 +341,7 @@ export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) =
             </Text>
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   )
 }

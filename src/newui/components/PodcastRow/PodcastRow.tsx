@@ -1,5 +1,6 @@
 import { memo, useId } from 'react'
 import {
+  Animated,
   Platform,
   Pressable,
   StyleSheet,
@@ -15,6 +16,7 @@ import Svg, {
   Text as SvgText,
 } from 'react-native-svg'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import {
   FONT_WEIGHT,
   GRADIENTS,
@@ -108,8 +110,8 @@ export interface PodcastRowProps {
 /**
  * 节目行（原型 `.pod-row`，`parts/radio/home.css` L54-L79 / app.js `podRow` L1896）：
  * 名次槽 + 56 封面（圆角 13）+ 节目名 + 副行（作者 · 竖线 · 一枚分类词）+ 行尾 chevron。
- * 整行是一个 Pressable（原型 `div[role=button]`，行内没有第二颗按钮），按下瞬时底走 `fill1`
- * （`.pod-row:active{background:var(--fill-1)}`）。
+ * 整行是一个 Pressable（原型 `div[role=button]`，行内没有第二颗按钮），按下时底走 `fill1`
+ * （`.pod-row:active{background:var(--fill-1)}`，200ms 缓动，见 `usePressFx`）。
  *
  * **为什么不复用 `SongRow`**（契约 7.1 U81 那行）：
  * 1. 封面档位不同——`SONG_ROW.artSize = 46`，榜行是 56（home.css L403），圆角也不同（13 vs 12）；
@@ -124,17 +126,25 @@ export interface PodcastRowProps {
 export const PodcastRow = memo(
   ({ name, by, tags, artSeed, artUri, rank, onPress, style }: PodcastRowProps) => {
     const theme = useTheme()
+    // `.pod-row{transition:.2s var(--ease)}`：行类按原型只变底色、不缩放，这里把底色淡入交给蒙层 opacity
+    const pressFx = usePressFx()
     const tag = tags != null && tags.length > 0 ? tags[0] : undefined
     return (
       <Pressable
         accessibilityRole="button"
         onPress={onPress}
-        style={({ pressed }) => [
-          styles.root,
-          pressed && { backgroundColor: theme.colors.fill1 },
-          style,
-        ]}
+        onPressIn={pressFx.onPressIn}
+        onPressOut={pressFx.onPressOut}
+        style={[styles.root, style]}
       >
+        {/* .pod-row:active{background:var(--fill-1)}：一个不动的底色层淡入，行内元素一概不受影响 */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.pressBg,
+            { backgroundColor: theme.colors.fill1, opacity: pressFx.progress },
+          ]}
+        />
         {rank != null && <RankNumber rank={rank} />}
         <Art
           width={POD.rowArtSize}
@@ -182,6 +192,11 @@ const styles = StyleSheet.create({
     gap: POD.rowGap,
     paddingVertical: POD.rowPaddingY,
     paddingHorizontal: POD.rowPaddingX,
+    borderRadius: POD.rowRadius,
+  },
+  /** 按下底色层：铺满整行、跟行同圆角（行根没有 overflow:hidden，圆角得自己带） */
+  pressBg: {
+    ...StyleSheet.absoluteFillObject,
     borderRadius: POD.rowRadius,
   },
   /** .pod-rank：宽 22、flex none、居中、14/900 斜体（渐变档在 RankNumber 内；件里没有字距规则） */

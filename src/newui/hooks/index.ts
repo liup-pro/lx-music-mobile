@@ -42,6 +42,12 @@ export { usePlayedList } from './usePlayedList'
 export { usePlayQueue, type NewUiPlayQueue, type NewUiPlayQueueRow } from './usePlayQueue'
 export { emitPageEndReached, usePageEndReached } from './usePageEndReached'
 export {
+  usePressFx,
+  type PressFx,
+  type PressFxBackground,
+  type PressFxOptions,
+} from './usePressFx'
+export {
   useRankBoards,
   rankCardsWithPlatformFirst,
   type RankBoardCard,
@@ -51,5 +57,12 @@ export {
 export { useRecommendPlaylists, type RecommendPlaylistsState } from './useRecommendPlaylists'
 export { useRecentPlays, useRecentPlayRecorder } from './useRecentPlays'
 export { useSafeArea, type NewUiSafeArea } from './useSafeArea'
+export {
+  useSmoothProgress,
+  PROGRESS_SMOOTH_MS,
+  PROGRESS_SNAP_DELTA,
+  type SmoothProgress,
+  type SmoothProgressOptions,
+} from './useSmoothProgress'
 export { useSingerPics, type SingerPicsState } from './useSingerPics'
 export { useWideLayout, type WideLayout } from './useWideLayout'

@@ -1,7 +1,8 @@
-import { memo, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { memo } from 'react'
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { FAV_DUO, MINE, useTheme, type ThemeScheme } from '@/newui/theme'
 
 import { Icon, type IconName } from '../Icon'
@@ -46,13 +47,15 @@ export const FavCard = memo(
   ({ loveTitle, loveSub, offlineTitle, offlineSub, onLovePress, onOfflinePress }: FavCardProps) => {
     const theme = useTheme()
     const palette = FAV_DUO.palette[theme.scheme]
-    // 两半任一按下都缩整卡：状态记在卡上，缩放施加给阴影载体
-    const [pressing, setPressing] = useState(false)
-    const handlePressIn = () => { setPressing(true) }
-    const handlePressOut = () => { setPressing(false) }
+    /**
+     * 两半任一按下都缩整卡（`.fav-card:active{transform:scale(.99)}`，styles.css L560）；
+     * 时长走 `.fav-card{transition:transform .25s ease}`（L558，本族唯一 .25s 档）。
+     * 缩放挂在阴影载体上，不做 hover；载体本来就是 View，不额外包容器。
+     */
+    const pressFx = usePressFx({ scale: FAV_DUO.pressScale, duration: FAV_DUO.pressMs })
 
     return (
-      <View
+      <Animated.View
         style={[
           styles.carrier,
           {
@@ -60,7 +63,7 @@ export const FavCard = memo(
             shadowColor: palette.shadowColor,
             shadowOpacity: palette.shadowOpacity,
           },
-          pressing && styles.pressed,
+          pressFx.animatedStyle,
         ]}
       >
         {/* 渐变底 + 24 圆角裁切：两半与那道斜线都在这层里 */}
@@ -82,8 +85,8 @@ export const FavCard = memo(
             sub={loveSub}
             label={ARIA.love}
             onPress={onLovePress}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
+            onPressIn={pressFx.onPressIn}
+            onPressOut={pressFx.onPressOut}
           />
 
           {/* 右半「已缓存」 */}
@@ -95,8 +98,8 @@ export const FavCard = memo(
             sub={offlineSub}
             label={ARIA.offline}
             onPress={onOfflinePress}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
+            onPressIn={pressFx.onPressIn}
+            onPressOut={pressFx.onPressOut}
           />
 
           {/* .fav-duo::after：那道斜线只是分隔（pointer-events:none），z-index 1，压在两半之下 */}
@@ -107,7 +110,7 @@ export const FavCard = memo(
           {/* inset 0 0 0 1px 内描边（浅色档 transparent） */}
           <View pointerEvents="none" style={[styles.ring, { borderColor: palette.ringColor }]} />
         </View>
-      </View>
+      </Animated.View>
     )
   },
 )
@@ -185,10 +188,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: FAV_DUO.shadowOffsetY },
     shadowRadius: FAV_DUO.shadowRadius,
     elevation: FAV_DUO.shadowElevation,
-  },
-  /** .fav-card:active{transform:scale(.99)}（两半任一按下都缩整卡） */
-  pressed: {
-    transform: [{ scale: FAV_DUO.pressScale }],
   },
   /** .fav-card：横向两半、上下 16 内衬、24 圆角裁切 */
   card: {

@@ -1,9 +1,13 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native'
+import { Animated, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { PLAYER, useTheme } from '@/newui/theme'
 
 import { Icon, type IconName } from '../Icon'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface PlayerToolButtonProps {
   /** 图标名；开启态由容器换成另一枚轮廓（timer/timerOn、float/floatOn，循环五态五轮廓） */
@@ -23,19 +27,20 @@ export interface PlayerToolButtonProps {
 export const PlayerToolButton = memo(
   ({ name, accessibilityLabel, onPress, style }: PlayerToolButtonProps) => {
     const theme = useTheme()
+    // `.pt-btn:active{transform:scale(.94)}`（styles.css L797）。原型这条只给 color 写了 transition
+    // （`.pt-btn{transition:color .25s}`，L796），缩放本身没有时长 —— 与 `.pc` 同族，这里按家族缺省 200ms 补间
+    const pressFx = usePressFx({ scale: PLAYER.ptPressScale })
     return (
-      <Pressable
+      <AnimatedPressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         onPress={onPress}
-        style={({ pressed }) => [
-          styles.root,
-          pressed && { transform: [{ scale: PLAYER.ptPressScale }] },
-          style,
-        ]}
+        onPressIn={pressFx.onPressIn}
+        onPressOut={pressFx.onPressOut}
+        style={[styles.root, pressFx.animatedStyle, style]}
       >
         <Icon name={name} size={PLAYER.ptIcon} color={theme.colors.text2} />
-      </Pressable>
+      </AnimatedPressable>
     )
   },
 )

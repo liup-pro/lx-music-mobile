@@ -1,9 +1,13 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { FONT_SIZE, FONT_WEIGHT, OP_FILE, useTheme } from '@/newui/theme'
 
 import { Icon, type IconName } from '../Icon'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface OpFileButtonProps {
   /** 钮面文字（原型 #importFileLabel：闲时「从本机选择一份音源文件」，进行中由容器换成「正在读取…」） */
@@ -25,26 +29,35 @@ export interface OpFileButtonProps {
  */
 export const OpFileButton = memo(({ label, onPress, busy = false, icon = 'plus', style }: OpFileButtonProps) => {
   const theme = useTheme()
+  /**
+   * `.op-file:active{background:var(--fill-3);transform:scale(.99)}`（件 op-box.css L35），
+   * 过渡 `.2s var(--ease)`（件 L34）→ MOTION.fast 缺省档；常态底 fill-2，故 from 给常态色。
+   * 进行中（busy）不可再触发：缩放与底色两档都收掉，只留整枚压暗。
+   */
+  const pressFx = usePressFx({
+    scale: busy ? 1 : OP_FILE.pressScale,
+    background: busy ? undefined : { from: theme.colors.fill2, to: theme.colors.fill3 },
+  })
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={busy ? undefined : onPress}
-      style={({ pressed }) => [
+      onPressIn={pressFx.onPressIn}
+      onPressOut={pressFx.onPressOut}
+      style={[
         styles.root,
-        // .op-file:active{background:var(--fill-3)}（件 L35），进行中整枚压暗表示「这会儿点不动」
-        {
-          backgroundColor: pressed && !busy ? theme.colors.fill3 : theme.colors.fill2,
-          borderColor: theme.colors.hairline,
-        },
-        pressed && !busy && styles.pressed,
+        { borderColor: theme.colors.hairline },
+        // busy 时底色恒为常态色（上面的 background 档已收掉，这里补上静态底）
+        busy && { backgroundColor: theme.colors.fill2 },
+        pressFx.animatedStyle,
         busy && styles.busy,
         style,
       ]}
     >
       <Icon name={icon} size={OP_FILE.iconSize} color={theme.colors.text2} />
       <Text style={[styles.text, { color: theme.colors.text2 }]} numberOfLines={1}>{label}</Text>
-    </Pressable>
+    </AnimatedPressable>
   )
 })
 
@@ -60,10 +73,6 @@ const styles = StyleSheet.create({
     height: OP_FILE.height,
     borderRadius: OP_FILE.radius,
     borderWidth: 1,
-  },
-  /** .op-file:active scale(.99) */
-  pressed: {
-    transform: [{ scale: OP_FILE.pressScale }],
   },
   busy: {
     opacity: 0.6,

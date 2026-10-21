@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import {
+  Animated,
   Pressable,
   StyleSheet,
   Text,
@@ -9,6 +10,7 @@ import {
 } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import {
   FONT_SIZE,
   FONT_WEIGHT,
@@ -20,6 +22,9 @@ import {
 } from '@/newui/theme'
 
 import { Icon, type IconName } from '../Icon'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface OptionRowProps {
   /** .or-body b 主名（音源名 / 平台名 / 动作名） */
@@ -108,11 +113,18 @@ export const OptionRow = memo(
   }: OptionRowProps) => {
     const theme = useTheme()
     const tone = stateTone ?? theme.colors.text3
+    // `.opt-row{transition:.2s var(--ease)}` / `.opt-row:active{transform:scale(.99)}`（styles.css L886-L890）
+    const pressFx = usePressFx({ scale: OPTION_ROW.pressScale })
+  // `.or-del:active{transform:scale(.9)}`（件 opt-list.css L48），过渡 `.2s var(--ease)`（L47）；
+  // 同一条 :active 里还有字色转 dangerInk —— 那半仍是既有做法（`({ pressed })` 换色），不做颜色补间
+  const delFx = usePressFx({ scale: OR_DEL.pressScale })
     return (
-      <Pressable
+      <AnimatedPressable
         accessibilityRole="button"
         onPress={onPress}
-        style={({ pressed }) => [
+        onPressIn={pressFx.onPressIn}
+        onPressOut={pressFx.onPressOut}
+        style={[
           styles.root,
           {
             backgroundColor: theme.colors.fill2,
@@ -123,7 +135,7 @@ export const OptionRow = memo(
             { borderColor: OPTION_ROW.onBorderColor },
           ],
           dimmed && styles.dimmed,
-          pressed && styles.pressed,
+          pressFx.animatedStyle,
           style,
         ]}
       >
@@ -181,15 +193,17 @@ export const OptionRow = memo(
         {onRemove ? (
           /* .or-del：常态 text-3 墨色，按下才转 dangerInk（件 opt-list.css L43-48，
              原型 :active{color:var(--danger-ink)} —— 不做常驻红钮，删除这件事只在按下的那一刻显形） */
-          <Pressable
+          <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel={removeAriaLabel}
             onPress={onRemove}
+            onPressIn={delFx.onPressIn}
+            onPressOut={delFx.onPressOut}
             hitSlop={OR_DEL.hitSlop}
-            style={({ pressed }) => [
+            style={[
               styles.del,
               { backgroundColor: theme.colors.fill2, borderColor: theme.colors.hairline },
-              pressed && styles.delPressed,
+              delFx.animatedStyle,
             ]}
           >
             {({ pressed }) => (
@@ -199,9 +213,9 @@ export const OptionRow = memo(
                 color={pressed ? theme.colors.dangerInk : theme.colors.text3}
               />
             )}
-          </Pressable>
+          </AnimatedPressable>
         ) : null}
-      </Pressable>
+      </AnimatedPressable>
     )
   },
 )
@@ -226,8 +240,6 @@ const styles = StyleSheet.create({
   },
   /** .opt-row.off */
   dimmed: { opacity: OPTION_ROW.offAlpha },
-  /** .opt-row:active scale(.99) */
-  pressed: { transform: [{ scale: OPTION_ROW.pressScale }] },
   /** .opt-ic：30×30 圆角 10 图标底（styles.css L688-690，动作行专用） */
   iconBox: {
     width: OPTION_ROW.iconBoxSize,
@@ -296,9 +308,5 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  /** .or-del:active scale(.9)（墨色转 dangerInk 在 Icon 上做） */
-  delPressed: {
-    transform: [{ scale: OR_DEL.pressScale }],
   },
 })

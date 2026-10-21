@@ -1,9 +1,13 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { BUTTON, FONT_SIZE, FONT_WEIGHT, RADIUS, useTheme } from '@/newui/theme'
 
 import { Icon, type IconName } from '../Icon'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface PillButtonProps {
   /** 文案（.pl-open-btn / .mh-edit 内文字）；纯图标入口（如「打开歌单」）可不传 */
@@ -31,18 +35,27 @@ export const PillButton = memo(
   ({ label, icon, onPress, iconSize = BUTTON.pillIcon, variant = 'open', style }: PillButtonProps) => {
     const theme = useTheme()
     const isEdit = variant === 'edit'
+    /**
+     * `.pl-open-btn:active{transform:scale(.95);background:var(--fill-3)}`（styles.css L470）/
+     * `.mh-edit:active{transform:scale(.96);background:var(--fill-3)}`（L535）；
+     * 两条的 transition 都是 `.2s var(--ease)`（L469 / L533），即 MOTION.fast 缺省档。
+     * 底色是「常态 fill-2 → 按下 fill-3」，故 from 必须给常态色，不能从透明淡出来。
+     */
+    const pressFx = usePressFx({
+      scale: isEdit ? BUTTON.pillPressScaleEdit : BUTTON.pillPressScale,
+      background: { from: theme.colors.fill2, to: theme.colors.fill3 },
+    })
     return (
-      <Pressable
+      <AnimatedPressable
         accessibilityRole="button"
         onPress={onPress}
-        style={({ pressed }) => [
+        onPressIn={pressFx.onPressIn}
+        onPressOut={pressFx.onPressOut}
+        style={[
           styles.root,
-          {
-            backgroundColor: pressed ? theme.colors.fill3 : theme.colors.fill2,
-            borderColor: theme.colors.line,
-          },
+          { borderColor: theme.colors.line },
           isEdit && { paddingLeft: BUTTON.pillPaddingLeftEdit },
-          pressed && { transform: [{ scale: isEdit ? BUTTON.pillPressScaleEdit : BUTTON.pillPressScale }] },
+          pressFx.animatedStyle,
           style,
         ]}
       >
@@ -52,7 +65,7 @@ export const PillButton = memo(
             {label}
           </Text>
         )}
-      </Pressable>
+      </AnimatedPressable>
     )
   },
 )

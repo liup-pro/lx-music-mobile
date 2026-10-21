@@ -1,13 +1,15 @@
 import { memo } from 'react'
-import { Platform, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
+import { Animated, Platform, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import {
   CONTROL,
   FONT_SIZE,
   FONT_WEIGHT,
   GRADIENTS,
   LETTER_SPACING,
+  MOTION,
   RADIUS,
   SPACING,
   useTheme,
@@ -19,6 +21,13 @@ import { Icon, type IconName } from '../Icon'
 const ICON_SIZE = 14
 /** .chip b / .song-row .rank 同款等宽族（原型 ui-monospace 的平台近似） */
 const MONO_FONT = Platform.select({ ios: 'Menlo', default: 'monospace' })
+/** `.chip:active{transform:scale(.94)}`；`.chip` 那条 transition 写的是 `.22s`，比其他件慢一拍 */
+const CHIP_PRESS_SCALE = 0.94
+/** 同上：`.22s` 就是 `MOTION.base`，不用 `MOTION.fast` */
+const CHIP_PRESS_MS = MOTION.base
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface ChipProps {
   /** 文字标签 */
@@ -43,15 +52,19 @@ export interface ChipProps {
 
 /**
  * 胶囊筛选件（对应原型 .chip）：榜单 tabs / 音质选择 / 分类 / 热搜等复用。
- * 选中态为品牌渐变底 + 深色字；未选中为 chips 覆盖色 + 1px 描边，按压缩至 .94。
+ * 选中态为品牌渐变底 + 深色字；未选中为 chips 覆盖色 + 1px 描边，按压缩至 .94（200ms 缓动，见 usePressFx）。
  */
 export const Chip = memo(({ label, monoLabel, active = false, disabled = false, icon, onPress, style }: ChipProps) => {
   const theme = useTheme()
+  // .chip:active 缩到 .94，`.22s` 缓动（原型那条 transition 是这一族里唯一的 .22 档）
+  const pressFx = usePressFx({ scale: CHIP_PRESS_SCALE, duration: CHIP_PRESS_MS })
   const contentColor = active && !disabled ? theme.colors.onBrand : disabled ? theme.colors.text3 : theme.colors.text2
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
-      style={({ pressed }) => [
+      onPressIn={pressFx.onPressIn}
+      onPressOut={pressFx.onPressOut}
+      style={[
         styles.root,
         active && !disabled
           ? null
@@ -61,7 +74,7 @@ export const Chip = memo(({ label, monoLabel, active = false, disabled = false, 
               borderWidth: 1,
               borderColor: theme.colors.hairline,
             },
-        pressed && styles.pressed,
+        pressFx.animatedStyle,
         style,
       ]}
     >
@@ -96,7 +109,7 @@ export const Chip = memo(({ label, monoLabel, active = false, disabled = false, 
           {monoLabel}
         </Text>
       )}
-    </Pressable>
+    </AnimatedPressable>
   )
 })
 
@@ -133,9 +146,5 @@ const styles = StyleSheet.create({
     fontFamily: MONO_FONT,
     fontSize: FONT_SIZE.captionLg,
     fontWeight: FONT_WEIGHT.bold,
-  },
-  /** .chip:active 缩放反馈 */
-  pressed: {
-    transform: [{ scale: 0.94 }],
   },
 })

@@ -1,9 +1,9 @@
-import { memo, useEffect, useState, type ReactNode } from 'react'
-import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
+import { memo, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { Animated, Easing, Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
 import { NEW_UI_IMG_HTTP_HEADERS } from '@/newui/const'
-import { ART_INK, GRADIENTS, RADIUS, useTheme } from '@/newui/theme'
+import { ART_INK, GRADIENTS, MOTION, RADIUS, useTheme } from '@/newui/theme'
 import { withAlpha } from '@/newui/utils'
 
 import { Icon, type IconName } from '../Icon'
@@ -12,6 +12,23 @@ import { ArtTexture, pickArtPalette } from './artTexture'
 
 /** 无图占位的品牌默认渐变（对应 .art 的 --c1/--c2 缺省值） */
 const DEFAULT_PALETTE: readonly [string, string] = [GRADIENTS.art.colors[0], GRADIENTS.art.colors[1]]
+
+/** 淡入缓动与全站 `--ease` 同一条（MOTION.easing） */
+const ART_FADE_EASE = Easing.bezier(
+  MOTION.easing[0],
+  MOTION.easing[1],
+  MOTION.easing[2],
+  MOTION.easing[3],
+)
+
+/**
+ * 已经淡入过的 uri（模块级，不随组件卸载消失）。
+ * 列表回收复用时同一张图会被反复挂到新单元上，只凭组件内 ref 判不出来——那会变成「每滚一次
+ * 就重新淡一次」；按 uri 记账，同一张图这一趟会话里只淡一次，滚回来是「本来就在」。
+ * 条数封顶：长会话会攒到几千个 uri，超了就清空重来（丢的只是「不再淡」这一层记忆）。
+ */
+const ART_FADED_URIS = new Set<string>()
+const ART_FADED_LIMIT = 512
 
 export interface ArtProps {
   width: number
@@ -59,7 +76,11 @@ export const Art = memo(
     // 回落种子占位（对齐旧 UI common/Image 的 onError→EmptyPic 与换 url 复位逻辑），
     // 而不是留一块「有图坑位却没图」的素渐变。失败不自动重试：一次挂载一次请求，不轰炸。
     const [loadFailed, setLoadFailed] = useState(false)
+    // onLoadEnd 在成功与失败两种收尾都会来（RN 的口径）：失败那一次不许记成「淡过」，
+    // 否则同一张图下次挂载若真加载成功就不淡了。state 是异步的，这里留一个同步的账。
+    const failedRef = useRef(false)
     useEffect(() => {
+      failedRef.current = false
       setLoadFailed(false)
     }, [imageUri])
     const showImage = hasImage && !loadFailed
@@ -67,6 +88,41 @@ export const Art = memo(
     const triple = seed != null && seed.length > 0 ? pickArtPalette(seed) : null
     const c1 = triple ? triple[0] : palette[0]
     const c2 = triple ? triple[1] : palette[1]
+
+    /**
+     * 图片加载完成那一下的淡入（原型是硬切，真机网络图解码完会「啪」地换脸）。
+     * 初值按「这张 uri 是否淡过」定：新图从 0 起淡，淡过的直接落 1（列表滚回来不再重放）。
+     * 底下的渐变一直铺满，所以 0 透明度这一段是占位底而不是白块，失败时也不会有亮闪。
+     */
+    const imageFade = useRef(new Animated.Value(
+      imageUri != null && ART_FADED_URIS.has(imageUri) ? 1 : 0,
+    )).current
+    // 换封面 / 回收复用换了图：重新按新 uri 的那一档复位，别把上一张的 1 带过来
+    useEffect(() => {
+      imageFade.stopAnimation()
+      imageFade.setValue(imageUri != null && ART_FADED_URIS.has(imageUri) ? 1 : 0)
+      // 卸载时收掉在跑的补间（同 usePressFx：宿主已拆还每帧写值就是白写）
+      return () => { imageFade.stopAnimation() }
+    }, [imageFade, imageUri])
+
+    const handleLoadEnd = useCallback(() => {
+      if (imageUri == null || imageUri.length === 0) return
+      if (failedRef.current) return
+      // 同一张图可能同时挂在两处（行 + 播放页）：另一处先淡完就记账了，
+      // 这里必须把自己的值补到 1，否则这一处会停在 0（看不见图）
+      if (ART_FADED_URIS.has(imageUri)) {
+        imageFade.setValue(1)
+        return
+      }
+      if (ART_FADED_URIS.size >= ART_FADED_LIMIT) ART_FADED_URIS.clear()
+      ART_FADED_URIS.add(imageUri)
+      Animated.timing(imageFade, {
+        toValue: 1,
+        duration: MOTION.artFade,
+        easing: ART_FADE_EASE,
+        useNativeDriver: true,
+      }).start()
+    }, [imageFade, imageUri])
     // 2026-10-15 性能轮：纹理层只在「无图」时挂。
     // 原型 CSS 里 .art 的 background（渐变 + svgArt 纹理）本就是**占位底**，
     // .art img 是 absolute inset:0 + object-fit:cover 铺满整个盒子 —— 有真图时纹理一个像素都看不见。
@@ -83,25 +139,32 @@ export const Art = memo(
           style={StyleSheet.absoluteFill}
         />
         {!showImage && triple != null && seed != null && <ArtTexture seed={seed} palette={triple} />}
+        {/* 图与压暗遮罩同一层淡入：遮罩跟着图一起现，不然图还半透时那层黑先糊上去 */}
         {showImage && (
-          <Image
-            source={{ uri: imageUri, headers: NEW_UI_IMG_HTTP_HEADERS }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-            onError={() => setLoadFailed(true)}
-          />
-        )}
-        {scrim && showImage && (
-          <LinearGradient
-            // 渐隐终点写「同一基色（veil 黑）的零透明」而非 CSS 'transparent'：
-            // Android LinearGradient 把 'transparent' 当 rgba(0,0,0,0)，中间档已是黑基色半透明，
-            // 插向纯黑会糊出黑块（同 LyricList 2026-10-11 真机踩坑结论）
-            colors={[theme.colors.artScrim, withAlpha(ART_INK.veil, ART_INK.scrimMidAlpha), withAlpha(ART_INK.veil, 0)]}
-            locations={[0, 0.46, 1]}
-            start={{ x: 0, y: 1 }}
-            end={{ x: 0, y: 0 }}
-            style={StyleSheet.absoluteFill}
-          />
+          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: imageFade }]}>
+            <Image
+              source={{ uri: imageUri, headers: NEW_UI_IMG_HTTP_HEADERS }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+              onLoadEnd={handleLoadEnd}
+              onError={() => {
+                failedRef.current = true
+                setLoadFailed(true)
+              }}
+            />
+            {scrim && (
+              <LinearGradient
+                // 渐隐终点写「同一基色（veil 黑）的零透明」而非 CSS 'transparent'：
+                // Android LinearGradient 把 'transparent' 当 rgba(0,0,0,0)，中间档已是黑基色半透明，
+                // 插向纯黑会糊出黑块（同 LyricList 2026-10-11 真机踩坑结论）
+                colors={[theme.colors.artScrim, withAlpha(ART_INK.veil, ART_INK.scrimMidAlpha), withAlpha(ART_INK.veil, 0)]}
+                locations={[0, 0.46, 1]}
+                start={{ x: 0, y: 1 }}
+                end={{ x: 0, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+            )}
+          </Animated.View>
         )}
         {!showImage && icon != null && (
           <View style={styles.center}>

@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 
 import { NEW_UI_PLAYER_LRC_FLOAT_CLOSE_ARIA } from '@/newui/const'
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import {
   FONT_WEIGHT,
   GLASS,
@@ -24,6 +25,9 @@ import {
 
 import { BlurredContainer } from '../Glass'
 import { Icon } from '../Icon'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 /** 原型 --ease: cubic-bezier(.22,.61,.36,1)（与 Toast / Sheet 骨架同一条曲线） */
 const EASE = Easing.bezier(MOTION.easing[0], MOTION.easing[1], MOTION.easing[2], MOTION.easing[3])
@@ -62,6 +66,10 @@ export interface LrcFloatProps {
  */
 export const LrcFloat = memo(({ visible, text, tint, onOpenPlayer, onClose }: LrcFloatProps) => {
   const theme = useTheme()
+  // `.lf-close:active{transform:scale(.85);color:var(--glass-ink);opacity:1}`（styles.css L815）：
+  // scale 与 opacity 共用这条补间（opacity 常驻 .6 → 按下 1）；原型这条没写 transition，
+  // 与 `.pc` / `.pt-btn` 同族，按家族缺省 200ms 补间
+  const closeFx = usePressFx({ scale: LRC_FLOAT.closePressScale })
 
   /** 气泡位置（窗口坐标）。Animated 值读不到同步真值，posRef 是同一份数据的普通镜像 */
   const pan = useRef(
@@ -181,14 +189,25 @@ export const LrcFloat = memo(({ visible, text, tint, onOpenPlayer, onClose }: Lr
       </Text>
       {/* .lf-close：19px 圆钮（子层 Pressable 先中竞标，点它不触发拖动）；
           :active scale(.85) + opacity 1（原型 L681） */}
-      <Pressable
+      <AnimatedPressable
         accessibilityRole="button"
         accessibilityLabel={NEW_UI_PLAYER_LRC_FLOAT_CLOSE_ARIA}
         onPress={onClose}
-        style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
+        onPressIn={closeFx.onPressIn}
+        onPressOut={closeFx.onPressOut}
+        style={[
+          styles.close,
+          {
+            opacity: closeFx.progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [LRC_FLOAT.closeOpacity, 1],
+            }),
+          },
+          closeFx.animatedStyle,
+        ]}
       >
         <Icon name="close" size={LRC_FLOAT.closeIcon} color={theme.colors.glassPatchInk} />
-      </Pressable>
+      </AnimatedPressable>
     </Animated.View>
   )
 })
@@ -239,11 +258,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    opacity: LRC_FLOAT.closeOpacity,
-  },
-  /** .lf-close:active：scale(.85) + opacity 归 1 */
-  closePressed: {
-    opacity: 1,
-    transform: [{ scale: LRC_FLOAT.closePressScale }],
+    // 常驻透明度 .6 由渲染期那条补间给（0 档 = closeOpacity），这里不写死
   },
 })

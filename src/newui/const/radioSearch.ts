@@ -30,6 +30,13 @@ export const NEW_UI_POD_SEARCH_HISTORY_LABEL = '搜过的词'
 /** .sc-clear 的文字（app.js L2107：close 图标 +「清空」） */
 export const NEW_UI_POD_SEARCH_CLEAR_LABEL = '清空'
 
+/**
+ * 「清空」文字链的无障碍文案（原型该钮是纯文字按钮，没有 aria-label，这句是 RN 侧自补的）。
+ * 同屏还有一颗输入框内的清除钮（`aria-label="清空"`，见 NEW_UI_POD_SEARCH_CLEAR_INPUT_LABEL），
+ * 两颗都叫「清空」读屏分不开，这一句带上范围。
+ */
+export const NEW_UI_POD_SEARCH_CLEAR_HISTORY_LABEL = '清空搜过的词'
+
 /** .empty-tip（app.js L2122 `el('div', 'empty-tip', '正在搜索…')`） */
 export const NEW_UI_POD_SEARCH_LOADING = '正在搜索…'
 

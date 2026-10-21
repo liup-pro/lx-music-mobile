@@ -43,6 +43,11 @@ export const NEW_UI_POD_DETAIL_TXT = {
 export const NEW_UI_POD_DETAIL_STATUS = {
   loading: '正在载入单集…',
   failed: '这一屏没有取到单集 · 点击重试',
+  /**
+   * 取回成功但一集都没有（用户 2026-10 确认按此文案）。
+   * 与 `failed` 分开说：那一条是「点击重试」，真没有单集时没有可重试的东西。
+   */
+  empty: '这个播客还没有单集',
 } as const
 
 /** 顶排无障碍（`.pl-top` 那颗返回钮 aria-label="返回"，index.html L420 / L435；同 `NEW_UI_PLD_LABELS.back`） */
@@ -100,6 +105,17 @@ export const NEW_UI_POD_EP_JUMP = {
 export const NEW_UI_POD_EP_TOAST = {
   /** 「定时停止播放」生效中按播放钮：不进队列、不出声，只给这一句 */
   sleepBlocked: '电台现在听不了：定时停止播放开着，取消后就能听了',
+  /**
+   * 这一集没拿到音频直链（③ 的 `episodeUrl` 是空串）时按播放钮。
+   * **原型没有这一句**（原型单集页从不进「拿不到音源」这一态），按 `sleepBlocked` 同一口径补的，**待用户定**。
+   * 不写「直链 / URL / 字段」，只说这一集此刻拿不到音源——用户唯一能做的动作就是换一集或稍后再试。
+   */
+  noSource: '这一集暂时拿不到音源',
+  /**
+   * 播放器侧报告这一集放不出来（`podPlayer.ts` 的 `failed`：直链失效、无网络、解码器拒收……）。
+   * **原型没有这一句**（同 `noSource`，**待用户定**）。同句管全部失败原因，不把播放器的报错原文端上屏。
+   */
+  failed: '播放失败，稍后再试',
 } as const
 
 /** U84 的无障碍名（逐字取 index.html L447-L450 的 aria-label 与 app.js L2206 的切换值） */

@@ -9,9 +9,16 @@ import {
   type ViewStyle,
 } from 'react-native'
 
-import { BUTTON, MOTION, RADIUS, useTheme } from '@/newui/theme'
+import { usePressFx } from '@/newui/hooks/usePressFx'
+import { BUTTON, CONTROL, MOTION, RADIUS, useTheme } from '@/newui/theme'
 
 import { Icon, type IconName } from '../Icon'
+
+/** `.icon-btn:active{transform:scale(.9)}`（styles.css L135），过渡 `.2s` 即 `MOTION.fast` */
+const ICON_BTN_PRESS_SCALE = 0.9
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface IconButtonProps {
   /** 图标名（对应原型 .icon-btn 内的 .ic） */
@@ -119,6 +126,14 @@ export const IconButton = memo(
     style,
   }: IconButtonProps) => {
     const theme = useTheme()
+    // .icon-btn:active 缩到 .9 并把这段过渡补成 200ms（原型 `.icon-btn{transition:.2s var(--ease)}`）
+    const pressFx = usePressFx({ scale: ICON_BTN_PRESS_SCALE })
+    /**
+     * 触区补到 44：原型只有视觉边（34 / 42），手指按不满。外扩量按缺口一半算
+     * （34 → 每边 5、42 → 每边 1），**只加热区**，width/height/圆角与相邻排布一个像素不动。
+     * 顶栏那排 gap 是 10、`.pl-actions` 是 8，都比最大外扩 5 宽，不会与邻钮抢点击。
+     */
+    const hitSlop = Math.max(0, Math.ceil((CONTROL.hitTarget - size) / 2))
     // 底色三档：选中 brandWash > 加强 fill3（.pl-top / .player-top）> 默认 fill2（原型 .icon-btn）
     const backgroundColor = active
       ? theme.colors.brandWash
@@ -126,11 +141,14 @@ export const IconButton = memo(
         ? theme.colors.fill3
         : theme.colors.fill2
     return (
-      <Pressable
+      <AnimatedPressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
+        hitSlop={hitSlop}
         onPress={onPress}
-        style={({ pressed }) => [
+        onPressIn={pressFx.onPressIn}
+        onPressOut={pressFx.onPressOut}
+        style={[
           styles.root,
           {
             width: size,
@@ -139,7 +157,7 @@ export const IconButton = memo(
             backgroundColor,
             borderColor: theme.colors.hairline,
           },
-          pressed && styles.pressed,
+          pressFx.animatedStyle,
           style,
         ]}
       >
@@ -156,7 +174,7 @@ export const IconButton = memo(
             <View pointerEvents="none" style={[styles.dot, { backgroundColor: theme.colors.brand3 }]} />
           </>
         )}
-      </Pressable>
+      </AnimatedPressable>
     )
   },
 )
@@ -169,10 +187,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-  },
-  /** .icon-btn:active 缩放反馈 */
-  pressed: {
-    transform: [{ scale: 0.9 }],
   },
   /** .pulse-dot：7px 圆点，右上偏移 4px（@keyframes pulse 呼吸扩散见 DotPulse） */
   dot: {

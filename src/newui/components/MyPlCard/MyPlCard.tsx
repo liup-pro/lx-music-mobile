@@ -1,9 +1,13 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, Text } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text } from 'react-native'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { FONT_SIZE, FONT_WEIGHT, MY_PL, useTheme } from '@/newui/theme'
 
 import { Art } from '../Art'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface MyPlCardProps {
   /** 歌单名（.mp-n 单行省略） */
@@ -24,10 +28,14 @@ export interface MyPlCardProps {
  */
 export const MyPlCard = memo(({ name, sub, artSeed, artUri, onPress }: MyPlCardProps) => {
   const theme = useTheme()
+  // `.my-pl:active{transform:scale(.95)}`（styles.css L494），过渡 `.2s` 即 MOTION.fast
+  const pressFx = usePressFx({ scale: MY_PL.pressScale })
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
-      style={({ pressed }) => [styles.root, pressed && styles.pressed]}
+      onPressIn={pressFx.onPressIn}
+      onPressOut={pressFx.onPressOut}
+      style={[styles.root, pressFx.animatedStyle]}
     >
       <Art
         width={MY_PL.artSize}
@@ -45,7 +53,7 @@ export const MyPlCard = memo(({ name, sub, artSeed, artUri, onPress }: MyPlCardP
           {sub}
         </Text>
       ) : null}
-    </Pressable>
+    </AnimatedPressable>
   )
 })
 
@@ -56,10 +64,6 @@ const styles = StyleSheet.create({
   root: {
     width: MY_PL.width,
     flexShrink: 0,
-  },
-  /** .my-pl:active 缩放反馈 */
-  pressed: {
-    transform: [{ scale: 0.95 }],
   },
   /** .mp-n 12.5px / 700 / margin-top 8 */
   name: {

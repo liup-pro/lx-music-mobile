@@ -1,5 +1,6 @@
 import { memo, useEffect, useId, useState } from 'react'
 import {
+  Animated,
   Platform,
   Pressable,
   StyleSheet,
@@ -16,6 +17,7 @@ import Svg, {
   Text as SvgText,
 } from 'react-native-svg'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import {
   FONT_SIZE,
   FONT_WEIGHT,
@@ -32,6 +34,9 @@ import { QTag } from '../QTag'
 
 import { EqBars } from './EqBars'
 import { SrcBadge } from './SrcBadge'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 /** .rank.top 渐变字：停点与 --grad 一致（0 / 48% / 100%） */
 const RANK_STOP_OFFSETS = [0, 0.48, 1] as const
@@ -170,6 +175,9 @@ export const SongRow = memo(
     style,
   }: SongRowProps) => {
     const theme = useTheme()
+    // `.song-row{transition:background .2s var(--ease)}` + `:active{background:var(--fill-1)}`（styles.css L292/L294）：
+    // 行类只变底色、不缩放；底色淡入交给一层不动的蒙层 opacity（同 PodcastRow 判例，不做颜色插值）
+    const pressFx = usePressFx()
     const artSize = compact ? SONG_ROW.artSizeCompact : SONG_ROW.artSize
     // 共通补图（走查现象 1）：显式 artUri 恒优先；缺失且给了曲目本体时，
     // 向平台补查一次真封面（模块级缓存去重，命中过的行首帧就有图不再闪纹理）
@@ -193,17 +201,30 @@ export const SongRow = memo(
     }, [artUri, musicInfo])
     const rowArtUri = artUri ?? lazyArtUri
     return (
-      <Pressable
+      <AnimatedPressable
         onPress={onPress}
-        style={({ pressed }) => [
+        onPressIn={pressFx.onPressIn}
+        onPressOut={pressFx.onPressOut}
+        style={[
           styles.root,
           compact ? styles.rootCompact : styles.rootRegular,
           active && { borderColor: theme.colors.playingBorder },
-          pressed && !active && { backgroundColor: theme.colors.fill1 },
           dimmed && styles.dimmed,
           style,
         ]}
       >
+        {/* .song-row:active{background:var(--fill-1)}：一层不动的底色蒙层淡入。
+            正在播的行（.playing 自带渐变底）不叠这一层，与改造前 `pressed && !active` 同一口径 */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.pressBg,
+            {
+              backgroundColor: theme.colors.fill1,
+              opacity: active ? 0 : pressFx.progress,
+            },
+          ]}
+        />
         {active && (
           <LinearGradient
             colors={[...GRADIENTS.brandSoft.colors]}
@@ -281,7 +302,7 @@ export const SongRow = memo(
             </Pressable>
           )}
         </View>
-      </Pressable>
+      </AnimatedPressable>
     )
   },
 )
@@ -314,6 +335,10 @@ const styles = StyleSheet.create({
   },
   dimmed: {
     opacity: 0.45,
+  },
+  /** 按下底色蒙层：铺满整行、跟着根节点的 14 圆角与 overflow:hidden 裁切 */
+  pressBg: {
+    ...StyleSheet.absoluteFillObject,
   },
   rank: {
     // minWidth 而非固定 width：1~3 位（甚至更多）编号一律单行完整显示——

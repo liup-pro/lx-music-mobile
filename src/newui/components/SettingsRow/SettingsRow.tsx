@@ -1,11 +1,15 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { FONT_WEIGHT, GRADIENTS, SETTINGS, useTheme } from '@/newui/theme'
 import { withAlpha } from '@/newui/utils'
 
 import { Icon, type IconName } from '../Icon'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface SettingsRowProps {
   /** .set-ic 左侧图标底（28×28 圆角 9） */
@@ -74,6 +78,13 @@ export const SettingsRow = memo(
     style,
   }: SettingsRowProps) => {
     const theme = useTheme()
+    /**
+     * `.set-row:active{background:var(--fill-1)}`（styles.css L628），补间 `.18s var(--ease)`（L626）。
+     * 行类只变底色、不缩放：底色淡入交给一层不动的蒙层 opacity（native driver），不做颜色插值。
+     * 不可点的信息行（`.set-row.info`：原型 `:active{background:transparent}`，L642）走下面的纯 View 分支，
+     * 这条 Value 虽在两种形态下都会建，但只有可点分支会把它喂给蒙层。
+     */
+    const pressFx = usePressFx({ duration: SETTINGS.rowPressMs })
     const showValue = value != null || onPress != null
     const body = (
       <View style={styles.inner} pointerEvents="none">
@@ -122,16 +133,18 @@ export const SettingsRow = memo(
       return <View style={[styles.row, style]}>{body}</View>
     }
     return (
-      <Pressable
+      <AnimatedPressable
         onPress={onPress}
-        style={({ pressed }) => [
-          styles.row,
-          pressed && { backgroundColor: theme.colors.fill1 },
-          style,
-        ]}
+        onPressIn={pressFx.onPressIn}
+        onPressOut={pressFx.onPressOut}
+        style={[styles.row, style]}
       >
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.pressBg, { backgroundColor: theme.colors.fill1, opacity: pressFx.progress }]}
+        />
         {body}
-      </Pressable>
+      </AnimatedPressable>
     )
   },
 )
@@ -139,13 +152,17 @@ export const SettingsRow = memo(
 SettingsRow.displayName = 'NewUISettingsRow'
 
 const styles = StyleSheet.create({
-  /** .set-row：gap 11 / padding 13 14（按压底色走 Pressable style 回调） */
+  /** .set-row：gap 11 / padding 13 14（按压底色走下面那层不动的蒙层） */
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SETTINGS.rowGap,
     paddingVertical: SETTINGS.rowPaddingY,
     paddingHorizontal: SETTINGS.rowPaddingX,
+  },
+  /** 按下底色蒙层：铺满整行（圆角由 .set-list 的裁切层负责，行本身没有圆角） */
+  pressBg: {
+    ...StyleSheet.absoluteFillObject,
   },
   inner: {
     flex: 1,

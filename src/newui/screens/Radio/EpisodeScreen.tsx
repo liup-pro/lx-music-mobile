@@ -16,6 +16,7 @@ import {
   NEW_UI_POD_EP_JUMP,
   NEW_UI_POD_EP_LABELS,
   NEW_UI_POD_EP_RATES,
+  NEW_UI_POD_EP_TOAST,
   NEW_UI_POD_EP_TXT,
   newUiPodRateLabel,
 } from '@/newui/const/radioDetail'
@@ -42,7 +43,7 @@ import {
   Z_LAYER,
   useTheme,
 } from '@/newui/theme'
-import { formatDuration } from '@/newui/utils'
+import { formatDuration, showNewUiToast } from '@/newui/utils'
 
 /**
  * U82 → U84 的 passProps 形状（契约 7.3④「传 showId + episodeIndex，或整条单集视图模型」）。
@@ -76,6 +77,12 @@ export interface NewUiEpisodePassProps {
   /** 这一集在该节目单集数组里的下标（落盘进度时要的那位 `idx`） */
   episodeIndex: number
   episode: NewUiEpisodePassEpisode
+  /**
+   * 进来即播（详情屏那颗「继续播放 / 播最新单集」传 true，用户 2026-10 拍板「点了就出声」）。
+   * **一次性**：本屏在挂载后消费一次就作废，之后的重渲染（进度异步补位、播放态每秒刷新）不再起播。
+   * 不传 = 老行为（进屏只摆好位置，出声归播放钮）。
+   */
+  autoPlay?: boolean
 }
 
 export interface EpisodeScreenProps extends NewUiEpisodePassProps {
@@ -110,6 +117,7 @@ export const EpisodeScreen = ({
   artworkUrl,
   episodeIndex,
   episode,
+  autoPlay = false,
 }: EpisodeScreenProps) => {
   const theme = useTheme()
   const { top, bottom } = useSafeArea()
@@ -142,6 +150,26 @@ export const EpisodeScreen = ({
     player.episodeId === episode.id &&
     player.phase !== 'idle' &&
     player.phase !== 'failed'
+
+  /**
+   * 放不出来时给一句话。
+   *
+   * `podPlayer` 把「这一集放不出来」记为 `failed`，而上面 `ownsQueue` 把这一档排除在外，
+   * 屏上于是安静地弹回初始态——按下去什么都没发生，用户只会当这颗钮坏了（无声失败）。
+   * 只在**进入 failed 那一次**弹：ref 记住已经提示过的那一集，相位一离开 failed（重试、换集、让位）就清空，
+   * 所以每秒一帧的重渲染不会反复弹，重按再失败仍会再提示一次。
+   */
+  const failedToastRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (player.episodeId !== episode.id || player.phase !== 'failed') {
+      failedToastRef.current = null
+      return
+    }
+    if (failedToastRef.current === episode.id) return
+    failedToastRef.current = episode.id
+    showNewUiToast(NEW_UI_POD_EP_TOAST.failed)
+  }, [episode.id, player.episodeId, player.phase])
+
   /**
    * 待播起点：本机记的就是这一集时从「总时长 - 剩余」续起（原型 openEpisode L2169-L2171）。
    * 起播后它只做两件事：未起播时的走位、以及队列被拿走时屏上别跳回起点。
@@ -162,6 +190,27 @@ export const EpisodeScreen = ({
     if (resumeSec <= 0) return
     setOffset(current => (current === 0 ? resumeSec : current))
   }, [episodeIndex, ownsQueue, progressEntries, sec, showId])
+
+  /**
+   * 「进来即播」：详情屏那颗「继续播放 / 播最新单集」把 `autoPlay` 过桥过来，本屏挂载后自己起播一次。
+   * 为什么不在详情屏先起播再推屏：起播原语的闸（定时停止播放开着就不起播）会把提示投给「当前屏」的
+   * toast 宿主，详情屏没挂那一台，提示会落在被盖住的主屏上＝无声失败；起播放在本屏，提示就落在本屏头上。
+   *
+   * 只消费一次：ref 落地即置 false，之后的重渲染（进度异步补位、播放态每秒刷新）都不再起播；
+   * 每次进屏都是新实例（RNN push），而 `startPodEpisode` 自己就是「先清队列再挂这一集」，
+   * 所以从详情屏反复点进来也不会叠出第二条音轨。
+   */
+  const autoPlayRef = useRef(autoPlay)
+  useEffect(() => {
+    if (!autoPlayRef.current) return
+    autoPlayRef.current = false
+    // 接口没给直链：与播放钮同一句提示（原型没有这一态，口径见 const/radioDetail.ts）
+    if (episode.episodeUrl.length === 0) {
+      showNewUiToast(NEW_UI_POD_EP_TOAST.noSource)
+      return
+    }
+    void startPodEpisode(source, { startSec: offset, rate: getPodPlayerSnapshot().rate })
+  }, [episode.episodeUrl, offset, source])
 
   // 走位与落盘都要读最新值，而卸载回调的闭包是旧的 → ref 兜住
   // （判例 SeekControl 的 commitRef：值在 effect 里同步进 ref，不在渲染期写）
@@ -222,7 +271,7 @@ export const EpisodeScreen = ({
    * 播停（原型 `epToggle` L2224-L2229 的四支）：
    * 出声/缓冲中 → 真暂停；这一集已经挂在播放器里 → 续播（播到头那支在模块里钳回 0）；
    * 还没起播（或上一回没挂上）→ 拿 ③ 的直链重新起播，起点就是屏上这一格。
-   * 接口没给直链的那一集放不出声，按下去不做任何事（原型没有「禁用态」这一档，屏上不加）。
+   * 接口没给直链的那一集放不出声，按下去只投一句提示（原型没有「禁用态」这一档，屏上仍不加灰态）。
    *
    * **「定时停止播放开着时不许起播」这道闸不在本屏**：它落在 `podcast/podPlayer.ts` 的
    * `startPodEpisode` / `resumePodEpisode` 第一行（含屏上人话提示），所以这三支里真被拦下的是后两支。
@@ -236,7 +285,10 @@ export const EpisodeScreen = ({
       else void resumePodEpisode()
       return
     }
-    if (episode.episodeUrl.length === 0) return
+    if (episode.episodeUrl.length === 0) {
+      showNewUiToast(NEW_UI_POD_EP_TOAST.noSource)
+      return
+    }
     void startPodEpisode(source, { startSec: t, rate: snapshot.rate })
   }, [episode.id, episode.episodeUrl, source, t])
 
@@ -323,10 +375,17 @@ export const EpisodeScreen = ({
             style={styles.cover}
           />
           <View style={styles.headMeta}>
-            <Text style={[styles.epTitle, { color: theme.colors.text }]} numberOfLines={2}>
+            {/*
+              集名不设限行：原型 `.epl-meta h3`（episode.css L23）只写了字号/字重/行高，**没有**
+              `-webkit-line-clamp`，长中文标题本来就该整段换行。`.epl-head` 是 `align-items:flex-end`
+              + `min-height:96px`，封面固定 96 不缩，多出来的行由这一列向上长、整块往下推，
+              不压住下面的摘要与控件（本屏整层可滚）。
+            */}
+            <Text style={[styles.epTitle, { color: theme.colors.text }]}>
               {episode.title}
             </Text>
-            <Text style={[styles.epBy, { color: theme.colors.text2 }]} numberOfLines={2}>
+            {/* `.epl-by`（L25）同样没有限行：节目名长了就换行，不截断 */}
+            <Text style={[styles.epBy, { color: theme.colors.text2 }]}>
               {`${showName} · ${episode.dateText}`}
             </Text>
           </View>

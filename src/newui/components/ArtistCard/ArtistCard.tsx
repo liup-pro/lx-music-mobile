@@ -1,9 +1,13 @@
 import { memo } from 'react'
-import { Pressable, StyleSheet, Text } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text } from 'react-native'
 
+import { usePressFx } from '@/newui/hooks/usePressFx'
 import { ARTIST_CARD, FONT_SIZE, FONT_WEIGHT, useTheme } from '@/newui/theme'
 
 import { Art } from '../Art'
+
+/** 按压反馈要动 `Pressable` 本体：套一层 `Animated.View` 会改掉 flex 布局，见 usePressFx 头注 */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 export interface ArtistCardProps {
   /** 歌手名（.artist-card span，单行省略） */
@@ -21,8 +25,15 @@ export interface ArtistCardProps {
  */
 export const ArtistCard = memo(({ name, artSeed, artUri, onPress }: ArtistCardProps) => {
   const theme = useTheme()
+  // `.artist-card:active{transform:scale(.93)}`（styles.css L339），过渡 `.2s` 即 MOTION.fast
+  const pressFx = usePressFx({ scale: ARTIST_CARD.pressScale })
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.root, pressed && styles.pressed]}>
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={pressFx.onPressIn}
+      onPressOut={pressFx.onPressOut}
+      style={[styles.root, pressFx.animatedStyle]}
+    >
       <Art
         width={ARTIST_CARD.artSize}
         height={ARTIST_CARD.artSize}
@@ -34,7 +45,7 @@ export const ArtistCard = memo(({ name, artSeed, artUri, onPress }: ArtistCardPr
       <Text numberOfLines={1} style={[styles.label, { color: theme.colors.text2 }]}>
         {name}
       </Text>
-    </Pressable>
+    </AnimatedPressable>
   )
 })
 
@@ -47,10 +58,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignItems: 'center',
     gap: ARTIST_CARD.gap,
-  },
-  /** .artist-card:active 缩放反馈 */
-  pressed: {
-    transform: [{ scale: 0.93 }],
   },
   /** span 11.5px / 600，单行省略（宽度受 .artist-card 限制，原型无字距） */
   label: {
