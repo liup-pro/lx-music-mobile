@@ -199,8 +199,8 @@ function findAnchor(el, pageId) {
 // ---------------------------------------------------------------------------
 const P = (key, units, dir, file, title, extra = {}) => ({ key, units, dir, file, title, doc: false, js: [], ...extra })
 const PART_DEFS = [
-  P('_shell', '壳层', '', '_shell', '文档壳与页面骨架：html/head/body、#viewport、五只 .page（页面壳单列）', { js: ['switchTab', 'PAGES', 'init'], note: '页面本体就是这五只 .page 空壳，内容全部来自各单元件；五只页壳内的子件以「▸」占位注释互指。' }),
-  P('_chrome', 'V1–V4', '', '_chrome', '查看器 chrome（非 App UI，不参与拆件）：设备切换条 / 手机外框 / 灵动岛 / 假状态栏 / Pad 侧栏专属节点 / 设计说明面板', { js: ['fitFrame', 'frameZoom', 'setDevice', 'FRAME', 'renderSwatches'], note: 'RN 有意不承接；本件仅作归属收容，避免混进语义单元（对撞报告 K 组）。' }),
+  P('_shell', '壳层', '', '_shell', '文档壳与页面骨架：html/head/body、#viewport、五只 .page（页面壳单列）。轻量宽屏档的两条壳级覆盖也落在本件：.wide .viewport 的 92/150 上下内衬、.wide .page 的 620 限宽居中（与外框同属壳层，RN 侧对应 PageViewport 的 contentContainerStyle + useWideLayout 的 wideContentMaxWidthOf）', { js: ['switchTab', 'PAGES', 'init', 'WIDE_MAX_W'], note: '页面本体就是这五只 .page 空壳，内容全部来自各单元件；五只页壳内的子件以「▸」占位注释互指。' }),
+  P('_chrome', 'V1–V4', '', '_chrome', '查看器 chrome（非 App UI，不参与拆件）：设备切换条（竖屏 / 横屏 / Pad 三档 + 横屏档的窗口宽 700/890 钮）/ 手机外框（含 .phone.wide 的 890×400 与 .phone.pad 的 1180×820）/ 灵动岛 / 假状态栏 / Pad 侧栏专属节点 / 设计说明面板', { js: ['fitFrame', 'frameZoom', 'setDevice', 'FRAME', 'FRAME_NOTE', 'WIDE_TIERS', 'wideInnerW', 'wideTier', 'paintWide', 'clearWideFrame', 'setWideFrame', 'renderSwatches'], note: 'RN 有意不承接；本件仅作归属收容，避免混进语义单元（对撞报告 K 组）。宽度分档的判据（≥600 三列 / ≥840 四列）在本件的 js 符号 WIDE_TIERS 里，RN 侧下一轮照它改 useWideLayout。' }),
   P('_base', '公共底', '', '_base', '公共底：:root token 与 .phone.light 明亮档、reset、.ic、跨单元复用原子（.art/.chip/.icon-btn/.q-tag/.src-badge/.play-badge/.ghost-btn/.empty-tip/.section-*/.foot-note/.hot-words/分页状态行 .pl-status|.pl-end/右推层固定段壳 .pl-head（电台两层共用，见 U81/U82）/.player-crumb/@keyframes spin）', { cssOnly: true, js: ['applyTheme', 'setTheme'], note: '共享样式只在这里出现一份，各件不复刻。' }),
 
   P('U01', 'U01', 'common-control', 'topbar', '.topbar 吸顶头部（头像 / 搜索条 / 波纹钮；U03 告警点静态实例在本件内）', { js: [], jsNote: '事件接线在 init() 尾部（#searchBtn / #castBtn / #avatarBtn）；头像首字由 renderProfile() 写入。' }),
@@ -233,7 +233,7 @@ const PART_DEFS = [
   P('U24', 'U24', 'home', 'banner', '.banner-wrap 轮播两条（track/dots；b-tag、veil 由 renderBanners 生成）：一条音源公告、一条正在播放（有歌才出现）。<em>电台那一条本轮撤掉</em>——首页只留快捷入口那一格电台，同一屏不给三个入口指向同一层', { js: ['bannerItems', 'renderBanners', 'bannerPaint', 'startBannerCarousel', 'BANNER_ACTION'] }),
   P('U25', 'U25', 'home', 'quick-row', '.quick-row 快捷入口四宫格（每日推荐/排行榜/电台/我喜欢，QUICK 见 data.js）：<em>电台那一格现在是全站唯一的电台入口</em>，点它推入 U81 那一层', { js: ['renderQuick'] }),
   P('U26', 'U26', 'home', 'daily-card', '.daily-card 今日推荐卡（含区块壳）', { js: ['renderDaily', 'dailyPool', 'todayLabel'] }),
-  P('U27', 'U27', 'home', 'pl-card', '.pl-grid / .pl-card 推荐歌单区块（首页那份；歌单页/我的页复用见 U38/U46）', { js: ['renderPlaylists', 'plCard'] }),
+  P('U27', 'U27', 'home', 'pl-card', '.pl-grid / .pl-card 推荐歌单区块（首页那份；歌单页/我的页复用见 U38/U46）。轻量宽屏档在本件持有两条列数覆盖：.wide.wcols3 → 3 列（gap 16×14）、.wide.wcols4 → 4 列（gap 16×12），卡内字号与封面比例一律沿用手机竖屏那一套', { js: ['renderPlaylists', 'plCard'] }),
   P('U29', 'U29', 'home', 'song-list', '.song-list 热门单曲区块（section 壳 + ghost-btn + 列表壳；rank-tabs 子块挖出归 chip-row；songRow/src-badge/q-tag/play-badge 复用 _base 与内容件）；本轮 songRow() 多收第 5 参 scene——只有传 \'queue\' 时行内「⋯」给 U80 那一屏专属菜单，其余落点不传、菜单不变', { js: ['renderSongs', 'songRow', 'currentSongs', 'currentBoard', 'HOME_SONG_LIMIT'] }),
   P('U31', 'U31', 'home', 'artist-card', '.artist-card 热门歌手横滚（含区块壳；section-note 挖出归 U32）', { js: ['renderArtists', 'ARTIST_LIMIT'] }),
   P('U32', 'U32', 'home', 'section-note', '.section-note 区块说明灰字（RN 缺件·页面内联，本轮拆件头号转正候选）', { js: ['renderArtists'] }),
@@ -244,7 +244,7 @@ const PART_DEFS = [
   P('U37', 'U37', 'playlist', 'pl-count', '.pl-count「已列出 N / M 个」计数行（RN 缺件·内联，转正候选）', { js: ['paintPlPool'] }),
   P('U38', 'U38', 'playlist', 'pl-pool', '推荐池区块（.pl-grid 复用 U27；计数挖出归 U37、空态归 U11；分页状态行样式在 _base）', { js: ['paintPlPool', 'plPool', 'resetPlPool', 'loadPlPoolPage', 'plPoolStatusRow', 'PL_POOL_SIZE'] }),
 
-  P('U39', 'U39', 'rank', 'rank-grid', '.rank-grid / .rk-card（rk-emblem/rk-name/rk-sub）榜单卡网格；卡由 rankCard() 生成', { js: ['renderRankPage', 'rankCard', 'paintRankGrid', 'rankView', 'RANK_PAGE_SIZE'] }),
+  P('U39', 'U39', 'rank', 'rank-grid', '.rank-grid / .rk-card（rk-emblem/rk-name/rk-sub）榜单卡网格；卡由 rankCard() 生成。轻量宽屏档在本件同样持有两条列数覆盖：.wide.wcols3 → 3 列（gap 16×14）、.wide.wcols4 → 4 列（gap 16×12）；组头 .rank-group 与分页状态行仍是 grid-column:1/-1，不跟着摊列', { js: ['renderRankPage', 'rankCard', 'paintRankGrid', 'rankView', 'RANK_PAGE_SIZE'] }),
   P('U40', 'U40', 'rank', 'rank-group', '.rank-group 平台分段组头（「N 个榜 · 热歌/新歌/飙升在前」文案见符号行）', { doc: true, js: ['rankGroupHead'] }),
   P('U41', 'U41', 'rank', 'chart-art', 'chartArt 符号体系：色按榜名（CHART_TINT）、形按榜型（CHART_EMBLEM 六枚 512 符号）、底色=强调色×shadeHex；不随主题反相', { doc: true, js: ['chartArt', 'CHART_ACCENT', 'CHART_TINT', 'CHART_EMBLEM', 'chartTint', 'shadeHex'] }),
 
@@ -487,7 +487,7 @@ const CSS_EXC = [
   [/^#psBody \.song-list$/, 'U80'],
 ]
 const CSS_MATCHERS = [
-  ['_chrome', ['.pad ', '.phone.pad', 'body.pad', '.stage', '.phone', '.screen', '.island', '.statusbar', '.sb-time', '.sb-right', '.sb-signal', '.sb-batt', '.viewer-bar', '.vb-label', '.vb-seg', '.vb-btn', '.vb-note', '.nav-brand', '.nav-sep', '.nav-label', '.nav-foot', '.notes', '.swatches', '.sw']],
+  ['_chrome', ['.pad ', '.phone.pad', 'body.pad', 'body.wide', '.phone.wide', '.stage', '.phone', '.screen', '.island', '.statusbar', '.sb-time', '.sb-right', '.sb-signal', '.sb-batt', '.viewer-bar', '.vb-label', '.vb-seg', '.vb-btn', '.vb-note', '.nav-brand', '.nav-sep', '.nav-label', '.nav-foot', '.notes', '.swatches', '.sw']],
   ['U01', ['.topbar', '.topbar-row', '.avatar-btn', '.avatar', '.searchbar']],
   ['U03', ['.pulse-dot']],
   ['U05', ['.minibar', '.mini-progress', '.mini-main', '.mini-art', '.mini-meta', '.mini-title', '.mini-sub', '.mini-act']],
@@ -546,7 +546,7 @@ const CSS_MATCHERS = [
   ['U67', ['.pl-top', '#plFavBtn']],
   ['U68', ['.pl-hero', '.ph-body', '.ph-sub', '.ph-meta']],
   ['U69', ['.pl-actions']],
-  ['UDETAIL_shell', ['.pl-layer']],
+  ['UDETAIL_shell', ['.pl-layer', '#plLayer']],
   ['U66', ['.pl-bg']],
   ['U76', ['.more-song']],
   ['U77', ['.cf-actions', '.cf-btn']],
@@ -558,7 +558,7 @@ const CSS_MATCHERS = [
   // 共用的固定段壳 .pl-head 排在 _base，不塞进 radio/ 那两件（与 .pl-status|.pl-end 跨件原子同一条判例）。
   ['U81', ['#radioLayer', '.subs-block', '.subs-head', '.subs-card', '.sub-n', '.sub-l', '.subs-x', '.subs-wrap', '.subs-empty', '.pod-region', '.pod-list', '.pod-row', '.pod-rank', '.pod-body', '.pod-name', '.pod-by', '.pod-open']],
   ['U82', ['#podcastLayer', '.ep-list', '.ep-head', '.ep-row', '.ep-body', '.ep-title', '.ep-meta', '.ep-text']],
-  ['U84', ['.wip-tag', '.epl-head', '.epl-cover', '.epl-meta', '.epl-by', '.epl-intro']],
+  ['U84', ['.wip-tag', '.epl-head', '.epl-cover', '.epl-meta', '.epl-by', '.epl-intro', '#episodeLayer']],
   // 已缓存（U86）：本屏新增样式只有口径段与列表轴；层壳那条 #offlineLayer{padding:0;overflow:hidden}
   // 按 ID 规则归本层（与 #radioLayer / #podcastLayer 同一判例）。.pad #offlineLayer 两条被 _chrome 的
   // 「.pad 」前缀先到先得，不用在此登记。入口那一半（#offlineCard）本轮起与左半共用 U44 的 .fc-half，

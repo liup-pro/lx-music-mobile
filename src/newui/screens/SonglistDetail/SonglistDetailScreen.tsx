@@ -74,6 +74,7 @@ import {
   useNewUiSystemBar,
   useNowPlaying,
   useSafeArea,
+  useWideLayout,
 } from '@/newui/hooks'
 import {
   PL_LAYER,
@@ -157,6 +158,7 @@ export const SonglistDetailScreen = ({
 }: SonglistDetailScreenProps) => {
   const theme = useTheme()
   const { top, bottom } = useSafeArea()
+  const { wide, layerPaddingX } = useWideLayout()
   useNewUiSystemBar(componentId)
 
   const assertApiSupport = useApiSupport()
@@ -619,11 +621,16 @@ export const SonglistDetailScreen = ({
   // 内容留白样式缓存（2026-10-15 性能轮）：原先是渲染期现造的对象字面量，本页每次重渲染
   // （切曲、翻页、开关浮层都会）都让 VirtualizedList 把 contentContainer 的样式当新值下发，
   // 触发整块内容区重新布局；安全区/内距都是稳定值，缓存后只在 top/bottom 变化时重建。
+  // 这一屏是「整层滚」（原型 `.wide #plLayer` 注释：层自己就是轴，头部三排在 ListHeader 里跟着滚，
+  // 没有钉住段），所以档位只落在这一个 contentContainer 上：
+  // `.wide #plLayer{padding:36px max(16px,calc((100% - 620px)/2)) 34px}`（styles.css:1335）
+  // —— 顶内衬回正到这一档 32 状态栏之上的 4、左右吃 620 居中轴，底那一位 34 原型没动；
+  // compact 两个 `??` 都回竖屏基线（PL_LAYER.paddingTopReserve / paddingX），逐值零变化。
   const listContentStyle = useMemo(() => ({
-    paddingTop: top + PL_LAYER.paddingTopReserve,
-    paddingHorizontal: PL_LAYER.paddingX,
+    paddingTop: top + (wide?.statusReserve ?? PL_LAYER.paddingTopReserve),
+    paddingHorizontal: layerPaddingX ?? PL_LAYER.paddingX,
     paddingBottom: PL_LAYER.paddingBottom + bottom,
-  }), [top, bottom])
+  }), [top, bottom, wide, layerPaddingX])
 
   // 头部三排（顶排 / hero / 操作排）随列表整体滚（原型 .pl-layer 单滚动容器）
   const listHeader = (

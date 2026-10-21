@@ -25,6 +25,7 @@ import {
   useNewUiSystemBar,
   useNowPlaying,
   useSafeArea,
+  useWideLayout,
 } from '@/newui/hooks'
 import { SEARCH, useTheme } from '@/newui/theme'
 import { normalizeSearchListInfoItem, playQueue, requestNewUiTab, showNewUiToast, toSongDisplay } from '@/newui/utils'
@@ -53,6 +54,9 @@ export interface SearchScreenProps {
 export const SearchScreen = ({ componentId }: SearchScreenProps) => {
   const theme = useTheme()
   const { top, bottom } = useSafeArea()
+  // 轻量宽屏档：本屏三处滚动容器（空输入态 + 结果两 tab）共用同一个内容盒限宽，
+  // 切 tab 时盒子不跳；竖屏档 boxStyle 是 undefined = 不写任何宽样式（零变化）
+  const { boxStyle } = useWideLayout()
   useNewUiSystemBar(componentId)
 
   const assertApiSupport = useApiSupport()
@@ -302,6 +306,7 @@ export const SearchScreen = ({ componentId }: SearchScreenProps) => {
           contentContainerStyle={[
             styles.bodyContent,
             { paddingBottom: SEARCH.bodyPaddingBottom + bottom },
+            boxStyle,
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

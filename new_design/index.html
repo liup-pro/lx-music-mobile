@@ -66,7 +66,13 @@
     <span class="vb-label">屏幕方向</span>
     <div class="vb-seg" id="devSwitch">
       <button class="vb-btn is-on" data-dev="phone">竖屏</button>
+      <button class="vb-btn" data-dev="wide">横屏</button>
       <button class="vb-btn" data-dev="pad">Pad</button>
+    </div>
+    <span class="vb-label" id="wideLabel" hidden>窗口宽</span>
+    <div class="vb-seg" id="wideSwitch" hidden>
+      <button class="vb-btn" data-wide="700">700</button>
+      <button class="vb-btn is-on" data-wide="890">890</button>
     </div>
     <span class="vb-note" id="vbNote">400 × 890 pt · 底部 Tab</span>
   </div>
@@ -630,7 +636,7 @@
   <aside class="notes">
     <div class="notes-inner">
       <h1>EchoIsle · 五个 Tab</h1>
-      <p class="notes-lede">移动端 UI 原型（HTML/CSS/JS）：首页 / 歌单 / 排行榜 / 我的 / 设定，左上角可切<em>手机竖屏</em>与<em>Pad 横屏</em>两种外形（横屏只有 Pad 这一种形态），另有一档明暗主题。信息架构不是照搬竞品，而是由音源脚本解码出的能力边界反推出来的——音源只能把一首歌变成能播的声音，其余内容全部来自平台曲库。</p>
+      <p class="notes-lede">移动端 UI 原型（HTML/CSS/JS）：首页 / 歌单 / 排行榜 / 我的 / 设定，左上角可切<em>手机竖屏</em>／<em>手机横屏</em>／<em>Pad 横屏</em>三档外形（横屏有两档：手机横过来是一档轻量宽屏，Pad 是另一档形态改造），另有一档明暗主题。信息架构不是照搬竞品，而是由音源脚本解码出的能力边界反推出来的——音源只能把一首歌变成能播的声音，其余内容全部来自平台曲库。</p>
 
       <h2>音源能力 → 设计约束</h2>
       <table class="spec">
@@ -680,9 +686,12 @@
         <li>落到 RN 时改的是 <code>SongRow</code> 的 <code>subRow</code> 子节点顺序（现为 <code>SrcBadge → subtitle → QTag</code>）：拆成 <code>SrcBadge → QTag → artist → album</code> 四段，<code>subtitle</code> 这一个 prop 要拆成 <code>artist</code> / <code>album</code> 两个，容器上补一条分隔线样式即可，其余 props 与交互不变</li>
       </ul>
 
-      <h2>两种外形</h2>
-      <p class="notes-body">同一套 DOM，不复制页面：左上角「设备外形」两档——<em>手机竖屏</em> 400×890、<em>Pad 横屏</em> 1180×820，横屏只有 Pad 这一种形态。切到 Pad 时给外框和 <code>body</code> 各加一个 <code>.pad</code> 类，靠一段覆盖样式把「底部 Tab」翻成「左侧导航」。预览窗口不够宽时整体等比缩小（<code>fitFrame()</code> 按 stage 宽度和窗口高度取较小值，手机模式不参与缩放），量到的坐标都还是逻辑像素。</p>
+      <h2>三档外形</h2>
+      <p class="notes-body">同一套 DOM，不复制页面：左上角「屏幕方向」三档——<em>手机竖屏</em> 400×890、<em>手机横屏</em> 890×400（默认，另可切 700×400 看窄一档）、<em>Pad 横屏</em> 1180×820。竖屏与 Pad 这两档<em>逐值不变</em>，横屏是新叠上去的第三档。切档时给外框与 <code>body</code> 各加一个类（<code>.pad</code> / <code>.wide</code>），Pad 那一档靠一段覆盖样式把「底部 Tab」翻成「左侧导航」，横屏这一档<em>不翻</em>。预览窗口不够宽时整体等比缩小（<code>fitFrame()</code> 按 stage 宽度和窗口高度取较小值，手机模式不参与缩放），量到的坐标都还是逻辑像素。</p>
       <ul class="notes-list">
+        <li><b>手机横屏这一档只做一件事：按<em>窗口宽</em>分档，不按设备分档。</b>判据只有屏内宽（外框宽 − 手机边框左右各 11）这一个数，<code>app.js</code> 的 <code>WIDE_TIERS</code> 写在明面上：<em>≥600 走 3 列、≥840 走 4 列</em>，命中哪一档就把 <code>.wcols3</code> / <code>.wcols4</code> 挂到同一只外框上——所以查看器上那颗「窗口宽 700 / 890」就是这一档唯一的开关，拖宽窗口与换设备走的是同一条算式。列数只改 <code>.pl-grid</code>（首页推荐、歌单页池子、「我的」歌单，三处同一族）与 <code>.rank-grid</code>（榜单页）这两张栅格，卡内字号、两行标题、封面正方形、圆角一律沿用手机那一套。内容盒<em>限宽 620 后水平居中</em>（<code>.wide .page</code>）：620 不是新开的数，原型已有那一档限宽（<code>.pad .stat-row</code> / <code>.pad .fav-card</code> 就是它），净宽 588，四列 136／三列 187 一张卡。<em>为什么是 620 而不是更宽</em>：这一档的稀缺轴是<em>高</em>不是宽（屏内高 378，扣掉顶栏 92 与「迷你条 + Tab」那 126 只剩 160 可看），限宽收得越宽、单卡就越大，一屏连一行都放不下；620 让四列的卡（136）比竖屏两列（178）更小，同一屏能多看清一行。RN 侧对应 <code>useWideLayout</code> 的三条：阈值 600 / 840、列数 3 / 4、<code>contentMaxWidth</code>——RN 现有那份的 720 下一轮照这里改成 620</li>
+        <li>这一档<em>明确不做</em>的结构级形态（都是 Pad 那一档的活）：底部 Tab 不翻成左侧导航（<code>--nav-w</code> 仍是 <code>0px</code>）、顶栏与迷你播放条仍是手机那条横排（只把高度压进这一档的垂直预算：迷你条 52、Tab 22+44）、歌单详情不做主从两列、设定页不摊两列、播放页不动结构、浮层仍从底部弹出。外框保持<em>手机那一套表达</em>：54/44 双圆角与 22 底部安全区一字不改，只把状态栏压回 32 那一档（数值直接取 Pad 那条，不新开）；灵动岛在这一档藏掉——手机横过来那颗挖孔落在侧边、不在这条横排状态栏中间，而这一档不做侧边挖孔的硬件表达，与 Pad「外框不画挖孔」是同一条处理</li>
+        <li>单列的行屏在这一档<em>保持单列</em>，只是跟着同一根限宽居中轴走：歌单详情 <code>#plLayer</code>、已缓存 <code>#offlineLayer</code> 的列表轴、电台两层与搜歌结果列都<em>不摊多列</em>，写法是 <code>padding-inline:max(16px,calc((100% - 620px)/2))</code>——窗口比 620 窄时自动退回原来的 16 内衬，算不出负内衬；顶内衬一律从手机的 54/58 回正到 36，与这一档 32 的状态栏齐平。「我的」那张「我喜欢 / 已缓存」合一卡在 620 的居中盒里<em>随盒铺满</em>（卡基线本来就是 <code>width:100%</code>，这一档不给它写任何一条规则）：<em>既不靠左、也不再叠第二道 620 限宽</em>——620 已经被内容盒花掉了，再限一次只会得到一条更窄的卡；斜线分隔与两半 50% 命中区在两档主题下都不变。首页轮播压到 112（取继续收听那一行的现成卡宽），快捷入口与每日推荐不改尺寸</li>
         <li>让位用一个变量做完：<code>--nav-w</code> 手机 <code>0px</code>、Pad <code>236px</code>，顶栏 / 滚动区 / 推入页 / 播放页 / 迷你条的 <code>left</code> 全部引用它——所以手机侧的计算式原样退化成 0，不需要第二套定位</li>
         <li>侧栏由原 <code>#tabbar</code> 变身（<code>flex-direction:column</code> + 42px 行高），补了品牌行、「浏览」分组标题、独立的<em>设定</em>入口，底部 <code>margin-top:auto</code> 钉住当前音源状态：脚本名 + 版本 + 平台数 + 音质，解码失败时小圆点变橙。手机模式这四个新节点 <code>display:none</code>，不占空间</li>
         <li>内容区加宽不等于放大：主列宽 860（1156 屏内宽 − 236 导航 − 左右各 30）、轮播 860×216、歌单卡与榜单卡 <b>4 列</b>（首页推荐池、歌单页那张池子都是同一族 <code>.pl-grid</code>）、电台排行榜行与设定页分组、音源与「⋯」那些选项行 <b>摊 2 列</b>、左右各留 30px 边距；<em>整行的列表不摊两列</em>（歌曲行、歌单详情的曲目、播客的单集列都是一行到底，只是行内封面与字号上一档）；首页「每日推荐」卡与「我的」统计条一样收到 660 / 620 档，不让一行正文铺满 860。<code>.viewport</code> 的 <code>padding-top</code> 同步改成 94px 与 Pad 顶栏等高，胶囊吸顶仍然是 <code>top:0</code></li>

@@ -3467,18 +3467,67 @@ function switchTab(key) {
 }
 
 /* ============ 设备外形（原型查看器控件，不属于 App 界面） ============ */
-const FRAME = { phone: [400, 890], pad: [1180, 820] };
+const FRAME = { phone: [400, 890], wide: [890, 400], pad: [1180, 820] };
 const FRAME_NOTE = {
   phone: '400 × 890 pt · 底部 Tab',
+  wide: '890 × 400 pt · 底部 Tab',
   pad: '1180 × 820 pt · 侧栏导航',
 };
 let device = 'phone';
+
+/* 横屏这一档的判据只有一个宽度，跟设备种类无关：
+   屏内宽 = 外框宽 − 手机边框左右各 11（.phone 的 padding:11px）。
+     ≥600 → 3 列 / ≥840 → 4 列，档名挂成 .wcols3 / .wcols4；
+   内容盒限宽 620（styles.css 的 .wide .page，两档共用同一个盒）。
+   RN 侧下一轮就照这三个数对账。 */
+const WIDE_EDGE = 11;
+const WIDE_MAX_W = 620;
+const WIDE_TIERS = [
+  { min: 840, cols: 4, cls: 'wcols4' },
+  { min: 600, cols: 3, cls: 'wcols3' },
+];
+let wideW = FRAME.wide[0];
+
+const wideInnerW = () => wideW - WIDE_EDGE * 2;
+const wideTier = () => WIDE_TIERS.find((t) => wideInnerW() >= t.min) || null;
+/* 这一档实际生效的外框尺寸：宽度可被 700/890 那两颗钮改写，列数跟着实测宽度走 */
+const frameSize = () => (device === 'wide' ? [wideW, FRAME.wide[1]] : FRAME[device]);
+
+/* 横屏档的内联宽度与列数档名：离开这一档时一起清掉，竖屏与 Pad 两档逐值回到原样 */
+function clearWideFrame() {
+  const p = $('#phone');
+  p.style.width = '';
+  WIDE_TIERS.forEach((t) => p.classList.remove(t.cls));
+}
+
+function paintWide() {
+  if (device !== 'wide') {
+    $('#wideLabel').hidden = $('#wideSwitch').hidden = true;
+    return;
+  }
+  const p = $('#phone');
+  p.style.width = wideW + 'px';
+  const tier = wideTier();
+  WIDE_TIERS.forEach((t) => p.classList.toggle(t.cls, !!tier && t.cls === tier.cls));
+  $('#wideLabel').hidden = $('#wideSwitch').hidden = false;
+  $$('#wideSwitch .vb-btn').forEach((b) => b.classList.toggle('is-on', +b.dataset.wide === wideW));
+  /* 回显把判据摊开给人对：外框尺寸 / 实测屏内宽 / 由它选出的列数 / 内容盒限宽 */
+  $('#vbNote').textContent =
+    `${wideW} × ${FRAME.wide[1]} pt · 屏内 ${wideInnerW()} · ${tier ? tier.cols : 2} 列 · 内容盒 ${WIDE_MAX_W}`;
+}
+
+function setWideFrame(w) {
+  if (w === wideW) return;
+  wideW = w;
+  if (device === 'wide') paintWide();
+  fitFrame();
+}
 
 /* 预览窗口装不下外框时整体缩着看，逻辑尺寸不变 */
 function fitFrame() {
   const p = $('#phone');
   if (device === 'phone') { p.style.zoom = ''; return; }
-  const [w, h] = FRAME[device];
+  const [w, h] = frameSize();
   const byW = ($('.stage').clientWidth - 4) / w;
   /* 还要给顶部的方向切换条和页面上下留白让位，否则窄窗口里下沿会被裁掉 */
   const byH = (innerHeight - 132) / h;
@@ -3490,9 +3539,12 @@ function setDevice(next) {
   if (next === device) return;
   device = next;
   const p = $('#phone');
-  /* .phone 是外框基类，永远在；这里只叠 .pad 这一个覆盖层（横屏只有 Pad 一档） */
+  /* .phone 是外框基类，永远在；上面只叠覆盖层，.wide 与 .pad 互斥，竖屏两档都不挂 */
   p.classList.toggle('pad', next === 'pad');
   document.body.classList.toggle('pad', next === 'pad');
+  p.classList.toggle('wide', next === 'wide');
+  document.body.classList.toggle('wide', next === 'wide');
+  if (next !== 'wide') clearWideFrame();
   /* 换外形时把浮层与推入页收起，回到当前 Tab 的整页视图（电台那四层同样是推入层，一起收） */
   [$('#plLayer'), $('#searchLayer'), player(),
     $('#offlineLayer'),
@@ -3506,8 +3558,10 @@ function setDevice(next) {
   /* 浮窗的手拖位置是内联坐标，换外形后要清掉，让它回到该模式的默认落点 */
   const f = $('#lrcFloat');
   f.style.left = f.style.top = '';
-  syncFloat();
+  /* 宽度档名要在内联坐标重排之前落地：syncFloat 读的就是这只外框的当前尺寸 */
   $('#vbNote').textContent = FRAME_NOTE[next];
+  paintWide();
+  syncFloat();
   $$('#devSwitch .vb-btn').forEach((b) => b.classList.toggle('is-on', b.dataset.dev === next));
   fitFrame();
 }
@@ -3556,6 +3610,7 @@ function init() {
   $$('.section-more[data-tab]').forEach((b) => (b.onclick = () => switchTab(b.dataset.tab)));
   $('#navFoot').onclick = () => { renderSheet(); openLayer($('#sourceSheet')); };
   $$('#devSwitch .vb-btn').forEach((b) => (b.onclick = () => setDevice(b.dataset.dev)));
+  $$('#wideSwitch .vb-btn').forEach((b) => (b.onclick = () => setWideFrame(+b.dataset.wide)));
   addEventListener('resize', fitFrame);
   fitFrame();
 

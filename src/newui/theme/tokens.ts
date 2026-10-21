@@ -431,7 +431,9 @@ export const SWITCH = {
 
 // 规格提取自 styles.css L86-110（.topbar / .topbar-row / .avatar-btn / .searchbar）
 export const TOP_BAR = {
-  /** 原型 padding-top 54 含状态框；真机用实测 statusbarHeight + 此行位 */
+  /** 原型 padding-top 54 含状态框；真机用实测 statusbarHeight + 此行位。
+   *  宽屏档不吃本值：`.wide .topbar{padding:36px 22px 10px}`（styles.css:1314）走
+   *  `WIDE_STRUCTURAL.statusReserve`（4）与 `topBarPaddingX`（22） */
   statusBarReserve: 2,
   paddingBottom: 10,
   /** .topbar-row 高 46 / 子项 gap 10 */
@@ -618,6 +620,8 @@ export const EMPTY_TIP = {
 /* ================= 卡片网格与歌单卡（.pl-grid / .pl-card） ================= */
 
 // styles.css L232-239。网格列数与间隙同时供「计算单卡宽度」使用（见 hooks/useGridItemWidth）
+// 宽屏档改的是「按档覆盖」这一组（medium 16×14 / expanded 16×12，styles.css:1318-1321，见 `WIDE` 与
+// `wideGridGapOf`）；本块是**竖屏基线**，分档前后不许动。
 export const CARD_GRID = {
   /** grid-template-columns:1fr 1fr */
   columns: 2,
@@ -625,6 +629,116 @@ export const CARD_GRID = {
   rowGap: 14,
   columnGap: 12,
 } as const
+
+/* ================= 轻量宽屏档（判据与逐值都以原型为准） ================= */
+
+/**
+ * 「轻量宽屏」的唯一数据源。**原型是准绳**：这一档在原型里有成族的 `.wide` 规则
+ * （styles.css L1308-1343）与一条判据（app.js L3483-3492），本块只是把它们逐值搬进 RN，
+ * 不再有任何「RN 自造」的数。
+ *
+ * 判据的换算关系（必须写清，否则两边的 600/840 会被当成两个不同的东西）：
+ * - 原型是**查看器手动档**：`.pad` / `.wide` 是查看器上的按钮，外框宽可被 700 / 890 两颗钮改写；
+ * - 原型的判据 = **屏内宽**，而 `屏内宽 = 外框宽 − 手机边框左右各 11`（app.js:3483 `WIDE_EDGE = 11`、
+ *   app.js:3491 `wideInnerW = () => wideW - WIDE_EDGE * 2`），阈值 600 / 840 挂在这条实测屏内宽上
+ *   （app.js:3485 `WIDE_TIERS`：`{min:840,cols:4}` / `{min:600,cols:3}`）；
+ * - RN 侧没有「外框 + 11px 边框」这一层：**窗口宽本身就是屏内宽**（`useWindowDimensions().width`
+ *   读的是可读区宽，不含任何装饰边框），所以 RN 拿窗口宽当**同一条判据**代入 600 / 840，
+ *   两边比的是同一个量。原型 890 外框 → 屏内 868 → 4 列；RN 窗口 868 及以上 → 同一档。
+ *
+ * 明确**不承接**的：左侧导航栏、歌单详情主从、设定页两列、播放页改造——那些是原型 `.pad`
+ * 那一档的结构级形态，本档（`.wide`）一律不做。
+ *
+ * 竖屏档（窗口宽 < 600）列数仍取 `CARD_GRID.columns`、内容盒不限宽、结构度量全走竖屏基线 token，
+ * 行为与分档之前**逐值一致**。
+ * 具体判据函数见文件末尾的 `wideTierOf` / `wideColumnsOf` / `wideGridGapOf` /
+ * `wideContentMaxWidthOf` / `wideContentWidth` / `wideStructuralOf` / `wideLayerPaddingXOf`。
+ */
+export const WIDE = {
+  /** 屏内宽 < 600 = compact（手机竖屏档）：不限宽、列数与结构度量全走竖屏基线。原型 app.js:3487 的 min 600 */
+  compactUpper: 600,
+  /** 600 ≤ 屏内宽 < 840 = medium：3 列（原型 app.js:3487 `{min:600,cols:3,cls:'wcols3'}`） */
+  mediumUpper: 840,
+  mediumColumns: 3,
+  /** 840 ≤ 屏内宽 = expanded：4 列（原型 app.js:3486 `{min:840,cols:4,cls:'wcols4'}`） */
+  expandedColumns: 4,
+  /**
+   * medium 档栅格间隙（行×列 = 16×14）：原型 `.wide.wcols3 .pl-grid{gap:16px 14px}`（styles.css:1318）
+   * 与 `.wide.wcols3 .rank-grid`（styles.css:1320）同数
+   */
+  mediumRowGap: 16,
+  mediumColumnGap: 14,
+  /**
+   * expanded 档栅格间隙（行×列 = 16×12）：原型 `.wide.wcols4 .pl-grid{gap:16px 12px}`（styles.css:1319）
+   * 与 `.wide.wcols4 .rank-grid`（styles.css:1321）同数
+   */
+  expandedRowGap: 16,
+  expandedColumnGap: 12,
+  /**
+   * medium / expanded 共用的内容盒限宽（含 .page 左右 16 内衬，即滚动容器 contentContainer 的宽上限），
+   * 超出后水平居中。原型 `.wide .page{max-width:620px;margin-left:auto;margin-right:auto}`
+   * （styles.css:1316）与 app.js:3484 `WIDE_MAX_W = 620` 同一个数。
+   * 与 `MINE.statMaxWidth` / `MINE.favMaxWidth` 的 620 同族但不冲突：
+   * 那两个限的是**单条件**（统计条 / 合一卡），这一条限的是**整页内容盒**；
+   * 原型这一档的说明（styles.css L1305-1306）明写「内容盒限宽 620 后水平居中：620 是原型已有的那一档
+   * 限宽（.pad .stat-row / .pad .fav-card 就是它），不新开数」，卡基线 width:100% 随盒铺满、不再叠第二道限宽。
+   * 净宽口径：620 盒宽先收，再减 .page 左右 16 得 **588** 净宽——凡按屏宽推尺寸的都走
+   * `wideContentWidth`（先收盒宽再算列），不许拿整屏宽直接推。
+   */
+  contentMaxWidth: 620,
+} as const
+
+/**
+ * 宽屏档（medium 与 expanded **共用同一组**，原型 `.wide` 那族规则不随列数分档）的结构度量覆盖。
+ * 每一键都是原型 styles.css 一条 `.wide` 规则的直译；`wideStructuralOf` 只在非 compact 档发对象，
+ * compact 一律 `undefined` → 消费侧写成 `wide?.x ?? 竖屏基线 token`，竖屏那侧连一条宽样式都不落。
+ *
+ * 垂直预算的分解基准是原型这一档的**模拟状态栏 32**（`.wide .statusbar{height:32px}`，styles.css:1310）；
+ * RN 用实测状态栏高度（`useSafeArea().top`）替它，于是原型那些「36 / 92 / 150」在 RN 里写成
+ * 同一组可合成出这些值的**基元**（状态栏之上那 4、行高 46、Tab 44、迷你条 52+52、呼吸 24），
+ * 代入库器实测值即与原型逐值相等（见各键注释）。
+ */
+export const WIDE_STRUCTURAL = {
+  /** 原型这一档的模拟状态栏高 32（styles.css:1310），RN 侧不落地、只作下面各条的分解基准 */
+  statusBarHeight: 32,
+  /**
+   * 状态栏**之上**那截内衬 = 36 − 32 = 4。原型这一档六个落点齐平都是 36：
+   * `.wide .topbar`（1314）/ `#plLayer`（1335）/ `#episodeLayer`（1336）/ `.pl-head`（1337）/
+   * `.sc-top`（1342）/ `.player-layer`（1343）。竖屏三档基线各不相同（顶栏 2、层 6、搜索头 2），
+   * 这一档一律收到 4。
+   */
+  statusReserve: 4,
+  /** `.wide .topbar{padding:36px 22px 10px}`（styles.css:1314）左右那一位；竖向两位见 statusReserve / TOP_BAR.paddingBottom */
+  topBarPaddingX: 22,
+  /**
+   * 滚动容器**下**内衬里「Tab 栏上沿之上」那一段 = 84。原型 `.wide .viewport{padding:92px 0 150px}`
+   * （styles.css:1315）分解：150 = 22 安全区 + 44 Tab 栏 + 84；
+   * 那 84 自身 = 迷你条底距(52 − 44 = 8) + 迷你条高 52 + 呼吸 24（原型 1312-1313 注释同式）。
+   * 上内衬 92 = 36 + 行高 46 + 10 = 顶栏总高，RN 由 `topbarHeight(实测状态栏, 4)` 合成，不单独落键
+   * （代实测状态栏 32 即得 92，与原型逐值相等）。
+   */
+  contentGapAboveTabBar: 84,
+  /** `.wide .tabbar{height:calc(var(--safe-b) + 44px);padding-top:6px}`（styles.css:1327）—— 44 不含安全区 */
+  tabBarHeight: 44,
+  /** 同条规则的 padding-top 6（styles.css:1327） */
+  tabBarPaddingTop: 6,
+  /** `.wide .tab .ic{width:20px;height:20px}`（styles.css:1328） */
+  tabIconSize: 20,
+  /** `.wide .minibar{... height:52px}`（styles.css:1326） */
+  minibarHeight: 52,
+  /** `.wide .minibar{bottom:calc(var(--safe-b) + 52px)}`（styles.css:1326）—— 安全区之上再抬 52 */
+  minibarBottomAboveSafe: 52,
+  /** `.wide .banner{height:112px}`（styles.css:1324；112 取继续收听那一行的现成卡宽，原型注释明写不新开数） */
+  bannerHeight: 112,
+  /**
+   * `.wide #episodeLayer{padding:36px max(16px,calc((100% - 620px)/2)) 26px}`（styles.css:1336）
+   * 的底那一位 26（竖屏 `.pl-layer` 是 34，`#plLayer` 这一档仍是 34 → 只有单集屏收到 26）。
+   */
+  episodeLayerPaddingBottom: 26,
+} as const
+
+/** 宽屏档结构度量对象的类型（消费侧的 `wide?.x ?? 竖屏基线` 与 `topbarHeight` 第二入参都吃它） */
+export type WideStructural = typeof WIDE_STRUCTURAL
 
 export const PL_CARD = {
   /** .pt 上边距 8 / 行高 1.35 / 最多两行 */
@@ -980,10 +1094,17 @@ export const FAV_DUO = {
   artSize: 44,
   artRadius: 14,
   artIcon: 22,
-  /** .fc-art box-shadow:0 2px 8px（颜色与浓度两档各给，见 palette） */
+  /**
+   * .fc-art box-shadow:0 2px 8px（颜色与浓度两档各给，见 palette）。
+   * 这里只有 iOS 的 shadow* 两值，**故意没有 elevation**：托底是半透明的（palette.artBg，
+   * 深色 rgba(255,255,255,.11) / 明亮 rgba(255,255,255,.7)，由组件在渲染期照常铺上），
+   * 而 Android 的 elevation 阴影画在 View 背景「下面」——半透明底会把那层黑阴影透出来，
+   * 托底整体发灰、还带一块硬边白斑压在心形/电话图标上（2026-10 真机截图回归）。
+   * 原型 CSS 的外阴影根本不会画到自己的背景下面，所以两档在 Android 上都该是
+   * 「半透明托底 + 不带 elevation」。
+   */
   artShadowOffsetY: 2,
   artShadowRadius: 8,
-  artShadowElevation: 2,
   /** .fav-duo::after：4px 实心斜线，left:50% + translateX(-50%)（负半宽 margin 表达）+ rotate(18deg) */
   dividerWidth: 4,
   dividerRadius: 4,
@@ -2028,30 +2149,108 @@ export const SHADOW: Record<
  * 顶栏总高（原型 .topbar padding 54/16/10 + 行高 46）。
  * 原型 54 中已含 52px 模拟状态栏，真机改为「实测状态栏 + statusBarReserve 微调」。
  * 顶栏高度与滚动内容上留白共用此值（.viewport padding-top:110px 即顶栏高）。
+ *
+ * 宽屏档传第二个入参（`useWideLayout().wide`，来源 `wideStructuralOf`）：原型
+ * `.wide .topbar{padding:36px 22px 10px}`（styles.css:1314）+ 行高 46 = 92，与
+ * `.wide .viewport{padding-top:92px}`（styles.css:1315）互为对账——那条 36 = 32 状态栏 + 4，
+ * 故本函数在宽屏档用 `wide.statusReserve`（4）替掉竖屏的 2，代实测状态栏即得顶栏总高。
+ * 不传（compact）逐值与改前完全相同。
  */
-export const topbarHeight = (statusBarHeight: number): number =>
-  statusBarHeight + TOP_BAR.statusBarReserve + TOP_BAR.rowHeight + TOP_BAR.paddingBottom
+export const topbarHeight = (statusBarHeight: number, wide?: WideStructural): number =>
+  statusBarHeight + (wide?.statusReserve ?? TOP_BAR.statusBarReserve) + TOP_BAR.rowHeight + TOP_BAR.paddingBottom
 
 /**
- * 网格单卡宽度：(屏宽 - 两侧 .page 内边距 - 列间隙 × (列数 - 1)) / 列数。
+ * 轻量宽屏的三档标识（判据 = 屏内宽；原型的屏内宽 = 外框宽 − 11×2（app.js:3491），
+ * RN 的窗口宽即同一条屏内宽，换算见上方 `WIDE` 块注释；阈值 600 / 840 出自 app.js:3485 `WIDE_TIERS`）。
+ * compact 即手机竖屏档：列数、间隙、内容盒与结构度量都与分档之前逐值一致。
+ */
+export type WideTier = 'compact' | 'medium' | 'expanded'
+
+/** 屏内宽 → 档位（< 600 compact / 600-839 medium / ≥ 840 expanded，判据同 app.js:3492） */
+export const wideTierOf = (windowWidth: number): WideTier => {
+  if (windowWidth < WIDE.compactUpper) return 'compact'
+  return windowWidth < WIDE.mediumUpper ? 'medium' : 'expanded'
+}
+
+/** 该档的栅格列数：compact 仍取 CARD_GRID.columns（2），medium 3，expanded 4 */
+export const wideColumnsOf = (windowWidth: number): number => {
+  switch (wideTierOf(windowWidth)) {
+    case 'medium': return WIDE.mediumColumns
+    case 'expanded': return WIDE.expandedColumns
+    default: return CARD_GRID.columns
+  }
+}
+
+/**
+ * 该档的栅格间隙（行 / 列）：medium 16×14（styles.css:1318 / 1320）、expanded 16×12
+ * （styles.css:1319 / 1321）；**compact 返回 undefined** = 消费侧继续吃 CARD_GRID 的 14×12 基线。
+ */
+export const wideGridGapOf = (windowWidth: number): { rowGap: number, columnGap: number } | undefined => {
+  switch (wideTierOf(windowWidth)) {
+    case 'medium': return { rowGap: WIDE.mediumRowGap, columnGap: WIDE.mediumColumnGap }
+    case 'expanded': return { rowGap: WIDE.expandedRowGap, columnGap: WIDE.expandedColumnGap }
+    default: return undefined
+  }
+}
+
+/** 该档的内容盒限宽；compact 返回 undefined = 不限宽（样式侧等价于「根本没写 maxWidth」） */
+export const wideContentMaxWidthOf = (windowWidth: number): number | undefined =>
+  wideTierOf(windowWidth) === 'compact' ? undefined : WIDE.contentMaxWidth
+
+/**
+ * 该档的结构度量覆盖（medium / expanded 共用同一组，原型 `.wide` 那族规则不分列数档）；
+ * compact 返回 undefined —— 消费侧写 `wide?.xxx ?? 竖屏基线 token`，竖屏那侧不落任何宽样式。
+ * 返回的是模块级同一个对象引用（memo 组件的样式数组不因档位对象换引用而失效）。
+ */
+export const wideStructuralOf = (windowWidth: number): WideStructural | undefined =>
+  wideTierOf(windowWidth) === 'compact' ? undefined : WIDE_STRUCTURAL
+
+/**
+ * 单列行屏那根「620 居中轴」的左右内衬：原型 `max(16px, calc((100% - 620px) / 2))`
+ * （styles.css:1335-1340 的 #plLayer / #episodeLayer / .pl-head / #offlineLayer>.off-list /
+ * #radioLayer>.pod-list / #podcastLayer>.ep-list 六处同式，100% = 该屏内宽 = RN 窗口宽）。
+ * 窗口比 620 窄时自动退回 16（算不出负内衬）；compact 返回 undefined = 吃各自竖屏基线（都是 16）。
+ */
+export const wideLayerPaddingXOf = (windowWidth: number): number | undefined =>
+  wideTierOf(windowWidth) === 'compact'
+    ? undefined
+    : Math.max(LAYOUT.screenPaddingX, (windowWidth - WIDE.contentMaxWidth) / 2)
+
+/**
+ * 内容盒实际宽 = min(窗口宽, 该档限宽 620)（styles.css:1316 `.wide .page{max-width:620px}`）。
+ * 「按屏宽算尺寸」的三条派生度量（网格单卡 / 快捷四格 / 轮播满宽）都先过这一道，
+ * 卡片才不会在限宽居中的内容盒里按整屏宽铺开；compact 档此函数是恒等映射（零变化）。
+ * 净宽口径：盒宽先收、再减 `.page` 左右各 16，620 的盒给的是 **588** 净宽（原型 headless 实测
+ * 4 列 138 = (588 − 12×3)/4、3 列 186.67 = (588 − 14×2)/3），下面的三个函数都按这条推。
+ */
+export const wideContentWidth = (windowWidth: number): number => {
+  const maxWidth = wideContentMaxWidthOf(windowWidth)
+  return maxWidth === undefined ? windowWidth : Math.min(windowWidth, maxWidth)
+}
+
+/**
+ * 网格单卡宽度：(内容盒宽 - 两侧 .page 内边距 - 列间隙 × (列数 - 1)) / 列数。
  * RN 无 CSS 的 1fr，凡是用 CardGrid 摆卡片的场合都靠它算出封面边长（.pl-card .art 为 1:1）。
+ * 入参仍叫 windowWidth（各处直传 useWindowDimensions 的宽），**盒宽换算在函数内先做**
+ * （wideContentWidth 收盒 → 再算列），行总宽恒等于盒净宽、不溢出。
  */
 export const gridItemWidth = (windowWidth: number, columns: number, columnGap: number): number =>
-  (windowWidth - LAYOUT.screenPaddingX * 2 - columnGap * (columns - 1)) / columns
+  (wideContentWidth(windowWidth) - LAYOUT.screenPaddingX * 2 - columnGap * (columns - 1)) / columns
 
 /**
- * 快捷入口单格宽度（.quick-row 的 repeat(4,1fr)：屏宽减两侧内边距与三个间隙后四等分）。
+ * 快捷入口单格宽度（.quick-row 的 repeat(4,1fr)：盒宽减两侧内边距与三个间隙后四等分）。
  */
 export const quickItemWidth = (windowWidth: number): number =>
-  (windowWidth - LAYOUT.screenPaddingX * 2 - QUICK_ROW.gap * (QUICK_ROW.columns - 1)) /
+  (wideContentWidth(windowWidth) - LAYOUT.screenPaddingX * 2 - QUICK_ROW.gap * (QUICK_ROW.columns - 1)) /
   QUICK_ROW.columns
 
 /**
  * 轮播单卡宽度（.banner width:100%，相对 .page 内容盒）。
  * 横滑的 snapToInterval = 卡宽 + 轨道间隙，故一并给出步长。
+ * 盒宽同样过 wideContentWidth：限宽居中后轮播不能比内容盒还宽。
  */
 export const bannerItemWidth = (windowWidth: number): number =>
-  windowWidth - LAYOUT.screenPaddingX * 2
+  wideContentWidth(windowWidth) - LAYOUT.screenPaddingX * 2
 
 /* ================= 品牌首字头像（.avatar-btn .avatar / .mh-art 共通化） ================= */
 

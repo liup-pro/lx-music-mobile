@@ -52,3 +52,4 @@ export { useRecommendPlaylists, type RecommendPlaylistsState } from './useRecomm
 export { useRecentPlays, useRecentPlayRecorder } from './useRecentPlays'
 export { useSafeArea, type NewUiSafeArea } from './useSafeArea'
 export { useSingerPics, type SingerPicsState } from './useSingerPics'
+export { useWideLayout, type WideLayout } from './useWideLayout'

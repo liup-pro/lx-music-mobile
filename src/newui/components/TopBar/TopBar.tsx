@@ -11,9 +11,10 @@ import {
   SPACING,
   TOP_BAR,
   Z_LAYER,
-  topbarHeight,
   useTheme,
 } from '@/newui/theme'
+// 直连具体 hook（不走 @/newui/hooks 桶口），与 PageViewport / TabBar 同一做法
+import { useWideLayout } from '@/newui/hooks/useWideLayout'
 
 import { BrandAvatar } from '../BrandAvatar'
 import { Icon } from '../Icon'
@@ -91,7 +92,8 @@ SearchBar.displayName = 'NewUITopBarSearch'
 
 /**
  * 吸顶头部（对应原型 .topbar / .topbar-row）：头像 + 搜索栏 + 音源按钮。
- * 覆盖在滚动区之上，内容上留白由 PageViewport 用同一个 topbarHeight 预留。
+ * 覆盖在滚动区之上，内容上留白由 PageViewport 用同一个顶栏总高预留（两者都读 useWideLayout 的
+ * `topBarHeight`，宽屏档即原型 `.wide .viewport{padding-top:92px}` 那条线，styles.css:1315）。
  * 原型是「深色 tint 渐变底 + backdrop-filter blur(22px) 毛玻璃」（styles.css L105-112）；
  * 玻璃层（共通件 `BlurredContainer`，规格 theme.GLASS.topBar）严格限定在顶栏盒内：
  * CSS backdrop-filter 的作用域即元素自身 border-box，下沿 tint 到 0 档收 Transparent 止于盒底，
@@ -123,43 +125,51 @@ export const TopBar = memo(
     pinned = false,
     topInset = 0,
     style,
-  }: TopBarProps) => (
-    <View
-      style={[
-        styles.root,
-        {
-          paddingTop: topInset + TOP_BAR.statusBarReserve,
-          paddingBottom: TOP_BAR.paddingBottom,
-          height: topbarHeight(topInset),
-          zIndex: Z_LAYER.topbar,
-        },
-        // 投影随吸顶状态；底色不受它影响
-        pinned && SHADOW.chrome,
-        style,
-      ]}
-    >
-      {/* 玻璃底（含系统状态栏背后那一段）：真模糊 blur(22) + 原型同档染色渐变
-          （.topbar，styles.css L105-112；theme.GLASS.topBar），不可用时退回不透明 bg 铺底。
-          两层都只铺满本盒（absoluteFill），不外溢——原型 backdrop-filter/渐变均止于盒底 */}
-      <BlurredContainer spec={GLASS.topBar} />
-      <View style={styles.row}>
-        <AvatarButton text={avatarText} onPress={onAvatarPress} />
-        <SearchBar placeholder={searchPlaceholder} onPress={onSearchPress} />
-        <IconButton name="wave" dot={sourceDot} onPress={onSourcePress} />
+  }: TopBarProps) => {
+    /* 本盒的三条度量按档走（原型 `.wide .topbar{padding:36px 22px 10px}`，styles.css:1314）：
+       顶 = 实测状态栏 + 4（36 那一位 = 本档模拟状态栏 32 + 4，见 WIDE_STRUCTURAL.statusReserve）、
+       左右 = 22、底 = TOP_BAR.paddingBottom 的 10 不变；compact 三条全回竖屏基线（2 / 16 / 10）。
+       盒高与滚动容器上内衬共用 topBarHeight（同一判据），故宽屏档顶栏下沿 = 原型 92 那条线。 */
+    const { wide, topBarHeight } = useWideLayout()
+    return (
+      <View
+        style={[
+          styles.root,
+          {
+            paddingTop: topInset + (wide?.statusReserve ?? TOP_BAR.statusBarReserve),
+            paddingHorizontal: wide?.topBarPaddingX ?? SPACING.lg,
+            paddingBottom: TOP_BAR.paddingBottom,
+            height: topBarHeight(topInset),
+            zIndex: Z_LAYER.topbar,
+          },
+          // 投影随吸顶状态；底色不受它影响
+          pinned && SHADOW.chrome,
+          style,
+        ]}
+      >
+        {/* 玻璃底（含系统状态栏背后那一段）：真模糊 blur(22) + 原型同档染色渐变
+            （.topbar，styles.css L105-112；theme.GLASS.topBar），不可用时退回不透明 bg 铺底。
+            两层都只铺满本盒（absoluteFill），不外溢——原型 backdrop-filter/渐变均止于盒底 */}
+        <BlurredContainer spec={GLASS.topBar} />
+        <View style={styles.row}>
+          <AvatarButton text={avatarText} onPress={onAvatarPress} />
+          <SearchBar placeholder={searchPlaceholder} onPress={onSearchPress} />
+          <IconButton name="wave" dot={sourceDot} onPress={onSourcePress} />
+        </View>
       </View>
-    </View>
-  ),
+    )
+  },
 )
 
 TopBar.displayName = 'NewUITopBar'
 
 const styles = StyleSheet.create({
+  /** padding-top / 左右 / 高 三条按档在渲染期给（宽屏 36 位 = 状态栏 + 4、左右 22；竖屏 2 与 SPACING.lg 的 16） */
   root: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: SPACING.lg,
   },
   /** .topbar-row：gap 10 / height 46 */
   row: {

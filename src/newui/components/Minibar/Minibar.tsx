@@ -12,6 +12,9 @@ import {
   useTheme,
 } from '@/newui/theme'
 
+// 直连具体 hook（不走 @/newui/hooks 桶口），与 PageViewport / TabBar 同一做法
+import { useWideLayout } from '@/newui/hooks/useWideLayout'
+
 import { Art } from '../Art'
 import { Icon } from '../Icon'
 import { BlurredContainer } from '../Glass'
@@ -85,12 +88,15 @@ export const Minibar = memo(
     style,
   }: MinibarProps) => {
     const theme = useTheme()
+    // 高按档覆盖：宽屏档 52（原型 `.wide .minibar{height:52px}`，styles.css:1326），
+    // compact 回 MINIBAR.height 的 58 基线（判据只在 useWideLayout 一处）
+    const { wide } = useWideLayout()
     const fillWidth = `${Math.min(Math.max(ratio, 0), 1) * 100}%` as const
     return (
       <Pressable
         accessibilityRole="button"
         onPress={onPress}
-        style={[styles.root, { borderColor: theme.colors.line }, SHADOW.float, style]}
+        style={[styles.root, { height: wide?.minibarHeight ?? MINIBAR.height, borderColor: theme.colors.line }, SHADOW.float, style]}
       >
         {/* 玻璃底：真模糊（blur 28）+ glassPatch 贴片染色（原型 .minibar background:var(--glass)，
             GLASS.minibar tintBase='glassPatch'，深浅两套各按 token 自身 alpha）；
@@ -202,8 +208,8 @@ export const Minibar = memo(
 Minibar.displayName = 'NewUIMinibar'
 
 const styles = StyleSheet.create({
+  /** 高按档在渲染期给（宽屏 52 / 竖屏 MINIBAR.height 58，原型 styles.css:1326），其余度量两档同值 */
   root: {
-    height: MINIBAR.height,
     borderRadius: MINIBAR.radius,
     overflow: 'hidden',
     borderWidth: 1,

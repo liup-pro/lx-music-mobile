@@ -7,7 +7,7 @@ import { useSettingValue } from '@/store/setting/hook'
 
 import { Minibar } from '@/newui/components'
 import { QUALITY_LABEL, getPlatformMeta } from '@/newui/const'
-import { useFavoriteToggle, useNowPlaying } from '@/newui/hooks'
+import { useFavoriteToggle, useNowPlaying, useWideLayout } from '@/newui/hooks'
 import { MINIBAR, PLATFORM_TINTS, TAB_BAR, Z_LAYER, type PlatformTintKey } from '@/newui/theme'
 import { isOnlineMusic } from '@/newui/utils'
 
@@ -33,6 +33,12 @@ export const MinibarDock = ({ componentId, bottomInset }: MinibarDockProps) => {
   const { nowPlayTime, maxPlayTime } = useProgress()
   const playQuality = useSettingValue('player.playQuality')
   const { loved, toggle: toggleFav } = useFavoriteToggle()
+  /* 本条的竖直摆位按档走（判据只在 useWideLayout 一处）：
+     - 竖屏档：bottom = 安全区 + Tab 60 + 间隙 6 = 安全区 + 66，与原型 `.minibar{bottom:calc(var(--safe-b) + 66px)}`（styles.css:660）同式；
+     - 宽屏档：原型 `.wide .minibar{bottom:calc(var(--safe-b) + 52px)}`（styles.css:1326）给的是**整条底距 52**
+       （= Tab 44 + 间隙 8），故这里直接取 `wide.minibarBottomAboveSafe`，不再用「Tab 高 + 6」拼——
+       6 那一档是竖屏的间隙，宽屏原型没写它。 */
+  const { wide } = useWideLayout()
 
   // 没有在播曲目、或取不到曲目来源（理论不会发生）时不出现（原型只在 state.song 存在时 show）
   // PlayMusic 联合里下载项（ListItem）无 source：用 'source' in 收窄，
@@ -55,7 +61,7 @@ export const MinibarDock = ({ componentId, bottomInset }: MinibarDockProps) => {
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.wrap, { bottom: bottomInset + TAB_BAR.height + MINIBAR.gapAboveTabBar }]}
+      style={[styles.wrap, { bottom: bottomInset + (wide?.minibarBottomAboveSafe ?? TAB_BAR.height + MINIBAR.gapAboveTabBar) }]}
     >
       <Minibar
         artSeed={`album:${nowPlaying.album || nowPlaying.title}`}

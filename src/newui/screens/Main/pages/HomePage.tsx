@@ -50,6 +50,7 @@ import {
   useRecommendPlaylists,
   useRecentPlays,
   useSingerPics,
+  useWideLayout,
 } from '@/newui/hooks'
 import { CARD_GRID, PLATFORM_TINTS, SONG_ROW, type PlatformTintKey } from '@/newui/theme'
 import { clearNewUiRecentPlays, getSingerMidOfSong, getToday, playQueue, showNewUiToast, toSongDisplay } from '@/newui/utils'
@@ -59,7 +60,7 @@ const RECENT_LIMIT = NEW_UI_HOME_LIMITS.recent
 const ARTIST_LIMIT = NEW_UI_HOME_LIMITS.artists
 
 /**
- * 推荐歌单网格的一「行」：最多 CARD_GRID.columns（2）张卡。
+ * 推荐歌单网格的一「行」：最多「当前宽屏档的列数」张卡（竖屏 = CARD_GRID.columns 的 2）。
  * 虚拟化以**行**为回收单元（与歌单页 PoolRow 同款形态）；
  * 两页各留一份本地定义与渲染（字段命名空间不同：artSeed 前缀、点卡落的 fromTab 不同），
  * 第三处再出现时抽共通件（见本轮交付报告「遗留」）。
@@ -139,6 +140,12 @@ export const HomePage = ({
   const assertApiSupport = useApiSupport()
 
   const cardWidth = useGridItemWidth()
+  // 宽屏档的列数与栅格间隙（与 cardWidth 同一档，见 useWideLayout）：行切块用列数，不用写死的 2；
+  // 间隙 medium 16×14 / expanded 16×12（原型 styles.css:1318-1319），竖屏档就是 CARD_GRID 的 14×12
+  const { columns: gridColumns, rowGap: gridRowGap, columnGap: gridColumnGap } = useWideLayout()
+  // 行样式缓存成稳定引用（与模块级 styles.row/rowGap 同一条「别每行每次渲染现造对象让 PlCard 的 memo 失效」口径）
+  const poolRowStyle = useMemo(() => ({ gap: gridColumnGap ?? CARD_GRID.columnGap }), [gridColumnGap])
+  const poolRowGapStyle = useMemo(() => ({ marginTop: gridRowGap ?? CARD_GRID.rowGap }), [gridRowGap])
 
   // 历史已在记录侧按曲去重（新播在前），这里只截上屏数量
   const recentSongs = useMemo(
@@ -253,17 +260,19 @@ export const HomePage = ({
     pushNewUiSonglistDetail(componentId, info, 'pl', 'home')
   }, [componentId])
 
-  // —— 推荐歌单池：虚拟单元 = 一行两卡（.pl-grid 的 1fr 1fr）——
+  // —— 推荐歌单池：虚拟单元 = 一行「当前档列数」张卡（竖屏就是 .pl-grid 的 1fr 1fr 两列）——
   // 池子只整批替换（useRecommendPlaylists 一次取一批并 slice 到 limit），行 key 用成员 id 拼接，
   // 换平台/换分类时整批换 key、行内容跟着换，不会把旧行的封面留在新行上
+  // 列数吃 useWideLayout（与 useGridItemWidth 的默认列数同源）：横屏 / 平板一档每行 3 或 4 张，
+  // 竖屏 (<600) 恒等于 CARD_GRID.columns，分档前后逐值一致
   const poolRows = useMemo<PoolRow[]>(() => {
     const out: PoolRow[] = []
-    for (let i = 0; i < playlists.items.length; i += CARD_GRID.columns) {
-      const slice = playlists.items.slice(i, i + CARD_GRID.columns)
+    for (let i = 0; i < playlists.items.length; i += gridColumns) {
+      const slice = playlists.items.slice(i, i + gridColumns)
       out.push({ key: slice.map(item => `${item.source}-${item.id}`).join('|'), items: slice })
     }
     return out
-  }, [playlists.items])
+  }, [playlists.items, gridColumns])
 
   // 池子自身的空态/错误文案（口径与改造前 Section 体内三分支逐字一致：
   // 错误 → 报错误原文；有条目 → 不显示（卡行接管）；没条目 → 正在取的一句话。
@@ -276,10 +285,10 @@ export const HomePage = ({
 
   const poolKeyExtractor = useCallback((row: PoolRow) => row.key, [])
 
-  // 一行两卡：列间隙 .pl-grid 的 12（gap 列向），行向 14 由第二行起的首 margin 承担——
+  // 一行「当前档列数」张卡（竖屏两卡）：列间隙 .pl-grid 的 12（gap 列向），行向 14 由第二行起的首 margin 承担——
   // 与旧 CardGrid（flexWrap + rowGap/columnGap）逐像素等价，也与歌单页虚拟化后的行口径相同
   const renderPoolRow = useCallback<ListRenderItem<PoolRow>>(({ item, index }) => (
-    <View style={[styles.row, index > 0 ? styles.rowGap : null]}>
+    <View style={[styles.row, poolRowStyle, index > 0 ? poolRowGapStyle : null]}>
       {item.items.map(pl => (
         <PlCard
           key={`${pl.source}-${pl.id}`}
@@ -303,7 +312,7 @@ export const HomePage = ({
         />
       ))}
     </View>
-  ), [assertApiSupport, cardWidth, handlePlaylistPress])
+  ), [assertApiSupport, cardWidth, handlePlaylistPress, poolRowGapStyle, poolRowStyle])
 
   const handleSongPress = useCallback((song: LX.Music.MusicInfoOnline) => {
     if (!assertApiSupport(song.source)) {
@@ -502,13 +511,9 @@ export const HomePage = ({
 }
 
 const styles = StyleSheet.create({
-  /** .pl-grid 的一行：两卡横排，列间隙 12（columnGap）；行间隙 14（rowGap）走行首 margin */
+  /** .pl-grid 的一行：横排本体（列间隙与行间隙按宽屏档在渲染期给，见 poolRowStyle / poolRowGapStyle） */
   row: {
     flexDirection: 'row',
-    gap: CARD_GRID.columnGap,
-  },
-  rowGap: {
-    marginTop: CARD_GRID.rowGap,
   },
   /** .song-list：竖向排布，行间距 2px */
   songList: {

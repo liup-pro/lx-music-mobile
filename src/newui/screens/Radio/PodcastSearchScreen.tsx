@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import type { TextInput } from 'react-native'
 import { Navigation } from 'react-native-navigation'
@@ -26,7 +26,7 @@ import {
   newUiPodSearchEmptyTitle,
   newUiPodSearchHint,
 } from '@/newui/const/radioSearch'
-import { useNewUiSystemBar, useSafeArea } from '@/newui/hooks'
+import { useNewUiSystemBar, useSafeArea, useWideLayout } from '@/newui/hooks'
 // 直连 entry 而非 '@/newui/navigation' 桶口：避免 navigation/index → register → screens → 本文件的循环引用
 import { pushNewUiPodcastDetail } from '@/newui/navigation/entry'
 import { FONT_SIZE, FONT_WEIGHT, SEARCH, useTheme } from '@/newui/theme'
@@ -62,6 +62,9 @@ export interface PodcastSearchScreenProps {
 export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) => {
   const theme = useTheme()
   const { top, bottom } = useSafeArea()
+  // 档位只吃 `layerPaddingX` 这一位：本屏没有钉住段 `.pl-head`（头部是跨件原子 `.sc-top`，
+  // 件内已接 `wide?.statusReserve`，见 SearchTop.tsx:64），所以 `wide` 不在这里读
+  const { layerPaddingX } = useWideLayout()
   useNewUiSystemBar(componentId)
 
   const {
@@ -131,6 +134,21 @@ export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) =
 
   const hasQuery = keyword.length > 0
 
+  /**
+   * 结果轴（`.sc-body`）的左右内衬接档位。口径记清三件事：
+   * - 原型 `.wide` 那一族对搜索层**只**写了 `.sc-top{padding-top:36px}`（styles.css:1341-1342，
+   *   那一处的回正已在 SearchTop 件内落地），`.sc-body` **没有**写左右覆盖；本屏按单列行屏同一条
+   *   620 居中轴（`max(16px, calc((100% - 620px)/2))`，styles.css:1335-1340 那六处同式）把结果列
+   *   也铺到同一根轴上，与搜歌屏（`SearchScreen.tsx:309` 的 `boxStyle`）同档同列；
+   * - 竖屏基线 `.sc-body{padding:0 16px 40px}`（styles.css:972）一个字没改：compact 档 `layerPaddingX`
+   *   是 undefined → 回 `SEARCH.bodyPaddingX`，逐值零变化；
+   * - 竖向两位（0 / 40）不吃档位。
+   */
+  const bodyContentStyle = useMemo(() => ({
+    paddingHorizontal: layerPaddingX ?? SEARCH.bodyPaddingX,
+    paddingBottom: SEARCH.bodyPaddingBottom + bottom,
+  }), [bottom, layerPaddingX])
+
   return (
     <View
       nativeID="newui.podSearch.content"
@@ -157,10 +175,7 @@ export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) =
       <ScrollView
         ref={bodyRef}
         style={styles.body}
-        contentContainerStyle={[
-          styles.bodyContent,
-          { paddingBottom: SEARCH.bodyPaddingBottom + bottom },
-        ]}
+        contentContainerStyle={[styles.bodyContent, bodyContentStyle]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -246,6 +261,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
   },
+  /** 结果列基线内衬（`.sc-body{padding:0 16px 40px}` 的左右那一位）：宽屏档由上面的 bodyContentStyle
+   *  覆盖成 620 居中轴的内衬，compact 两处同值（`layerPaddingX` undefined → 仍回 `SEARCH.bodyPaddingX`） */
   bodyContent: {
     paddingHorizontal: SEARCH.bodyPaddingX,
   },

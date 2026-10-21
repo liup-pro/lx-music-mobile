@@ -13,6 +13,7 @@ import {
   useNowPlaying,
   useOfflineCache,
   useSafeArea,
+  useWideLayout,
   type OfflineRow,
 } from '@/newui/hooks'
 // 直连 entry 而非 '@/newui/navigation' 桶口：避免 navigation/index → register → screens → 本文件的循环引用
@@ -45,6 +46,7 @@ export interface OfflineScreenProps {
 export const OfflineScreen = ({ componentId }: OfflineScreenProps) => {
   const theme = useTheme()
   const { top, bottom } = useSafeArea()
+  const { wide, layerPaddingX } = useWideLayout()
   useNewUiSystemBar(componentId)
 
   const myLists = useMyPlaylists()
@@ -98,19 +100,28 @@ export const OfflineScreen = ({ componentId }: OfflineScreenProps) => {
 
   const keyExtractor = useCallback((item: OfflineRow) => item.song.id, [])
 
-  /** 钉住段的内衬：`.pl-head{padding:58px 16px 0}`，58 含模拟状态栏 → 真机 = 实测状态栏 + 6 */
+  /**
+   * 钉住段的内衬：`.pl-head{padding:58px 16px 0}`，58 含模拟状态栏 → 真机 = 实测状态栏 + 6。
+   * 宽屏档换成 `.wide .pl-head{padding:36px max(16px,calc((100% - 620px)/2)) 0}`（styles.css:1337）：
+   * 顶内衬回正到这一档 32 状态栏之上的 4，左右吃那根 620 居中轴算出来的内衬；
+   * compact 两侧都回竖屏基线（写法照 RadioHomeScreen 同一判据入口），逐值零变化。
+   */
   const headStyle = useMemo(() => ({
-    paddingTop: top + PL_LAYER.paddingTopReserve,
-    paddingHorizontal: PL_LAYER.paddingX,
-  }), [top])
+    paddingTop: top + (wide?.statusReserve ?? PL_LAYER.paddingTopReserve),
+    paddingHorizontal: layerPaddingX ?? PL_LAYER.paddingX,
+  }), [top, wide, layerPaddingX])
 
-  /** 滚动段自己的内衬（`#offlineLayer>.off-list{padding:10px 16px 34px}`），底部补真机安全区 */
+  /**
+   * 滚动段自己的内衬（`#offlineLayer>.off-list{padding:10px 16px 34px}`），底部补真机安全区。
+   * 左右同一根轴：`.wide #offlineLayer>.off-list{padding-left/right:max(16px,calc((100% - 620px)/2))}`
+   * （styles.css:1338），竖向两位（10 / 34）这一档原型不动，继续吃基线。
+   */
   const listContentStyle = useMemo(() => ({
     paddingTop: OFFLINE.listPaddingTop,
-    paddingHorizontal: OFFLINE.listPaddingX,
+    paddingHorizontal: layerPaddingX ?? OFFLINE.listPaddingX,
     paddingBottom: OFFLINE.listPaddingBottom + bottom,
     gap: OFFLINE.listGap,
-  }), [bottom])
+  }), [bottom, layerPaddingX])
 
   // 空态只在数完之后出现：还在数的时候先报「正在数…」，不先说「还没有存下的歌」
   const listEmpty = useMemo(

@@ -12,11 +12,11 @@ import {
   PLATFORM_SOURCE_KEYS,
   type NewUiTabKey,
 } from '@/newui/const'
-import { useApiSupport, emitPageEndReached, useNickName, useRecentPlayRecorder, useSafeArea } from '@/newui/hooks'
+import { useApiSupport, emitPageEndReached, useNickName, useRecentPlayRecorder, useSafeArea, useWideLayout } from '@/newui/hooks'
 // 直连 navigation/entry（绕开桶口），与 MinibarDock / 各页跳播放同一做法，防 register→screens→pages 循环引用
 import { pushNewUiSearch } from '@/newui/navigation/entry'
 import { subscribeNewUiTab } from '@/newui/utils'
-import { RANK_PAGING, newUiStatusBarStyle, topbarHeight, useTheme, useThemeMode } from '@/newui/theme'
+import { RANK_PAGING, newUiStatusBarStyle, useTheme, useThemeMode } from '@/newui/theme'
 
 import {
   HomePage,
@@ -63,6 +63,9 @@ export const MainScreen = ({ componentId }: MainScreenProps) => {
   const theme = useTheme()
   const { scheme } = useThemeMode()
   const { top, bottom } = useSafeArea()
+  // 顶栏总高按档走（宽屏 92 / 竖屏 110）：吸顶触发线的换算与 TopBar 盒高、CatStickerBar 的 paddingTop
+  // 必须同源同一个 useWideLayout，否则横屏档这三处会错开
+  const { topBarHeight } = useWideLayout()
   // 原型 renderProfile：顶栏头像恒显示昵称首字（未设置时 useNickName 回落品牌首字母「E」）
   const { initial: avatarText } = useNickName()
   const [tabKey, setTabKey] = useState<NewUiTabKey>('home')
@@ -172,8 +175,8 @@ export const MainScreen = ({ componentId }: MainScreenProps) => {
   // 分类条原位纵坐标上报（页面 onLayout）：换算成吸顶触发线 —— 分类条顶边攀到顶栏下沿即该钉住，
   // 顶栏是 absolute 浮层不占滚动内容，故触发线 = catY - 顶栏高。
   const handleCatLayoutY = useCallback((y: number) => {
-    catLineRef.current = y - topbarHeight(top)
-  }, [top])
+    catLineRef.current = y - topBarHeight(top)
+  }, [top, topBarHeight])
 
   // 顶栏头像入口（原型 #topAvatar：手机端切「我的」）—— 提到 useCallback，
   // 否则每次 MainScreen 重渲染都给 TopBar 一个新函数，TopBar 的 memo 直接失效

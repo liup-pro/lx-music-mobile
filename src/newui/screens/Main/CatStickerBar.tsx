@@ -2,8 +2,14 @@ import { useCallback } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { ChipRow } from '@/newui/components'
-import { selectPlaylistTag, usePlaylistCategories, usePlaylistChipItems, usePlaylistTagSelection } from '@/newui/hooks'
-import { LAYOUT, topbarHeight, useTheme } from '@/newui/theme'
+import {
+  selectPlaylistTag,
+  usePlaylistCategories,
+  usePlaylistChipItems,
+  usePlaylistTagSelection,
+  useWideLayout,
+} from '@/newui/hooks'
+import { LAYOUT, useTheme } from '@/newui/theme'
 import { NEW_UI_PLAYLIST_TITLES } from '@/newui/const'
 
 export interface CatStickerBarProps {
@@ -25,6 +31,9 @@ export interface CatStickerBarProps {
  */
 export const CatStickerBar = ({ topInset, onOpenPlTagsSheet }: CatStickerBarProps) => {
   const theme = useTheme()
+  // 吸顶层压在顶栏下沿：这条线必须与 TopBar 的盒高、PageViewport 的上内衬同一档同一式
+  // （原型 `.wide .viewport{padding-top:92px}` = 顶栏 36 + 46 + 10，styles.css:1314-1315）
+  const { topBarHeight } = useWideLayout()
   const cats = usePlaylistCategories()
   const selection = usePlaylistTagSelection()
   const chipItems = usePlaylistChipItems(cats.items, selection)
@@ -40,7 +49,7 @@ export const CatStickerBar = ({ topInset, onOpenPlTagsSheet }: CatStickerBarProp
   return (
     <View
       style={[styles.root, {
-        paddingTop: topbarHeight(topInset),
+        paddingTop: topBarHeight(topInset),
         backgroundColor: theme.colors.bg,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.line,

@@ -2,6 +2,8 @@ import { forwardRef } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { FONT_SIZE, FONT_WEIGHT, SEARCH, useTheme } from '@/newui/theme'
+// 直连具体 hook（不走 @/newui/hooks 桶口），与 PageViewport / TabBar 同一做法
+import { useWideLayout } from '@/newui/hooks/useWideLayout'
 import { withAlpha } from '@/newui/utils'
 
 import { Icon } from '../Icon'
@@ -54,8 +56,12 @@ export const SearchTop = forwardRef<TextInput, SearchTopProps>(({
   onCancel,
 }, ref) => {
   const theme = useTheme()
+  // 本排的上内衬按档走：原型 `.wide .sc-top{padding-top:36px}`（styles.css:1342）= 状态栏 32 + 4，
+  // RN 用实测状态栏 + wide.statusReserve（4）；compact 回 SEARCH.statusBarReserve 的 2（原型 54 = 52 + 2）。
+  // 其余三位（左右 14 / 底 12）原型这一档没写覆盖，两档同值。
+  const { wide } = useWideLayout()
   return (
-    <View style={[styles.top, { paddingTop: topInset + SEARCH.statusBarReserve }]}>
+    <View style={[styles.top, { paddingTop: topInset + (wide?.statusReserve ?? SEARCH.statusBarReserve) }]}>
       <View
         style={[
           styles.box,

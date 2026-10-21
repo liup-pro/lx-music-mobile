@@ -43,19 +43,19 @@ import {
   usePlaylistChipItems,
   usePlaylistPool,
   usePlaylistTagSelection,
+  useWideLayout,
   type MyPlaylistItem,
 } from '@/newui/hooks'
 import {
   CARD_GRID,
   PLATFORM_TINTS,
   RANK_PAGING,
-  topbarHeight,
   type PlatformTintKey,
 } from '@/newui/theme'
 
 import type { NewUiPageProps } from '../../types'
 
-/** 推荐池网格的一「行」：最多 CARD_GRID.columns（2）张卡；虚拟化以行为回收单位 */
+/** 推荐池网格的一「行」：最多「当前宽屏档的列数」张卡（竖屏 = CARD_GRID.columns 的 2）；虚拟化以行为回收单位 */
 interface PoolRow {
   key: string
   items: ListInfoItem[]
@@ -107,6 +107,14 @@ export const PlaylistPage = ({
   // 纯自建 / 存榜条目本就无图，如实留内置版式
   const listCovers = useMyPlaylistCovers(myLists)
   const cardWidth = useGridItemWidth()
+  // 宽屏档的列数与栅格间隙（与 cardWidth 同一档，见 useWideLayout）：把池子切成「一行几卡」用列数，
+  // 不用写死的 2；间隙 medium 16×14 / expanded 16×12（原型 styles.css:1318-1319），竖屏档就是 14×12
+  const { columns: gridColumns, rowGap: gridRowGap, columnGap: gridColumnGap, topBarHeight } = useWideLayout()
+  // 行样式缓存成稳定引用（与模块级 styles.row/rowGap 同一条「别每行每次渲染现造对象让 PlCard 的 memo 失效」口径）
+  const poolRowStyle = useMemo(() => ({ gap: gridColumnGap ?? CARD_GRID.columnGap }), [gridColumnGap])
+  const poolRowGapStyle = useMemo(() => ({ marginTop: gridRowGap ?? CARD_GRID.rowGap }), [gridRowGap])
+  // 网格尾巴（状态行 / 终点行）与最后一行卡之间的间隙 = 同一档的行间隙
+  const tailGapStyle = useMemo(() => ({ marginTop: gridRowGap ?? CARD_GRID.rowGap }), [gridRowGap])
 
   // chip 行 = 首位「推荐」+ 平台热门 + 行尾「全部分类」入口（trailing，另行接线）；
   // 装配逻辑已抽共通 hook（QA D-06：原位与主屏吸顶层两处同一口径，见 hooks/playlistChipItems）
@@ -149,16 +157,17 @@ export const PlaylistPage = ({
       ? null
       : pool.loading ? NEW_UI_PLAYLIST_EMPTY.loading : NEW_UI_PLAYLIST_EMPTY.pool
 
-  // 显示窗口内的卡片两两成行（.pl-grid 的 1fr 1fr）：虚拟化以行为单元回收；
+  // 显示窗口内的卡片按「当前宽屏档的列数」成行（竖屏 = .pl-grid 的 1fr 1fr 两列）：虚拟化以行为单元回收；
   // 行 key 用成员 id 拼接——池子只追加不插入（hook 语义），既有行 key 天然稳定
+  // 列数吃 useWideLayout（与 cardWidth 同一档）：竖屏 (<600) 恒等于 CARD_GRID.columns，分档前后逐值一致
   const rows = useMemo<PoolRow[]>(() => {
     const out: PoolRow[] = []
-    for (let i = 0; i < pool.items.length; i += CARD_GRID.columns) {
-      const slice = pool.items.slice(i, i + CARD_GRID.columns)
+    for (let i = 0; i < pool.items.length; i += gridColumns) {
+      const slice = pool.items.slice(i, i + gridColumns)
       out.push({ key: slice.map(item => `${item.source}-${item.id}`).join('|'), items: slice })
     }
     return out
-  }, [pool.items])
+  }, [pool.items, gridColumns])
 
   const handleMyPlPress = useCallback((list: MyPlaylistItem) => {
     // 从平台导入过的歌单 → 新 UI 歌单详情层（阶段 9c 换线，按平台坐标打开，mine 形态面包屑）。
@@ -186,10 +195,10 @@ export const PlaylistPage = ({
 
   const keyExtractor = useCallback((row: PoolRow) => row.key, [])
 
-  // 一行两卡（列间隙 .pl-grid gap:14px 12px 的列向 12；行向 14 由行首 margin 承担，
-  // 首行不吃——它与池子标题行之间的 12px 由 Section.head 的 marginBottom 提供，与旧 CardGrid 一致）
+  // 一行「当前档列数」张卡（竖屏两卡；列间隙吃本档 .pl-grid 的列向 gap、行向吃行首 margin，首行不吃——
+  // 它与池子标题行之间的留白由 Section.head 的 marginBottom（SPACING.md 那一档）提供，与旧 CardGrid 一致）
   const renderPoolRow = useCallback<ListRenderItem<PoolRow>>(({ item, index }) => (
-    <View style={[styles.row, index > 0 ? styles.rowGap : null]}>
+    <View style={[styles.row, poolRowStyle, index > 0 ? poolRowGapStyle : null]}>
       {item.items.map(pl => (
         <PlCard
           key={`${pl.source}-${pl.id}`}
@@ -205,7 +214,7 @@ export const PlaylistPage = ({
         />
       ))}
     </View>
-  ), [cardWidth, handlePoolPress])
+  ), [cardWidth, handlePoolPress, poolRowGapStyle, poolRowStyle])
 
   // —— 列表头：页头 + 分类条 + 我的歌单 + 池子标题行（定长内容，随滚动进出、不参与回收）——
   const listHeader = (
@@ -222,9 +231,10 @@ export const PlaylistPage = ({
           分类条越过顶栏下沿时主屏根层 CatStickerBar 接手显示（原型 .cat-row sticky 的等价物）。
           2026-10-16 虚拟化轮：onLayout 的 y 现在相对表头容器（贴在 contentContainer 顶栏留白下沿），
           补回 topbarHeight 后与旧 ScrollView 直报同一坐标系，主屏 handleCatLayoutY 的
-          「catLine = y - 顶栏高」换算原样成立 */}
+          「catLine = y - 顶栏高」换算原样成立。2026-10 宽屏回撞轮：这里的顶栏高与主屏那条都走
+          useWideLayout 的 topBarHeight（同一判据、同一档），宽屏档 36 + 46 + 10 = 92 两侧不会错开 */}
       {!cats.loading && !cats.error && cats.items.length > 1 && (
-        <View onLayout={(e: LayoutChangeEvent) => { onCatLayoutY?.(topbarHeight(viewportTopInset) + e.nativeEvent.layout.y) }}>
+        <View onLayout={(e: LayoutChangeEvent) => { onCatLayoutY?.(topBarHeight(viewportTopInset) + e.nativeEvent.layout.y) }}>
           <ChipRow
             variant="cat"
             items={chipItems}
@@ -283,13 +293,13 @@ export const PlaylistPage = ({
     </View>
   )
 
-  // —— 列表尾：状态行/终点行（网格尾巴，行间 14 间隙由 tailGap 承担）或整页空态提示 + 页脚说明 ——
+  // —— 列表尾：状态行/终点行（网格尾巴，本档行间隙由 tailGapStyle 承担）或整页空态提示 + 页脚说明 ——
   const listFooter = (
     <View>
       {poolTip ? <EmptyTip text={poolTip} /> : null}
       {!poolTip && (showStatus || showEnd) ? (
         // 原型 .pl-status / .pl-end 是 .pl-grid 直接子项（grid-column:1/-1），与卡行之间隔一个行间隙
-        <View style={styles.tailGap}>
+        <View style={tailGapStyle}>
           {showStatus ? (
             <PagingStatus
               disabled={pool.batchLoading}
@@ -327,17 +337,9 @@ export const PlaylistPage = ({
 }
 
 const styles = StyleSheet.create({
-  /** .pl-grid 的一行：两卡横排，列间隙 12（columnGap）；行间隙 14（rowGap）走行首 margin */
+  /** .pl-grid 的一行：横排本体（列间隙与行间隙按宽屏档在渲染期给，见 poolRowStyle / poolRowGapStyle / tailGapStyle） */
   row: {
     flexDirection: 'row',
-    gap: CARD_GRID.columnGap,
-  },
-  rowGap: {
-    marginTop: CARD_GRID.rowGap,
-  },
-  /** 网格尾巴（状态行/终点行）与最后一行卡之间的行间隙（原型 grid gap:14） */
-  tailGap: {
-    marginTop: CARD_GRID.rowGap,
   },
 })
 

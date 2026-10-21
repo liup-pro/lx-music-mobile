@@ -24,6 +24,8 @@ import {
   useTheme,
 } from '@/newui/theme'
 import { withAlpha } from '@/newui/utils'
+// 直连具体 hook（不走 @/newui/hooks 桶口），与 PageViewport / TabBar 同一做法
+import { useWideLayout } from '@/newui/hooks/useWideLayout'
 
 import { Art } from '../Art'
 
@@ -71,6 +73,12 @@ export const Banner = memo(({ items, onPress }: BannerProps) => {
   const indexRef = useRef(0)
   const draggingRef = useRef(false)
   const [active, setActive] = useState(0)
+
+  /* 卡高按档覆盖：原型 `.wide .banner{height:112px}`（styles.css:1324，112 取继续收听那一行的现成卡宽），
+     compact 回 BANNER.height 的 150 基线；判据只在 useWideLayout 一处。
+     宽度侧（bannerItemWidth）本就先收内容盒宽再算，限宽 620 后轮播不会比内容盒还宽。 */
+  const { wide } = useWideLayout()
+  const bannerHeight = wide?.bannerHeight ?? BANNER.height
 
   const itemWidth = bannerItemWidth(windowWidth)
   const stride = itemWidth + BANNER.trackGap
@@ -136,7 +144,7 @@ export const Banner = memo(({ items, onPress }: BannerProps) => {
               onPress={() => onPress(item.key)}
               style={({ pressed }) => [
                 styles.card,
-                { width: itemWidth },
+                { width: itemWidth, height: bannerHeight },
                 BANNER_CARD_SHADOW,
                 pressed && styles.pressed,
               ]}
@@ -153,7 +161,7 @@ export const Banner = memo(({ items, onPress }: BannerProps) => {
                   borderRadius 供 iOS shadowPath 取圆角形状（卡层无背景色，Android 上不绘制）。 */}
               <Art
                 width={itemWidth}
-                height={BANNER.height}
+                height={bannerHeight}
                 radius={RADIUS.l}
                 seed={item.artSeed}
                 imageUri={item.imageUri}
@@ -237,8 +245,8 @@ const styles = StyleSheet.create({
    * 各自同半径自裁。保留 borderRadius 仅为 iOS shadowPath 与按压态取圆角轮廓（卡无背景色，
    * Android 上去 overflow 后无副作用）。
    */
+  /** 高按档在渲染期给（宽屏 112 / 竖屏 150），见组件里 bannerHeight */
   card: {
-    height: BANNER.height,
     borderRadius: RADIUS.l,
     flexShrink: 0,
   },

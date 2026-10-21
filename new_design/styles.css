@@ -1290,6 +1290,62 @@ body.pad{align-items:flex-start}
 .pad .lrc-float{left:calc(var(--nav-w) + 26px);top:590px;max-width:320px}
 .pad .lrc-float .lf-line{max-width:220px}
 
+/* ============ 手机横过来 · 轻量宽屏 ============
+ * 查看器的第三档，与上面那档 .pad 是两件事：这一档只做「宽度分档」，不做形态改造。
+ * 判据只有一个数——屏内宽（外框宽 − 手机边框左右各 11），跟设备种类无关：
+ *   ≥600 走 3 列 / ≥840 走 4 列，两档都由 app.js 的 WIDE_TIERS 按实测宽度挂上
+ *   .wcols3 / .wcols4（挂在同一只外框上，所以「窗口拉到多宽」就是唯一的开关）。
+ * 列数只改 .pl-grid / .rank-grid 这两张栅格；卡内字号、两行标题、封面正方形一律沿用手机那一套。
+ * 这一档明确<em>不做</em>的（全是 .pad 那一档的活）：底部 Tab 不翻成左侧导航（--nav-w 仍是 0px）、
+ * 歌单详情不做主从两列、设定页不摊两列、播放页不动结构、浮层仍是底部弹出。
+ * 外框保持手机那一套表达：54/44 双圆角与 22 底部安全区都不改，只把状态栏压回 32 那一档
+ * （与 .pad 同数不新开）——400 的屏高否则装不下「顶栏 + 内容 + 迷你条 + Tab」四段。
+ * 灵动岛在这一档藏掉：手机横过来那颗挖孔落在侧边、不在这条横排状态栏的中间，
+ * 而这一档不做侧边挖孔的硬件表达（与 .pad「外框不画挖孔」同一条处理）。
+ * 内容盒限宽 620 后水平居中：620 是原型已有的那一档限宽（.pad .stat-row / .pad .fav-card 就是它），
+ * 不新开数；「我喜欢 / 已缓存」那张合一卡在这一档随内容盒铺满（卡基线本来就是 width:100%），
+ * 既不靠左、也不再叠第二道限宽——620 已经被内容盒花掉了，再限一次只会得到一条更窄的卡。 */
+.phone.wide{width:890px;height:400px}
+.wide .island{display:none}
+.wide .statusbar{height:32px;padding:8px 26px 0}
+.wide .sb-time{font-size:13.5px}
+/* 顶栏 / 滚动区：上内衬跟着 32 的状态栏走（36 + 行高 46 + 10 = 92），
+   下内衬 150 = 迷你条上沿（22 安全区 + 52 底距 + 52 条高 = 126）再留 24 呼吸 */
+.wide .topbar{padding:36px 22px 10px}
+.wide .viewport{padding:92px 0 150px}
+.wide .page{max-width:620px;margin-left:auto;margin-right:auto}
+/* 两张栅格：只换列数与列间距，行间距 16 与 Pad 同档，列间距按列数各收一档 */
+.wide.wcols3 .pl-grid{grid-template-columns:repeat(3,1fr);gap:16px 14px}
+.wide.wcols4 .pl-grid{grid-template-columns:repeat(4,1fr);gap:16px 12px}
+.wide.wcols3 .rank-grid{grid-template-columns:repeat(3,1fr);gap:16px 14px}
+.wide.wcols4 .rank-grid{grid-template-columns:repeat(4,1fr);gap:16px 12px}
+/* 首页轮播压到 112（112 取继续收听那一行的现成卡宽，不新开数）；
+   快捷入口 / 每日推荐 / 继续收听不改尺寸，只是随 620 的内容盒变窄 */
+.wide .banner{height:112px}
+/* 底部那一簇仍是「迷你条 + 底部 Tab」这条横排，只把两条高度压进这一档的垂直预算 */
+.wide .minibar{bottom:calc(var(--safe-b) + 52px);height:52px}
+.wide .tabbar{height:calc(var(--safe-b) + 44px);padding-top:6px}
+.wide .tab .ic{width:20px;height:20px}
+/* —— 单列行屏：不加列，只是把同一根 620 的限宽居中轴平移过来 ——
+   左右内衬取 max(16, (屏内宽 − 620)/2)：窗口比 620 窄时自动退回原来的 16 内衬，算不出负内衬；
+   写法与 .wide .page 等价，只是这些屏是推入层、不在 .page 里。
+   歌单详情与单集屏是整层滚（层自己就是轴），电台两层与已缓存是「上半固定 + 列表一根轴」，
+   所以固定段 .pl-head 与那三根轴各补一次，同一条算式。
+   顶内衬一律回正到 36，与这一档 32 的状态栏齐平（手机那档的 54/58 是给 52 状态栏留的）。 */
+.wide #plLayer{padding:36px max(16px,calc((100% - 620px) / 2)) 34px}
+.wide #episodeLayer{padding:36px max(16px,calc((100% - 620px) / 2)) 26px}
+.wide .pl-head{padding:36px max(16px,calc((100% - 620px) / 2)) 0}
+.wide #offlineLayer>.off-list{padding-left:max(16px,calc((100% - 620px) / 2));padding-right:max(16px,calc((100% - 620px) / 2))}
+.wide #radioLayer>.pod-list{padding-left:max(16px,calc((100% - 620px) / 2));padding-right:max(16px,calc((100% - 620px) / 2))}
+.wide #podcastLayer>.ep-list{padding-left:max(16px,calc((100% - 620px) / 2));padding-right:max(16px,calc((100% - 620px) / 2))}
+/* 搜索层与播放页只有顶内衬要回正；结果列与歌词列仍是单列，跟着内衬一起居中 */
+.wide .sc-top{padding-top:36px}
+.wide .player-layer{padding-top:36px}
+/* 查看器排布：这一档的外框比竖屏宽得多，说明栏沿用 Pad 那一档的排法（贴顶排、不封顶） */
+body.wide{align-items:flex-start}
+body.wide .stage{max-width:1240px}
+body.wide .notes{width:min(100%,900px);max-height:none}
+
 /* ============ 外观 · 明亮 ============
    设定页「外观」组的 light 档。色值逐条取自本项目 newui/theme/tokens.ts 的 light 一档，
    不在原型里另造一套浅色。基线仍是深色：这一层只挂在 .phone.light 上，

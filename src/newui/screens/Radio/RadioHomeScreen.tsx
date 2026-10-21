@@ -30,7 +30,7 @@ import {
   type PodShowRow,
   type PodSubEntry,
 } from '@/newui/podcast'
-import { useNewUiSystemBar, useSafeArea } from '@/newui/hooks'
+import { useNewUiSystemBar, useSafeArea, useWideLayout } from '@/newui/hooks'
 // 直连 entry 而非 '@/newui/navigation' 桶口：避免 navigation/index → register → screens → 本文件的循环引用
 import { pushNewUiPodcastDetail, pushNewUiPodcastSearch } from '@/newui/navigation/entry'
 import {
@@ -76,6 +76,7 @@ export interface RadioHomeScreenProps {
 export const RadioHomeScreen = ({ componentId }: RadioHomeScreenProps) => {
   const theme = useTheme()
   const { top, bottom } = useSafeArea()
+  const { wide, layerPaddingX } = useWideLayout()
   useNewUiSystemBar(componentId)
 
   // 每次进这一屏都固定在默认区（原型 POD_REGION_DEFAULT，index.html L760），不记上次区
@@ -192,18 +193,27 @@ export const RadioHomeScreen = ({ componentId }: RadioHomeScreenProps) => {
     return <PagingEnd text={NEW_UI_PAGING_END_TEXT} />
   }, [chart.hasMore, chart.loading, chart.retry, chartRows.length])
 
-  /** 钉住段的内衬：`.pl-head{padding:58px 16px 0}`，58 含假机框状态栏 → 真机 = 实测状态栏 + 6 */
+  /**
+   * 钉住段的内衬：`.pl-head{padding:58px 16px 0}`，58 含假机框状态栏 → 真机 = 实测状态栏 + 6。
+   * 宽屏档（`useWideLayout`）换成 `.wide .pl-head{padding:36px max(16px,calc((100% - 620px)/2)) 0}`
+   * （styles.css:1337）：顶内衬回正到这一档 32 状态栏之上的 4（36 − 32），
+   * 左右吃那根 620 居中轴算出来的内衬；compact 两侧都回基线，零变化。
+   */
   const headStyle = useMemo(() => ({
-    paddingTop: top + PL_LAYER.paddingTopReserve,
-    paddingHorizontal: PL_LAYER.paddingX,
-  }), [top])
+    paddingTop: top + (wide?.statusReserve ?? PL_LAYER.paddingTopReserve),
+    paddingHorizontal: layerPaddingX ?? PL_LAYER.paddingX,
+  }), [top, wide, layerPaddingX])
 
-  /** 滚动段自己的内衬（home.css L366 `padding:10px 16px 34px`），底部补真机安全区 */
+  /**
+   * 滚动段自己的内衬（home.css L366 `padding:10px 16px 34px`），底部补真机安全区。
+   * 左右同一根轴：`.wide #radioLayer>.pod-list{padding-left/right:max(16px,calc((100% - 620px)/2))}`
+   * （styles.css:1339），竖向三位（10 / 34）原型这一档不动，继续吃基线。
+   */
   const listContentStyle = useMemo(() => ({
     paddingTop: POD.listAxisPaddingTop,
-    paddingHorizontal: POD.listAxisPaddingX,
+    paddingHorizontal: layerPaddingX ?? POD.listAxisPaddingX,
     paddingBottom: POD.listAxisPaddingBottom + bottom,
-  }), [bottom])
+  }), [bottom, layerPaddingX])
 
   return (
     <View nativeID="newui.radio.content" style={[styles.root, { backgroundColor: theme.colors.bg }]}>

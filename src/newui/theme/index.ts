@@ -79,11 +79,22 @@ export {
   TAB_BAR,
   TOAST,
   TOP_BAR,
+  // 轻量宽屏档（判据 600/840 与限宽 620 逐值来自原型：app.js:3485 WIDE_TIERS / WIDE_MAX_W、
+  // styles.css:1316 .wide .page；结构度量见 WIDE_STRUCTURAL，值与出处都在 tokens.ts）
+  WIDE,
+  WIDE_STRUCTURAL,
   Z_LAYER,
   bannerItemWidth,
   gridItemWidth,
   quickItemWidth,
   topbarHeight,
+  wideColumnsOf,
+  wideContentMaxWidthOf,
+  wideContentWidth,
+  wideGridGapOf,
+  wideLayerPaddingXOf,
+  wideStructuralOf,
+  wideTierOf,
 } from './tokens'
 /* 榜单封面体系（第 7a 轮）：色表与深底换算在 chart.ts，查表函数在 const/rank.ts */
 export {
@@ -94,7 +105,7 @@ export {
   type ChartArtKind,
   type RankCardKind,
 } from './chart'
-export type { PlatformTintKey } from './tokens'
+export type { PlatformTintKey, WideStructural, WideTier } from './tokens'
 export type {
   GlassLayerSpec,
   GradientSpec,

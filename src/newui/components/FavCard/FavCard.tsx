@@ -209,7 +209,15 @@ const styles = StyleSheet.create({
     paddingLeft: FAV_DUO.halfPaddingLeft,
     paddingRight: FAV_DUO.halfPaddingRight,
   },
-  /** .fav-card .fc-art：44 方 / 圆角 14 / 居中一颗 22 图标 / 不参与收缩 */
+  /**
+   * .fav-card .fc-art：44 方 / 圆角 14 / 居中一颗 22 图标 / 不参与收缩。
+   * 底照常渲染半透明托底（palette.artBg：深色 rgba(255,255,255,.11) / 明亮 rgba(255,255,255,.7)，
+   * 渲染期在 FavHalf 里给）；投影只走 iOS 的 shadow*（原型 .fc-art box-shadow:0 2px 8px），
+   * **Android 不给 elevation**：Android 的 elevation 阴影画在 View 背景「下面」，
+   * 而这层底是半透明的 → 黑阴影会被透出来，托底发灰、并有一块硬边白斑压在图标上
+   * （2026-10 用户截图）。原型 CSS 的外阴影不画在自己的背景下面，
+   * 所以两档在 Android 上都是「半透明托底 + 不带 elevation」。
+   */
   art: {
     width: FAV_DUO.artSize,
     height: FAV_DUO.artSize,
@@ -219,7 +227,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     shadowOffset: { width: 0, height: FAV_DUO.artShadowOffsetY },
     shadowRadius: FAV_DUO.artShadowRadius,
-    elevation: FAV_DUO.artShadowElevation,
   },
   /** 文字列：标题在上、副行在下（row-gap 2），两行都单行省略 */
   text: {

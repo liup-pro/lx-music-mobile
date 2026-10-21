@@ -19,7 +19,7 @@ import {
   NEW_UI_POD_EP_TXT,
   newUiPodRateLabel,
 } from '@/newui/const/radioDetail'
-import { useNewUiSystemBar, useSafeArea } from '@/newui/hooks'
+import { useNewUiSystemBar, useSafeArea, useWideLayout } from '@/newui/hooks'
 import {
   type PodEpisodeSource,
   getPodPlayerSnapshot,
@@ -113,6 +113,7 @@ export const EpisodeScreen = ({
 }: EpisodeScreenProps) => {
   const theme = useTheme()
   const { top, bottom } = useSafeArea()
+  const { wide, layerPaddingX } = useWideLayout()
   useNewUiSystemBar(componentId)
 
   const progress = usePodProgress()
@@ -262,12 +263,19 @@ export const EpisodeScreen = ({
 
   const ratio = totalSec > 0 ? Math.min(1, t / totalSec) : 0
   // 整层的内衬（`.pl-layer{padding:58px 16px 34px}`）：58 = 实测状态栏 + PL_LAYER.paddingTopReserve，
-  // 34 那一档再吃掉底部安全区；写法与缓存理由照判例 SonglistDetailScreen.tsx:607-612
+  // 34 那一档再吃掉底部安全区；写法与缓存理由照判例 SonglistDetailScreen.tsx:607-612。
+  // 本屏是「整层滚」（原型 `.wide #episodeLayer` 注释那句：层自己就是轴，没有钉住段），所以档位落点只有一处：
+  // 顶内衬吃 `.wide` 那一档的 36 − 32 = 4（styles.css:1336），左右吃 620 居中轴的内衬；
+  // 竖屏那两个基线数（`PL_LAYER.paddingTopReserve` 6 / `paddingBottom` 34）一个没改：compact 两侧都回基线，逐值零变化。
+  // 一处如实记着：原型同条规则把 `.wide #episodeLayer` 的**底**内衬写作 26（`tokens.ts`
+  // `WIDE_STRUCTURAL.episodeLayerPaddingBottom` 已备好、目前无消费点），本轮口径是「竖向数值一律不动」，
+  // 所以这里继续吃 `PL_LAYER.paddingBottom` 34 的基线 —— 要接这一位得单独拍板。
   const layerContent = useMemo(() => ({
     ...styles.layerContentBase,
-    paddingTop: top + PL_LAYER.paddingTopReserve,
+    paddingTop: top + (wide?.statusReserve ?? PL_LAYER.paddingTopReserve),
+    paddingHorizontal: layerPaddingX ?? PL_LAYER.paddingX,
     paddingBottom: PL_LAYER.paddingBottom + bottom,
-  }), [top, bottom])
+  }), [top, bottom, wide, layerPaddingX])
   // 倍速胶囊的 items 是定长五档，稳定引用即可（Chip 的 memo 才不会白失效）
   const rateItems = useMemo(
     () => NEW_UI_POD_EP_RATES.map(value => ({

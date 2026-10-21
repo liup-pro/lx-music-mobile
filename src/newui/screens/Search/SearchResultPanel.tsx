@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
@@ -24,7 +24,7 @@ import {
   newUiSearchPlHint,
   newUiSearchSongHint,
 } from '@/newui/const'
-import { useGridItemWidth } from '@/newui/hooks'
+import { useGridItemWidth, useWideLayout } from '@/newui/hooks'
 import {
   CARD_GRID,
   FONT_SIZE,
@@ -100,6 +100,11 @@ export const SearchResultPanel = memo(({
 }: SearchResultPanelProps) => {
   const theme = useTheme()
   const cardWidth = useGridItemWidth()
+  // 轻量宽屏档：pl 网格的列数与卡宽同源（同一档），内容盒限宽也铺在这一屏的滚动容器上，
+  // 栅格间隙按档覆盖（medium 16×14 / expanded 16×12，原型 styles.css:1318-1319；竖屏回 CARD_GRID 的 14×12）
+  const { columns: gridColumns, boxStyle, rowGap: gridRowGap, columnGap: gridColumnGap } = useWideLayout()
+  const plColumnStyle = useMemo(() => ({ gap: gridColumnGap ?? CARD_GRID.columnGap }), [gridColumnGap])
+  const plItemStyle = useMemo(() => ({ marginBottom: gridRowGap ?? CARD_GRID.rowGap }), [gridRowGap])
 
   // —— 加载态：原型是本地 mock 瞬间出结果，真实搜索必须给如实的等待 ——
   if (loading) {
@@ -175,7 +180,7 @@ export const SearchResultPanel = memo(({
         data={songs}
         keyExtractor={item => item.key}
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: contentPaddingBottom }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: contentPaddingBottom }, boxStyle]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         // 不加 removeClippedSubviews：回收单元格里的 SVG 封面在 Android 上有整格变白的老毛病，
@@ -223,17 +228,21 @@ export const SearchResultPanel = memo(({
 
   return (
     <FlatList<ListInfoItem>
-      key="newui.search.plGrid"
+      // key 带列数：宽屏档改 numColumns 时（转屏 / 平板窗口 resize）RN 0.73 的 FlatList
+      // 同样吃「Changing numColumns on the fly is not supported」这条 invariant，
+      // 靠换 key 强制重挂（与上面 song/pl 两分支换 key 是同一道防线，见 L165-171 注释）；
+      // 竖屏档列数恒为 2，这个 key 也就是恒等于同一个常量——重挂时机与改造前一致（仍只在切 tab 时换）
+      key={`newui.search.plGrid-${gridColumns}`}
       data={pls}
       keyExtractor={item => `${item.source}-${item.id}`}
-      numColumns={CARD_GRID.columns}
+      numColumns={gridColumns}
       style={styles.scroll}
-      contentContainerStyle={[styles.scrollContent, { paddingBottom: contentPaddingBottom }]}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: contentPaddingBottom }, boxStyle]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
-      columnWrapperStyle={styles.gridColumn}
+      columnWrapperStyle={plColumnStyle}
       renderItem={({ item }) => (
-        <View style={styles.gridItem}>
+        <View style={plItemStyle}>
           <PlCard
             width={cardWidth}
             title={item.name}
@@ -380,14 +389,8 @@ const styles = StyleSheet.create({
   songRowGap: {
     marginBottom: SONG_ROW.listGap,
   },
-  /** .pl-grid gap 列间（columnWrapperStyle） */
-  gridColumn: {
-    gap: CARD_GRID.columnGap,
-  },
-  /** .pl-grid 行间（行尾多 14px 落在尾部提示前，视觉即网格自然留白） */
-  gridItem: {
-    marginBottom: CARD_GRID.rowGap,
-  },
+  /** .pl-grid 的列间（columnWrapperStyle）与行间按宽屏档在渲染期给（plColumnStyle / plItemStyle），
+   *  竖屏档逐值回 CARD_GRID 的 12 / 14 基线 */
   /** .sc-hint：11 / mt 16 / 行高 1.7 ≈ 19 */
   hint: {
     marginTop: SEARCH.hintMarginTop,

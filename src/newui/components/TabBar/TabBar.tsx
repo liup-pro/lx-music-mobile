@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 
 import type { TabDefinition } from '@/newui/const'
+// 直连具体 hook（不走 @/newui/hooks 桶口），与 PageViewport / CardGrid 同一做法
+import { useWideLayout } from '@/newui/hooks/useWideLayout'
 import {
   FONT_SIZE,
   FONT_WEIGHT,
@@ -31,11 +33,13 @@ export interface TabBarProps {
 interface TabProps {
   item: TabDefinition
   active: boolean
+  /** 图标直径：竖屏 = TAB_BAR.iconSize，宽屏档 = WIDE_STRUCTURAL.tabIconSize（原型 .wide .tab .ic{20px}） */
+  iconSize: number
   onSelect: (key: string) => void
 }
 
 /** 单个 Tab（原型 .tab：23px 图标 + 10.5px 文案 + 选中态顶部渐变指示条） */
-const Tab = memo(({ item, active, onSelect }: TabProps) => {
+const Tab = memo(({ item, active, iconSize, onSelect }: TabProps) => {
   const theme = useTheme()
   const color = active ? theme.colors.text : theme.colors.text3
   return (
@@ -53,7 +57,7 @@ const Tab = memo(({ item, active, onSelect }: TabProps) => {
           style={styles.indicator}
         />
       )}
-      <Icon name={item.icon} size={TAB_BAR.iconSize} color={color} />
+      <Icon name={item.icon} size={iconSize} color={color} />
       <Text style={[styles.label, { color }]}>{item.label}</Text>
     </Pressable>
   )
@@ -63,7 +67,11 @@ Tab.displayName = 'NewUITabBarItem'
 
 /**
  * 底部导航栏（对应原型 .tabbar / .tab）。
- * 手机竖屏形态；Pad 侧栏形态（.phone.pad .tabbar）留待响应式轮次，按窗口宽度切换容器。
+ * 形态：**「手机竖屏 + 手机横过来（.wide）两档」**——本栏不随窗口宽度换结构（Pad 那一档的
+ * 左侧导航属原型 `.pad`，本档不做），只按档换三条度量（原型 styles.css:1327-1328 的
+ * `.wide .tabbar{height:calc(var(--safe-b) + 44px);padding-top:6px}` 与 `.wide .tab .ic{20px}`）；
+ * 判据与取值都走 useWideLayout，compact（竖屏档）一律回 TAB_BAR 的 60 / 8 / 23 基线，
+ * 本组件不落任何宽样式。
  *
  * 底色（2026-10-13 bug-fix「首页」第 1 条）：原型 .tabbar 是
  * `linear-gradient(to top, rgba(8,8,12,.96), rgba(8,8,12,.62))` + backdrop-filter
@@ -81,11 +89,19 @@ Tab.displayName = 'NewUITabBarItem'
  */
 export const TabBar = memo(({ items, activeKey, onSelect, bottomInset = 0 }: TabBarProps) => {
   const theme = useTheme()
+  // 宽屏档三条覆盖（44 / 6 / 20，原型 styles.css:1327-1328）；compact 全 undefined → 逐值回竖屏基线
+  const { wide } = useWideLayout()
+  const height = (wide?.tabBarHeight ?? TAB_BAR.height) + bottomInset
+  const iconSize = wide?.tabIconSize ?? TAB_BAR.iconSize
   return (
     <View
       style={[
         styles.root,
-        { height: TAB_BAR.height + bottomInset, paddingBottom: bottomInset },
+        {
+          height,
+          paddingBottom: bottomInset,
+          paddingTop: wide?.tabBarPaddingTop ?? TAB_BAR.paddingTop,
+        },
       ]}
     >
       {/* 玻璃底：真模糊（blur 26）+ 原型同档染色渐变；不可用时退回不透明 bg 铺底。
@@ -93,8 +109,8 @@ export const TabBar = memo(({ items, activeKey, onSelect, bottomInset = 0 }: Tab
       <BlurredContainer spec={GLASS.tabBar} />
       {/* 原型 .tabbar box-shadow:inset 0 1px 0 var(--hairline)（styles.css L556） */}
       <View pointerEvents="none" style={[styles.hairline, { backgroundColor: theme.colors.hairline }]} />
-      {items.map((item) => (
-        <Tab key={item.key} item={item} active={item.key === activeKey} onSelect={onSelect} />
+      {items.map(item => (
+        <Tab key={item.key} item={item} active={item.key === activeKey} iconSize={iconSize} onSelect={onSelect} />
       ))}
     </View>
   )
@@ -103,10 +119,10 @@ export const TabBar = memo(({ items, activeKey, onSelect, bottomInset = 0 }: Tab
 TabBar.displayName = 'NewUITabBar'
 
 const styles = StyleSheet.create({
+  /** padding-top 按档在渲染期给（宽屏档 6 / 竖屏档 TAB_BAR.paddingTop 8，原型 styles.css:1327） */
   root: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingTop: TAB_BAR.paddingTop,
   },
   /** .tabbar inset 0 1px 0 var(--hairline)：顶部 1px 高光（取 colors.hairline，浅色自动反相） */
   hairline: {

@@ -14,7 +14,7 @@ import {
   NEW_UI_POD_DETAIL_TXT,
   NEW_UI_POD_RESUME_MIN_LEFT_SEC,
 } from '@/newui/const/radioDetail'
-import { useNewUiSystemBar, useSafeArea } from '@/newui/hooks'
+import { useNewUiSystemBar, useSafeArea, useWideLayout } from '@/newui/hooks'
 // 直连 entry 而非 '@/newui/navigation' 桶口：避免 navigation/index → register → screens → 本文件的循环引用
 import { pushNewUiEpisode } from '@/newui/navigation/entry'
 import {
@@ -71,6 +71,7 @@ export interface PodcastDetailScreenProps {
 export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenProps) => {
   const theme = useTheme()
   const { top, bottom } = useSafeArea()
+  const { wide, layerPaddingX } = useWideLayout()
   useNewUiSystemBar(componentId)
 
   const showId = show.id
@@ -102,12 +103,17 @@ export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenPr
   const artSeed = useMemo(() => newUiPodArtSeed(showId), [showId])
   const [bgC1, bgC2] = useMemo(() => pickArtPalette(artSeed), [artSeed])
 
-  // 轴内留白：`#podcastLayer>.ep-list{padding:6px 16px 34px}`，34 那一档再吃掉底部安全区
-  // （写法与缓存理由照判例 SonglistDetailScreen.tsx:607-612：安全区/内距是稳定值，缓存后不触发整块重布局）
+  /**
+   * 轴内留白：`#podcastLayer>.ep-list{padding:6px 16px 34px}`，34 那一档再吃掉底部安全区
+   * （写法与缓存理由照判例 SonglistDetailScreen.tsx:607-612：安全区/内距是稳定值，缓存后不触发整块重布局）。
+   * 左右换成 620 居中轴那根算式（`.wide #podcastLayer>.ep-list{padding-left/right:max(16px,calc((100% - 620px)/2))}`，
+   * styles.css:1340）；上下两位（6 / 34）这一档原型不动。
+   */
   const axisContent = useMemo(() => ({
     ...styles.axisContentBase,
+    paddingHorizontal: layerPaddingX ?? POD.epAxisPaddingX,
     paddingBottom: POD.epAxisPaddingBottom + bottom,
-  }), [bottom])
+  }), [bottom, layerPaddingX])
 
   // 顶排 crumb 恒回显**节目名**（件头：长名字只截断，不再退回类别词）；先吃快照，详情回来后以接口为准
   const showName = detail.show?.name ?? show.name
@@ -200,8 +206,18 @@ export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenPr
   )
 
   // —— 钉住段：顶排 + hero + 那颗钮 +「单集」小标题 ——
+  // 宽屏档吃 `.wide .pl-head{padding:36px max(16px,calc((100% - 620px)/2)) 0}`（styles.css:1337），
+  // compact 两侧都回竖屏基线（写法与 RadioHomeScreen 同一判据入口）
   const pinnedHead = (
-    <View style={[styles.pinned, { paddingTop: top + PL_LAYER.paddingTopReserve }]}>
+    <View
+      style={[
+        styles.pinned,
+        {
+          paddingTop: top + (wide?.statusReserve ?? PL_LAYER.paddingTopReserve),
+          paddingHorizontal: layerPaddingX ?? PL_LAYER.paddingX,
+        },
+      ]}
+    >
       {/* 顶排右上空槽（kind:'none'）：件头明写「那颗收听（#podSubBtn）本轮撤了，这一屏只留 hero 那一颗」。
           「收进这台设备」改由进层自动登记（见上面「我听的」自动登记那两条 effect），屏上依旧不给手动钮。 */}
       <PlTop

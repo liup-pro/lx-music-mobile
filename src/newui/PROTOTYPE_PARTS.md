@@ -5,8 +5,8 @@
 
 ## 无损校验数字（本次生成实测，运行时断言）
 
-- index.html 元素：原件 **1516** = 各件持有之和 **1516**（重复 0 / 丢失 0 / 无归属 0）。
-- styles.css 规则：原件 **714** 条 = 各件收纳之和 **714**；选择器 **743** 个，逐条唯一归属（@media 2 块整体归 _chrome，@keyframes 按登记表归属）。
+- index.html 元素：原件 **1558** = 各件持有之和 **1558**（重复 0 / 丢失 0 / 无归属 0）。
+- styles.css 规则：原件 **740** 条 = 各件收纳之和 **740**；选择器 **769** 个，逐条唯一归属（@media 2 块整体归 _chrome，@keyframes 按登记表归属）。
 - app.js：只读；件头注释的符号行号在运行时实探，符号缺失即报错退出。
 - 四个原型文件（index.html / styles.css / app.js / data.js）零改动。
 
@@ -14,13 +14,13 @@
 
 | 单元 | 件（相对 parts/） | 持有元素 | 收纳规则 | 一句话 |
 |---|---|---|---|---|
-| 壳层 | `_shell` | 16 | 3 | 文档壳与页面骨架：html/head/body、#viewport、五只 .page |
-| V1–V4 | `_chrome` | 972 | 204 | 查看器 chrome |
-| U01 | `common-control/topbar` | 12 | 8 | .topbar 吸顶头部 |
+| 壳层 | `_shell` | 16 | 5 | 文档壳与页面骨架：html/head/body、#viewport、五只 .page |
+| V1–V4 | `_chrome` | 1014 | 211 | 查看器 chrome |
+| U01 | `common-control/topbar` | 12 | 9 | .topbar 吸顶头部 |
 | U02 | `common-control/icon-btn` | 0 | 0 | .icon-btn 圆钮原子 |
 | U03 | `common-control/pulse-dot` | 0 | 3 | .pulse-dot 音源告警呼吸点 |
-| U04 | `common-control/tabbar` | 21 | 8 | .tabbar / .tab 底部 Tab |
-| U05 | `common-control/minibar` | 17 | 16 | .minibar 迷你播放条 |
+| U04 | `common-control/tabbar` | 21 | 10 | .tabbar / .tab 底部 Tab |
+| U05 | `common-control/minibar` | 17 | 17 | .minibar 迷你播放条 |
 | U06 | `common-control/toast` | 1 | 2 | .toast 全站单例提示 |
 | U07 | `common-control/art` | 0 | 0 | .art 程序化封面原子 |
 | U08 | `common-control/chip` | 0 | 0 | .chip 胶囊原子 |
@@ -42,17 +42,17 @@
 | U30 | `common-control/eq-bars` | 0 | 5 | .sr-title .eq 播放中三柱均衡器 |
 | U28+U35 | `common-control/chip-row` | 2 | 4 | chip 行：首页 .rank-tabs 与<em>一处</em> .cat-row(sticky) |
 | U34 | `common-control/page-head` | 9 | 5 | .page-head 公共页头 |
-| U24 | `home/banner` | 3 | 12 | .banner-wrap 轮播两条 |
+| U24 | `home/banner` | 3 | 13 | .banner-wrap 轮播两条 |
 | U25 | `home/quick-row` | 1 | 5 | .quick-row 快捷入口四宫格 |
 | U26 | `home/daily-card` | 2 | 9 | .daily-card 今日推荐卡 |
-| U27 | `home/pl-card` | 7 | 7 | .pl-grid / .pl-card 推荐歌单区块 |
+| U27 | `home/pl-card` | 7 | 9 | .pl-grid / .pl-card 推荐歌单区块 |
 | U29 | `home/song-list` | 8 | 20 | .song-list 热门单曲区块 |
 | U31 | `home/artist-card` | 4 | 4 | .artist-card 热门歌手横滚 |
 | U32 | `home/section-note` | 2 | 1 | .section-note 区块说明灰字 |
 | U36 | `playlist/my-pl` | 7 | 7 | .my-pl-row 我的歌单一排 |
 | U37 | `playlist/pl-count` | 1 | 1 | .pl-count「已列出 N / M 个」计数行 |
 | U38 | `playlist/pl-pool` | 4 | 0 | 推荐池区块 |
-| U39 | `rank/rank-grid` | 1 | 6 | .rank-grid / .rk-card |
+| U39 | `rank/rank-grid` | 1 | 8 | .rank-grid / .rk-card |
 | U40 | `rank/rank-group` | 0 | 4 | .rank-group 平台分段组头 |
 | U41 | `rank/chart-art` | 0 | 1 | chartArt 符号体系：色按榜名 |
 | U42 | `mine/mine-head` | 8 | 9 | .mine-head 个人头部 |
@@ -62,7 +62,7 @@
 | U46 | `mine/my-pl-mine` | 7 | 0 | 我的歌单区 |
 | U48 | `setting/set-hero` | 2 | 2 | .set-hero / .sh-sub 设定页说明头 |
 | U49 | `setting/settings-group` | 1 | 17 | .set-group / .set-list / .set-row / .set-ic / st-l / st-r 设定分组行族 |
-| 播放页壳 | `player/_layer` | 1 | 4 | player-layer 壳层 |
+| 播放页壳 | `player/_layer` | 1 | 5 | player-layer 壳层 |
 | U50 | `player/player-bg` | 1 | 1 | .player-bg 氛围层 |
 | U51 | `player/player-top` | 7 | 2 | .player-top + .player-crumb 顶排 |
 | U52 | `player/stage` | 3 | 6 | .player-stage / .disc-wrap / .disc 唱片舞台 |
@@ -76,22 +76,22 @@
 | U60 | `player/player-tools` | 16 | 4 | .player-tools / .pt-btn 次级工具行五颗 |
 | U61 | `player/lrc-float` | 6 | 8 | .lrc-float 歌词悬浮窗 |
 | 搜索层壳 | `search/_layer` | 1 | 1 | search-layer 壳层 |
-| U62 | `search/sc-top` | 18 | 10 | .sc-top / .sc-box / .sc-cancel 搜索头排 |
+| U62 | `search/sc-top` | 18 | 11 | .sc-top / .sc-box / .sc-cancel 搜索头排 |
 | U63 | `search/sc-tabs` | 0 | 5 | .sc-tabs 单曲/歌单分段条 |
 | U64 | `search/sc-body` | 1 | 6 | #searchBody 滚动体 + .sc-label / .sc-clear |
 | U65 | `search/sc-result` | 0 | 3 | .sc-empty / .sc-hint 结果空态与提示族 |
-| 详情层壳 | `songlist-detail/_layer` | 1 | 4 | pl-layer 推入壳层 |
+| 详情层壳 | `songlist-detail/_layer` | 1 | 5 | pl-layer 推入壳层 |
 | U66 | `songlist-detail/pl-bg` | 1 | 1 | .pl-bg 封面氛围层 |
 | U67 | `songlist-detail/pl-top` | 33 | 5 | .pl-top / .pl-crumb / .pl-fav-btn 顶排 |
 | U68 | `songlist-detail/pl-hero` | 1 | 7 | .pl-hero 头图区 |
 | U69 | `songlist-detail/pl-actions` | 1 | 5 | .pl-actions 播放全部 + 随机钮 |
 | U70 | `songlist-detail/pl-tracks` | 1 | 1 | #plTracks 曲目表 |
-| U81 | `radio/home` | 9 | 31 | 电台首页 |
-| U82 | `radio/detail` | 7 | 13 | 播客详情层 |
+| U81 | `radio/home` | 9 | 32 | 电台首页 |
+| U82 | `radio/detail` | 7 | 14 | 播客详情层 |
 | U83 | `radio/search` | 2 | 0 | 搜播客层 |
-| U84 | `radio/episode` | 10 | 9 | 单集屏 |
+| U84 | `radio/episode` | 10 | 10 | 单集屏 |
 | U85 | `sheets/region-sheet` | 6 | 0 | podRegionSheet 地区抽屉实例件 |
-| U86 | `mine/offline` | 6 | 7 | 已缓存 |
+| U86 | `mine/offline` | 6 | 8 | 已缓存 |
 | U72 | `sheets/source-sheet` | 29 | 2 | sourceSheet 音源浮层实例 |
 | U73 | `sheets/plid-sheet` | 15 | 1 | plIdSheet 打开歌单浮层实例 |
 | U74 | `sheets/create-sheet` | 11 | 0 | createSheet 新建歌单浮层实例 |
