@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="台湾KKBOX榜">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#071E52"/><stop offset=".55" stop-color="#1478E8"/><stop offset="1" stop-color="#071E52"/></linearGradient><radialGradient id="orb"><stop offset="0" stop-color="#A6F3FF"/><stop offset="1" stop-color="#1478E8"/></radialGradient><linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".12"/><stop offset="1" stop-color="#000000" stop-opacity=".22"/></linearGradient></defs>
+<rect width="512" height="512" fill="url(#bg)"/><path d="M0 340 Q120 240 230 335 T512 290 L512 512 L0 512Z" fill="#FFFFFF" opacity=".06"/><circle cx="194" cy="338" r="3" fill="#A6F3FF" opacity=".45"/><circle cx="285" cy="391" r="4" fill="#A6F3FF" opacity=".45"/><circle cx="376" cy="184" r="5" fill="#A6F3FF" opacity=".45"/><circle cx="117" cy="237" r="3" fill="#A6F3FF" opacity=".45"/><circle cx="208" cy="290" r="4" fill="#A6F3FF" opacity=".45"/>
+<g><circle cx="350" cy="365" r="112" fill="#080D25" opacity=".48"/><circle cx="350" cy="365" r="91" fill="none" stroke="#A6F3FF" stroke-width="5" opacity=".85"/><circle cx="350" cy="365" r="58" fill="url(#orb)"/><path d="M235 260 L465 260" stroke="#A6F3FF" stroke-width="5" opacity=".65"/><path d="M260 235 L260 275 M440 235 L440 275" stroke="#A6F3FF" stroke-width="5"/></g><rect width="512" height="512" fill="url(#shade)"/>
+
+
+
+</svg>

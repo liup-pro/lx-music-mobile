@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">新歌榜</title><desc id="desc">最新发布的优质歌曲</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7138F5"/><stop offset="1" stop-color="#D86BFF" stop-opacity=".9"/></linearGradient>
+    <radialGradient id="glow" cx=".15" cy=".05" r="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".24"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+    <clipPath id="clip"><rect width="512" height="512"/></clipPath>
+  </defs>
+  <g clip-path="url(#clip)">
+    <rect width="512" height="512" fill="url(#bg)"/>
+    <rect width="512" height="512" fill="url(#glow)"/>
+    <path d="M-30 390 Q130 260 260 360 T550 280 V540 H-30Z" fill="#0A1020" opacity=".12"/>
+    <circle cx="430" cy="65" r="125" fill="#FFFFFF" opacity=".06"/>
+    <circle cx="256" cy="256" r="170" fill="#D86BFF" opacity=".10"/><circle cx="270" cy="305" r="137" fill="#101522" opacity=".92"/><circle cx="270" cy="305" r="118" fill="none" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="2"/><circle cx="270" cy="305" r="103" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="2"/><circle cx="270" cy="305" r="78" fill="none" stroke="#FFFFFF" stroke-opacity="0.09" stroke-width="2"/><circle cx="270" cy="305" r="62" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="2"/><circle cx="270" cy="305" r="34" fill="#D86BFF"/><circle cx="270" cy="305" r="7" fill="#151827"/><path d="M392 192 l12 27 29 3 -22 19 6 29 -25 -15 -25 15 7 -29 -22 -19 29 -3Z" fill="#D86BFF"/><ellipse cx="374" cy="155" rx="58" ry="20" fill="none" stroke="#D86BFF" stroke-width="5" transform="rotate(-28 374 155)"/>
+    
+  </g>
+</svg>

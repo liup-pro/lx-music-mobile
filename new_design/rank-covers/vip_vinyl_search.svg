@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="黑胶VIP爱搜榜">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#075A55"/><stop offset=".55" stop-color="#2BD0B4"/><stop offset="1" stop-color="#075A55"/></linearGradient><radialGradient id="orb"><stop offset="0" stop-color="#C9FFF2"/><stop offset="1" stop-color="#2BD0B4"/></radialGradient><linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".12"/><stop offset="1" stop-color="#000000" stop-opacity=".22"/></linearGradient></defs>
+<rect width="512" height="512" fill="url(#bg)"/><path d="M0 340 Q120 240 230 335 T512 290 L512 512 L0 512Z" fill="#FFFFFF" opacity=".06"/><circle cx="385" cy="375" r="3" fill="#C9FFF2" opacity=".45"/><circle cx="126" cy="428" r="4" fill="#C9FFF2" opacity=".45"/><circle cx="217" cy="221" r="5" fill="#C9FFF2" opacity=".45"/><circle cx="308" cy="274" r="3" fill="#C9FFF2" opacity=".45"/><circle cx="399" cy="327" r="4" fill="#C9FFF2" opacity=".45"/>
+<g><path d="M350 250 L450 305 L430 420 L350 465 L270 420 L250 305Z" fill="url(#orb)" opacity=".9" stroke="#C9FFF2" stroke-width="4"/><path d="M310 345 L350 305 L390 345 L350 395Z" fill="none" stroke="#C9FFF2" stroke-width="6"/><path d="M300 430 L350 400 L400 430" fill="none" stroke="#C9FFF2" stroke-width="5"/></g><rect width="512" height="512" fill="url(#shade)"/>
+
+
+
+</svg>

@@ -517,7 +517,7 @@ const CSS_MATCHERS = [
   ['U32', ['.section-note']],
   ['U36', ['.my-pl-row', '.my-pl']],
   ['U37', ['.pl-count']],
-  ['U39', ['.rank-grid', '.rk-card', '.rk-emblem', '.rk-name', '.rk-sub']],
+  ['U39', ['.rank-grid', '.rk-card', '.rk-scrim', '.rk-emblem', '.rk-name', '.rk-sub']],
   ['U40', ['.rank-group']],
   ['U42', ['.mine-head', '.mh-art', '.mh-body', '.mh-name', '.mh-sub', '.mh-edit']],
   ['U43', ['.stat-row', '.stat']],

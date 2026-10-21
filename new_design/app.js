@@ -632,28 +632,47 @@ const CHART_EMBLEM = {
   electronic: `<path d="M140 320 V192 H236 V320 H332 V192 H372" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
 };
 
-/* 榜单封面是「该榜」的视觉资产：色与形都在卡片和详情头图共用，
- * 这样从榜单页点进去，认的还是同一张脸 */
-function chartArt(c) {
+/* 榜单封面是「该榜」的视觉资产：卡与详情头图共用同一张脸，从榜单页点进去认的还是它。
+ * 优先用插画包（判据见 data.js 的 RANK_COVER_WORDS：榜名含哪个词就用哪张），
+ * 命不中才回落到通用封面（单色符号 + 该榜强调色压暗的深底）。
+ * 两支点的是同一个几何原子 .rk-emblem（绝对定位铺满），所以卡与头图不需要为插画另写一条规则 */
+const RANK_COVER_DIR = 'rank-covers/';
+function chartFace(c, host, opt = {}) {
   const tint = chartTint(c);
+  host.style.setProperty('--accent', tint);
+  host.style.setProperty('--rk-bg', shadeHex(tint, 0.24));
+  const key = rankCoverKey(c.name);
+  if (!key) {
+    /* 走 insertAdjacentHTML 而不是 createElement('svg')：后者建出来的是 HTML 元素，
+     * 里面的 <circle> 不会进 SVG 命名空间，画不出来 */
+    host.insertAdjacentHTML('beforeend',
+      `<svg class="rk-emblem" viewBox="0 0 512 512" aria-hidden="true">${CHART_EMBLEM[c.kind] ?? CHART_EMBLEM.hot}</svg>`);
+    return null;
+  }
+  const img = el('img', 'rk-emblem');
+  img.src = RANK_COVER_DIR + key + '.svg';
+  img.alt = '';
+  host.appendChild(img);
+  /* 只有卡上真压了字才需要管遮罩（详情头图那一份标题在图外面，两行字与图无关）。
+   * 两行字一律白墨，深浅由 .rk-scrim 一档兜住 99 张封面 */
+  if (opt.text) host.appendChild(el('i', 'rk-scrim'));
+  return key;
+}
+
+function chartArt(c) {
   const a = el('div', 'art chart-art');
-  a.style.setProperty('--accent', tint);
-  a.style.setProperty('--rk-bg', shadeHex(tint, 0.24));
-  a.innerHTML = `<svg class="rk-emblem" viewBox="0 0 512 512" aria-hidden="true">${CHART_EMBLEM[c.kind] ?? CHART_EMBLEM.hot}</svg>`;
+  chartFace(c, a);
   return a;
 }
 
 function rankCard(c) {
-  const tint = chartTint(c);
   const card = el('button', 'rk-card');
-  card.style.setProperty('--accent', tint);
-  card.style.setProperty('--rk-bg', shadeHex(tint, 0.24));
+  chartFace(c, card, { text: true });
   /* 卡上两行：榜名（平台给的真名）+ 平台全称。
    * 原来角标位写的「每小时更新」这类更新频率、以及「N 首」都是编的——
    * 真实目录只给榜名和平台，拿不到的数就不摆（RN 同口径，RankPage.tsx:63-65） */
-  card.innerHTML = `<svg class="rk-emblem" viewBox="0 0 512 512" aria-hidden="true">${CHART_EMBLEM[c.kind] ?? CHART_EMBLEM.hot}</svg>
-    <span class="rk-name">${c.name}</span>
-    <span class="rk-sub">${SOURCES[c.source].label}</span>`;
+  card.appendChild(el('span', 'rk-name', c.name));
+  card.appendChild(el('span', 'rk-sub', SOURCES[c.source].label));
   card.onclick = () => openPlaylist(c, 'rank');
   return card;
 }

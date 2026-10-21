@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">男声榜</title><desc id="desc">属于他们的旋律</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#204CCB"/><stop offset="1" stop-color="#6EC9FF" stop-opacity=".9"/></linearGradient>
+    <radialGradient id="glow" cx=".15" cy=".05" r="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".24"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+    <clipPath id="clip"><rect width="512" height="512"/></clipPath>
+  </defs>
+  <g clip-path="url(#clip)">
+    <rect width="512" height="512" fill="url(#bg)"/>
+    <rect width="512" height="512" fill="url(#glow)"/>
+    <path d="M-30 390 Q130 260 260 360 T550 280 V540 H-30Z" fill="#0A1020" opacity=".12"/>
+    <circle cx="430" cy="65" r="125" fill="#FFFFFF" opacity=".06"/>
+    <circle cx="256" cy="256" r="170" fill="#6EC9FF" opacity=".10"/><path d="M155 410 C160 350 185 330 185 290 C150 255 155 195 195 165 C220 145 270 148 295 175 L325 210 L298 225 C312 270 290 300 270 315 C290 350 325 365 340 410Z" fill="#6EC9FF" opacity=".92"/><path d="M90 370 Q190 280 120 190 Q210 240 245 150" fill="none" stroke="#FFFFFF" stroke-opacity=".28" stroke-width="18"/><path d="M340 260 q35 -20 50 10 q-20 35 -50 10" fill="#6EC9FF"/>
+    
+  </g>
+</svg>

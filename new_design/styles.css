@@ -512,7 +512,13 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;back
 .rk-card:active{transform:scale(.96)}
 /* 徽标：一枚单色符号居中，颜色跟榜名走（--accent 由 app.js 注入，同名榜跨平台同色） */
 .rk-emblem{position:absolute;inset:0;width:100%;height:100%;z-index:1;color:var(--accent,#F97316)}
-/* 卡上只留两行真数据：榜名 + 平台全称。原来左上角那枚「每小时更新」角标是编的，已撤 */
+/* 卡上只留两行真数据：榜名 + 平台全称。原来左上角那枚「每小时更新」角标是编的，已撤。
+   两行字一律白墨，不再逐张分深浅墨；底部改由本屏专用的 .rk-scrim 压深，
+   99 张封面在两条文字带上逐像素量过，最坏像素也过 4.5:1（求解见 scripts/rank-scrim-solver.html） */
+.rk-scrim{
+  position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(to top,rgba(0,0,0,.6) 0%,rgba(0,0,0,.58) 32%,transparent 68%);
+}
 .rk-name{position:absolute;z-index:3;left:13px;right:13px;bottom:30px;
   font-size:17px;font-weight:900;line-height:1.25;letter-spacing:.3px;color:#fff;
   text-shadow:0 2px 14px rgba(0,0,0,.5)}
