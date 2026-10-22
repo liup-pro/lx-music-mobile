@@ -88,7 +88,7 @@ export const RankPage = ({ componentId }: NewUiPageProps) => {
                   name={board.name}
                   // 原型副行只有平台全称（「首数 / 更新频率」原型也已撤，不造假字段）
                   sub={getPlatformMeta(board.source).label}
-                  kind={board.kind}
+                  coverKey={board.coverKey}
                   onPress={() => handlePress(board)}
                 />
               ))}

@@ -58,14 +58,14 @@ const { mode, scheme, setMode } = useThemeMode()
 | `PALETTES` | dark 精确提取自 `new_design/styles.css` `:root`；light 为同设计语言自造（原型仅深色） |
 | `GRADIENTS` | `brand`（#FF5C8A→#C04CE8→#7A3BFF）、`brandSoft`、`art`（135deg 对角） |
 | `PLATFORM_TINTS` | 提取自 `data.js`：tx #31C27C / wy #E4413F / kw #12B7F5 / kg #3FBCB4 / mg #FF6FA5（来源角标 / 歌单卡用；**榜单卡自轮 7a 起不再按平台 tint 上色**） |
-| `theme/chart.ts` | 榜单封面色表（轮 7a）：`CHART_ACCENT` 六榜型强调色 + `CHART_TINT` 榜名→色 23 项（同名跨平台同色）+ `chartCoverBg`（shadeHex 等价：强调色各通道 ×0.24 平色深底）；查表函数在 `const/rank.ts`（`rankChartTint` / `rankBoardKind` 六型） |
+| `CHART_ART`（tokens.ts） | 榜单封面那层图上的度量：`cardBg` #0B1220（图未就位那一瞬的底）+ `.rk-copy` 左上角几何 + 两行白字共用的那档投影 `shadow*`（0 1px 3px / .55）。`.rk-scrim` 那档压顶遮罩数值（`scrim*` 七键，对出包那 49 张 WebP 反解、最低 5.04:1）2026-10-22 随遮罩一起删除——用户判定「遮罩过了」，白字改成直接压图。轮 7a 的 `theme/chart.ts`（`CHART_ACCENT`/`CHART_TINT`/`chartCoverBg`）与 `const/rank.ts` 的 `rankChartTint`/`rankBoardKind` 已随「自画符号底板」在同一天删除——封面只剩「铺一张真插画」一条路 |
 | `RADIUS` / `SPACING` / `FONT_SIZE` / `LETTER_SPACING` | 提取自 styles.css 实际用量；组件禁止硬编码数值 |
 | `LAYOUT` | 页面内边距 16 / 区块间距 26 / 内容与 Tab 栏净空 86（原型 168 减 --safe-b 22 与 Tab 栏 60） |
 | `TOP_BAR` | 顶栏规格：行高 46、gap 10、头像 34、搜索栏 38/14/8/17、吸顶阈值 8；玻璃主路径 = `GLASS.topBar`（真模糊 + 盒内 .92→.66→0 三档染色渐变）；2026-10-21 QA 删除盒外下沿收边条（原型不存在，曾致模糊观感外溢 16px 盖住「我的」页头像顶部） |
 | `TAB_BAR` | Tab 栏规格：高 60、padding-top 8、gap 3、图标 23、指示条 22×3（top -8）、scrim 两档 0.96/0.62 |
 | `PAGE_HEAD` / `FOOT_NOTE` / `EMPTY_TIP` | 页头（margin-top 6 / gap 12）、页尾说明（margin-top 32 / gap 8 / 圆点 14）、空态（22-0-6，层内 34，行高 21） |
 | `SONG_ROW` | 歌曲行规格：padding 7/8/7/4（紧凑 5/6/5/3）、gap 11、封面 46/40、rank 槽 28（minWidth 下限，3 位数不折行）、eq 3↔11px |
-| `RANK_CARD` / `CHART_ART` | 轮 7a 重拆：`RANK_CARD` 只剩网格 margin-top 18、内描边 .16、按压 .96；封面文字度量在 `CHART_ART`（.rk-name 13/30/17/900/1.25/.3 + 投影 .5/2/14；.rk-sub 13/12/10.5/700/.2/白 .76）。旧纹理 .34 与 veil 高光/压暗 token 随旧实现退役 |
+| `RANK_CARD` / `CHART_ART` | 轮 7a 重拆：`RANK_CARD` 只剩网格 margin-top 18、内描边 .16、按压 .96；封面文字度量在 `CHART_ART`（.rk-name 13/30/17/900/1.25/.3 + 投影 .5/2/14；.rk-sub 13/12/10.5/700/.2/白 .76；两行投影 2026-10-22 收紧成 .55/1/3，现值见上方 `CHART_ART` 那行）。旧纹理 .34 与 veil 高光/压暗 token 随旧实现退役 |
 | `BUTTON` | 按钮族规格：icon-btn 34/图标 18（大档 42/19）、ghost-btn 高 42/图标 15、pill 按钮高 32/paddingX 13 |
 | `SWITCH` | 开关规格：轨道 46×27、旋钮 21px、内边 3px、行程 19px |
 | `MOTION` | 时长 200 / 220 / 280（开关）/ 300ms；缓动 `cubic-bezier(.22,.61,.36,1)`（配 `Easing.bezier` 使用） |
@@ -147,8 +147,8 @@ import {
 - `PageHeader` / `FootNote` / `EmptyTip`（原型 `.page-head` / `.foot-note` / `.empty-tip`）：页头大标题（24px/900，可选右侧插槽）、页尾渐变圆点 + 一句话、空态提示（`variant='layer'` 对应 `.pl-layer` 内更大内边距）。
 - 播放页五件（原型 `.player-layer` / `.minibar`，阶段 9a，均纯展示）：`DiscArt`（`.disc` 自转唱片：封面 `Art` + 内圈刻纹 + 中心孔 + 外圈高光，22s/圈 JS 驱动链式动画，暂停停角度续转）；`LyricList`（`.lyric-scroll` 歌词：半屏垫高使当前行落视觉中线、行变化平滑居中、上下 `LinearGradient` 渐隐边，度量在 `PLAYER.lyric*`）；`SeekControl`（`.seek` 进度条：PanResponder 拖拽、松手提交一次）；`PcButton`（`.pc` 四变体 ghost/main/tool/fav，main 为渐变底 + `SHADOW.playerMain` 光晕）；`PlayerToolButton`（`.pt-btn` 等分工具胶囊）；`Minibar`（`.minibar` 迷你播放条，顶部 2px 渐变进度 + 封面/信息/心钮/播停钮，`SHADOW.float` 上抛阴影）。
 - `MyPlCard`（原型 `.my-pl`，styles.css L334-338）：歌单页「我的歌单」横排卡——120 方封面（圆角 16，度量在 `MY_PL`）+ 名字 / 副行各单行省略；与 RecentCard 规格不同（无播放角标）故不合并。`ChipRow` 双形态：缺省 `tabs`（首页 .rank-tabs）与 `cat`（歌单页 .cat-row：贴屏边横滑、上下留白更大）；`Section` 除 `more` 外可传 `right` 自定义右件（如歌单池 `.pl-count`）。
-- `ChartArt`（轮 7a 新公共件，原型 app.js `chartArt` L630-638 / `.art.chart-art`，styles.css L376-397）：榜单封面 = 「该榜」的共用视觉资产——平色深底（`chartCoverBg`=强调色×.24）+ 六枚单色线条符号之一（黑胶/音符/麦克风/上升箭头/留声机/方波，512 viewBox 逐坐标移植自 `CHART_EMBLEM`，黑胶中心孔以同底色实心填透）+ 可选两行真数据文字层（`.rk-name` 白 900 带投影 / `.rk-sub` 白 .76，`showText=false` 可关）。色按**榜名**查 `rankChartTint`（同名跨平台同色）；图上文字锁 `ART_INK` 不随主题反相。纯展示，无点击；RankCard 包它，轮 8 详情头图直接复用同一件。
-- `RankCard`（原型 `.rk-card`，styles.css L385-397）：排行榜方卡外壳——正方尺寸 + 1px 白 .16 内描边 + 按压缩放 .96，视觉本体全部委托 `ChartArt`（kind 六型：hot/new/original/rise/classic/electronic，由 `rankBoardKind` 按真实榜名归类，命不中回落 hot）。旧「平台 tint 对角渐变 + 三纹理 + 双层 veil」已随轮 7a 退役。纯展示组件，数据与跳转由 RankPage 容器接线。
+- `ChartArt`（轮 7a 公共件，原型 app.js `chartFace`/`chartArt` L583-601 / `.art.chart-art`，styles.css L499-531）：榜单封面 = 「该榜」的共用视觉资产——**一张真插画铺满**：榜名命中 `rankCoverKey` 判据表就用该榜专属封面（`RankCover`，`new_design/rank-covers/` 那 49 张 512×512 母图压出来的 q85 WebP 静态资源），命不中铺同包那张 `default` 兜底图；可选两行真数据文字层（`.rk-name` 白 900 / `.rk-sub` 白 .76，两行同钉左上角那一块、共用同一档紧贴字边的小投影 `CHART_ART.shadow*`，`showText=false` 可关）——白字**直接压图，不叠压顶遮罩**，那层 `.rk-scrim` 2026-10-22 按用户口径整层撤了。图上文字锁 `ART_INK` 不随主题反相。纯展示，无点击；RankCard 包它，轮 8 详情头图复用同一件。旧「平色深底 + 六枚单色线条符号」那一支 2026-10-22 整支退役（自创无彩底混在一排彩色插画里掉队）。
+- `RankCard`（原型 `.rk-card`，styles.css L509-512）：排行榜方卡外壳——正方尺寸 + 1px 白 .16 内描边 + 按压缩放 .96，视觉本体全部委托 `ChartArt`（入参只有榜名与平台全称；`kind` 六型判定已随符号底板一起删除）。旧「平台 tint 对角渐变 + 三纹理 + 双层 veil」已随轮 7a 退役。纯展示组件，数据与跳转由 RankPage 容器接线。
 - 我的页三件（styles.css L353-391，均纯展示，数据与动作由 MinePage 容器接线）：`MineHeader`（原型 `.mine-head`）——58px 全圆渐变首字头像（`GRADIENTS.headArt` 150deg 近似 + ART_INK 白描边 + `SHADOW.glow`）+ 昵称 / 副行 + 「改昵称」胶囊（复用 `PillButton`，图标 14 档在 `MINE.headEditIcon`）；`StatRow`（`.stat-row/.stat`）——等分三格「数字 + 标签」，底走色板 `chip`、描边 `line`；`FavCard`（`.fav-card`）——品牌洗底渐变（`GRADIENTS.favWash`）+ 爱心渐变方块（`--grad` + heartFill 25）+ 曲名预览行 + 圆形播放钮。三件度量收敛在 `MINE` token，字号新增 `FONT_SIZE.mineInitial/mineName/statValue`。2026-10-14 行为变更（用户条目：「我喜欢」也是内置歌单）：FavCard 拆双动作——整卡打开「我喜欢」内置歌单详情（与「我的歌单」卡同一 local 形态入口）、圆钮播放全部（新增可选 `onPlayPress`，原整卡播放动作保留）；`useLoveSongs` 改克隆取数/刷新（`listMusicAdd` 对缓存数组原地 mutate，同引用 setState 被 React bail out，收藏后不即时刷新）。
 
 ## 页面层与入口（screens / navigation / const / hooks）

@@ -771,7 +771,7 @@ export const PL_CARD = {
 /* ================= 榜单卡（.rank-grid / .rk-card，styles.css L376-397） ================= */
 
 // 第 7a 轮封面改版后榜单卡只剩摆位/描边/按压三项；渐变与纹理 token 已随旧实现退役
-// （底色/符号色走 theme/chart.ts，文字度量走下方 CHART_ART）
+// （底色走下方 CHART_ART.cardBg，文字度量也走下方 CHART_ART）
 export const RANK_CARD = {
   /** .rank-grid margin-top:18px */
   gridMarginTop: 18,
@@ -1005,24 +1005,32 @@ export const POD_CHART_PAGING = {
   endReachedDistance: RANK_PAGING.endReachedDistance,
 } as const
 
-/* ================= 榜单封面（chartArt / .rk-card 文字层，app.js L596-638 + styles.css L376-397） ================= */
+/* ================= 榜单封面（chartFace / .rk-card 文字层，app.js L583-617 + styles.css L499-531） ================= */
 
-// 封面 = 平色深底（theme/chart.ts 的 chartCoverBg）+ 单色线条符号 + 两行真数据文字。
-// 图上文字锁白、不参与主题反相（色走 ART_INK）；字号 17 与 FONT_SIZE.statValue 同值但语义不同，就近定义（L611 先例）
+// 封面两支脸（原型 d0a04a6 起）：榜名命中判据表 → 真实插画（components/RankCover，49 张 512×512：48 张判据 + 1 张兜底；
+// 母图是无损 PNG 只留原型那侧，进包的是生成脚本压出来的 q85 WebP，require 成静态资源）；
+// 命不中 → 同包那张 default 兜底插画（以前是「强调色压暗的深底 + 该榜型一枚单色符号」，
+// 2026-10-22 用户交来兜底图后整支退役，theme/chart.ts 那套色表跟着删）。
+// 两支都是一张铺满的插画，所以卡上那两行字一律白墨（走 ART_INK，不随主题反转），钉在左上角那一块（.rk-copy）。
+// 2026-10-22：字底下那档 .rk-scrim 压顶遮罩按用户口径整层撤掉（「遮罩过了」，插画上半截糊成一块黑），
+// 可读性只靠两行字那圈紧贴字边的小投影兜（下面 shadow* 三值，两行同档）。
+// 投影也不许用大模糊：旧那档 0 2px 14px 在浅色封面上把字四周摊成一层灰纱（逐像素量过：暗化两万余像素、
+// 平均压暗 11/255），用户判成「像垫了块浅灰底板」，一并收紧。
 export const CHART_ART = {
-  /** .rk-name：left/right 13 / bottom 30 */
-  nameInsetX: 13,
-  nameBottom: 30,
-  /** .rk-name：17px / line-height 1.25（17×1.25）/ 字距走 LETTER_SPACING.normal */
+  /** .rk-card / .art.chart-art 那层底：平时被插画整个盖住，只垫图没到位那一瞬 */
+  cardBg: '#0B1220',
+  /** .rk-copy：文字块 absolute 到左上角，top 12 / left·right 13（两行同块、跟着流走，长名不会叠行） */
+  copyTop: 12,
+  copyInsetX: 13,
+  /** .rk-name：17px / line-height 1.25（17×1.25）/ 字距走 LETTER_SPACING.normal / 最多两行 */
   nameSize: 17,
   nameLineHeight: 21.25,
-  /** .rk-name text-shadow 0 2px 14px rgba(0,0,0,.5) */
-  nameShadowAlpha: 0.5,
-  nameShadowOffsetY: 2,
-  nameShadowRadius: 14,
-  /** .rk-sub：left/right 13 / bottom 12，色 rgba(255,255,255,.76)，字号走 FONT_SIZE.tiny */
-  subInsetX: 13,
-  subBottom: 12,
+  /** text-shadow 0 1px 3px rgba(0,0,0,.55)：.rk-name 与 .rk-sub 同一档（原型两行同值） */
+  shadowAlpha: 0.55,
+  shadowOffsetY: 1,
+  shadowRadius: 3,
+  /** .rk-sub：紧跟榜名 2px，色 rgba(255,255,255,.76)，字号走 FONT_SIZE.tiny，单行省略 */
+  subMarginTop: 2,
   subAlpha: 0.76,
 } as const
 

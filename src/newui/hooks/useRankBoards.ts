@@ -8,8 +8,7 @@ import { assertApiSupport } from '@/utils/tools'
 import {
   NEW_UI_RANK_EMPTY,
   isRankBoardFeatured,
-  rankBoardKind,
-  type RankCardKind,
+  rankCoverKey,
 } from '@/newui/const'
 import { RANK_PAGING } from '@/newui/theme'
 
@@ -22,8 +21,12 @@ export interface RankBoardCard {
   source: LX.OnlineSource
   /** 榜名（.rk-name） */
   name: string
-  /** 榜型 → 封面符号（六型；真实目录按名字归近，色按榜名查表走 const/rank.ts） */
-  kind: RankCardKind
+  /**
+   * 真实封面 key（.rk-card 主脸）：由 `rankCoverKey(name)` 按原型 `RANK_COVER_WORDS` 判据表算出，
+   * 命不中为 null —— null 时 ChartArt 铺 default 那张兜底封面（原型 chartFace 的 `?? RANK_COVER_DEFAULT` 同款）。
+   * 在数据层算一次（目录整份在手，179 张卡每帧重查名字没必要），UI 只读结果。
+   */
+  coverKey: string | null
 }
 
 /** 排行榜页的一个平台分段（原型 .rank-group + 其后连续的同平台 .rk-card） */
@@ -69,7 +72,7 @@ const pickBoards = (source: LX.OnlineSource, list: BoardItem[]): RankBoardCard[]
     id: board.id,
     source,
     name: board.name,
-    kind: rankBoardKind(board.name),
+    coverKey: rankCoverKey(board.name),
   }))
 }
 

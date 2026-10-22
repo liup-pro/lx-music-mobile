@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="会员畅听榜">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#70134E"/><stop offset=".55" stop-color="#ED3F9B"/><stop offset="1" stop-color="#70134E"/></linearGradient><radialGradient id="orb"><stop offset="0" stop-color="#FFD1EB"/><stop offset="1" stop-color="#ED3F9B"/></radialGradient><linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".12"/><stop offset="1" stop-color="#000000" stop-opacity=".22"/></linearGradient></defs>
-<rect width="512" height="512" fill="url(#bg)"/><path d="M0 340 Q120 240 230 335 T512 290 L512 512 L0 512Z" fill="#FFFFFF" opacity=".06"/><circle cx="422" cy="394" r="3" fill="#FFD1EB" opacity=".45"/><circle cx="163" cy="187" r="4" fill="#FFD1EB" opacity=".45"/><circle cx="254" cy="240" r="5" fill="#FFD1EB" opacity=".45"/><circle cx="345" cy="293" r="3" fill="#FFD1EB" opacity=".45"/><circle cx="86" cy="346" r="4" fill="#FFD1EB" opacity=".45"/>
-<g><path d="M350 250 L450 305 L430 420 L350 465 L270 420 L250 305Z" fill="url(#orb)" opacity=".9" stroke="#FFD1EB" stroke-width="4"/><path d="M310 345 L350 305 L390 345 L350 395Z" fill="none" stroke="#FFD1EB" stroke-width="6"/><path d="M300 430 L350 400 L400 430" fill="none" stroke="#FFD1EB" stroke-width="5"/></g><rect width="512" height="512" fill="url(#shade)"/>
-
-
-
-</svg>

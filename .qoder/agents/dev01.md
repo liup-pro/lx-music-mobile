@@ -84,6 +84,10 @@ export PATH="/home/joe/.nvm/versions/node/v22.23.2/bin:/home/joe/tools/jdk-17.0.
 ```
 
 - **JS 进 APK**：`createBundleReleaseJsAndAssets` 会把 bundle 打进 APK，无需起 dev server。
+- **换图片扩展名要清生成目录**（2026-10-22 实测）：同一张静态资源从 `.png` 换成 `.webp`（或反之），上一次构建留在
+  `android/app/build/generated/res/createBundleReleaseJsAndAssets/drawable-*/` 里的旧扩展名副本不会消失，AGP 会按**去扩展名的资源名**判重，
+  报一堆 `Error: Duplicate resources` 挂在 `:app:mergeReleaseResources`。修法就一条：`rm -rf android/app/build/generated/res/createBundleReleaseJsAndAssets`
+  再重跑（该目录是构建产物，可再生，不必清整个 build/）。
 - **默认加** `-PreactNativeArchitectures=arm64-v8a`（用户 2026-10-15 定：日常只装机验证，单架构即可）。仅当用户明确要多架构 / 对外分发包时，才去掉该参数重跑。
 
 ### 产物与基线（一眼确认出包成功）

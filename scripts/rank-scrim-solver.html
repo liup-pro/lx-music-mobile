@@ -3,16 +3,19 @@
 <title>scrim solver</title>
 <style>body{font:12px ui-monospace,monospace;white-space:pre;margin:0;padding:8px;background:#111;color:#cfa}</style>
 <script>
-/* 求解「榜名 + 平台行统一白墨」所需遮罩深度：
- * 168×168 画一张封面 → 按候选梯度压黑 → 取两条文字带（.rk-name y117..138、.rk-sub y143..156，x13..155）
+/* 求解「榜名 + 平台行统一白墨」所需遮罩深度（2026-10-22 起两行字在卡片**左上角**）：
+ * 168×168 画一张封面 → 按候选梯度压黑 → 取两条文字带（.rk-copy top 12 / 名 y12..54 两行、
+ * .rk-sub y57..70，x13..155）
  * → 逐像素算白字（名＝纯白、副行＝76% 白）合成后的实际颜色与该像素的 WCAG 对比度，取最坏值；
- * 再反解「整条带压多少黑才让最坏像素也过 4.5:1」。 */
-const DIR = 'file:///mnt/data/owner/lx-music-mobile/new_design/rank-covers/';
+ * 再反解「整条带压多少黑才让最坏像素也过 4.5:1」。
+ * 量的是**出包这批**（src/newui/components/RankCover/covers/*.webp，母图 PNG 压出来的 q85）：
+ * 有损编码会改像素，遮罩必须对真正打进 APK 的文件作证，不能拿母图交差。 */
+const DIR = 'file:///mnt/data/owner/lx-music-mobile/src/newui/components/RankCover/covers/';
 const JOB = JSON.parse(decodeURIComponent(location.hash.slice(1)));
 const SIZE = 168;
 const X0 = 13, X1 = 155;
-const NAME = { y0: 117, y1: 138, alpha: 1 };
-const SUB = { y0: 143, y1: 156, alpha: (JOB && JOB.subAlpha) || 0.76 };
+const NAME = { y0: 12, y1: 54, alpha: 1 };
+const SUB = { y0: 57, y1: 70, alpha: (JOB && JOB.subAlpha) || 0.76 };
 const NEED = 4.5;
 const chan = (v) => { const c = v / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const lum = (r, g, b) => 0.2126 * chan(r) + 0.7152 * chan(g) + 0.0722 * chan(b);
@@ -24,7 +27,7 @@ const cv = document.createElement('canvas'); cv.width = cv.height = SIZE;
 const ctx = cv.getContext('2d', { willReadFrequently: true });
 
 const paint = (stops) => {
-  const g = ctx.createLinearGradient(0, SIZE, 0, 0); /* 0=卡片底边，向上到顶 */
+  const g = ctx.createLinearGradient(0, 0, 0, SIZE); /* 两行字在左上角：0=卡片顶边，向下到 68% 处淡出 */
   for (const [p, a] of stops) g.addColorStop(p, `rgba(0,0,0,${a})`);
   ctx.fillStyle = g; ctx.fillRect(0, 0, SIZE, SIZE);
 };
@@ -73,7 +76,7 @@ const one = (key) => new Promise((res) => {
     res();
   };
   img.onerror = () => { out.push({ key, error: 1 }); res(); };
-  img.src = DIR + key + '.svg';
+  img.src = DIR + key + '.webp';
 });
 
 (async () => {

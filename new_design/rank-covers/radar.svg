@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="雷达榜">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0D2C73"/><stop offset=".55" stop-color="#2784FF"/><stop offset="1" stop-color="#0D2C73"/></linearGradient><radialGradient id="orb"><stop offset="0" stop-color="#B7E2FF"/><stop offset="1" stop-color="#2784FF"/></radialGradient><linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".12"/><stop offset="1" stop-color="#000000" stop-opacity=".22"/></linearGradient></defs>
-<rect width="512" height="512" fill="url(#bg)"/><path d="M0 340 Q120 240 230 335 T512 290 L512 512 L0 512Z" fill="#FFFFFF" opacity=".06"/><circle cx="166" cy="362" r="3" fill="#B7E2FF" opacity=".45"/><circle cx="257" cy="415" r="4" fill="#B7E2FF" opacity=".45"/><circle cx="348" cy="208" r="5" fill="#B7E2FF" opacity=".45"/><circle cx="89" cy="261" r="3" fill="#B7E2FF" opacity=".45"/><circle cx="180" cy="314" r="4" fill="#B7E2FF" opacity=".45"/>
-<g><rect x="240" y="350" width="45" height="100" rx="12" fill="#B7E2FF" opacity=".55"/><rect x="315" y="290" width="45" height="160" rx="12" fill="#B7E2FF" opacity=".75"/><rect x="390" y="235" width="45" height="215" rx="12" fill="url(#orb)"/><path d="M230 465 L450 465" stroke="#B7E2FF" stroke-width="5" opacity=".7"/></g><rect width="512" height="512" fill="url(#shade)"/>
-
-
-
-</svg>

@@ -1,12 +1,10 @@
 /**
  * 排行榜页常量（对应原型 #page-rank）。
  * 屏内文案优先照抄原型原句；分页数值（每批 8 张、距底 160px）第 7b 轮起走 theme 的 RANK_PAGING。
- * 第 7a 轮起还负责「榜名→型、榜名→色」两个查表函数（色表本体在 theme/chart.ts）。
+ * 2026-10-22 起负责「榜名→真实封面」的 rankCoverKey（判据表本体是生成物 rankCoverWords.ts）。
+ * 同日起原型那套「榜名→型 / 榜名→色 + 六枚单色符号」的通用底板随 default 兜底封面一起退役。
  */
-import { CHART_ACCENT, CHART_TINT, type RankCardKind } from '@/newui/theme'
-
-/** 榜型（类型定义在 theme/chart.ts：ChartArtKind 的六型联合；此转发保持 const / hooks 旧引用不变） */
-export type { RankCardKind } from '@/newui/theme'
+import { RANK_COVER_WORDS } from './rankCoverWords'
 
 /** 各区块文案（.page-title / .foot-note / .empty-tip） */
 export const NEW_UI_RANK_TITLES = {
@@ -44,28 +42,26 @@ export const NEW_UI_RANK_STATUS = {
 } as const
 
 /**
- * 榜型判定（原型六枚符号按 kind 取）：原创→original、古典→classic、电音/DJ→electronic、
- * 飙/升→rise、含「新」→new、其余→hot。
- * 顺序即优先级：特指词在前、泛化词「新」在后——「新歌榜」不含前三类词落 new，
- * 「飙升榜」不含「新」（rise 在 new 前只是求稳），「热歌榜」不含任何关键词、天然落 hot，
- * 不会被误判成 new。
- * 真实目录里命不中的名字一律回落 hot——不为不存在的榜造形。
+ * 判据命不中时那张兜底封面（原型 app.js 的 RANK_COVER_DEFAULT，同一张图）。
+ * 兜底也是套图里的一张真插画：以前这里是一枚按榜型挑的单色符号 + 强调色压暗的深底，
+ * 自创的无彩底混在 48 张彩色封面里一眼就掉队，2026-10-22 起整条支路退役。
  */
-export const rankBoardKind = (name: string): RankCardKind => {
-  if (name.includes('原创')) return 'original'
-  if (name.includes('古典')) return 'classic'
-  if (/电音|DJ/i.test(name)) return 'electronic'
-  if (/飙|升/.test(name)) return 'rise'
-  if (name.includes('新')) return 'new'
-  return 'hot'
-}
+export const RANK_COVER_DEFAULT = 'default'
 
 /**
- * 榜名 → 强调色（原型 chartTint L591：CHART_TINT[name] ?? CHART_ACCENT[kind] ?? CHART_ACCENT.hot）。
- * 按「榜名」上色而不是按平台/榜型：同名榜跨平台同色；末档 ?? 是脏 kind 的运行时兜底（与原型同式）。
+ * 榜名 → 真实封面（原型 data.js rankCoverKey L303-307 逐字同式）：
+ * 整串转大写后，按 RANK_COVER_WORDS 的**先后**找第一条「词根被榜名包含」的行，命中即取那行的 key。
+ * 顺序就是优先级（词根最长优先，同长度按 外部授权榜 > 语种 > 地区 > 曲风 > 场景 > 权益 > 排名机制 > 主打），
+ * 所以「欧美热歌榜」落 west 不落 hot、「国风热歌榜」落 chinese_style 不落 hot、「日本公信榜」落 oricon 不落 japan。
+ * 表本身是生成物（const/rankCoverWords.ts，脚本从原型 data.js 原样搬运），**这里只读不排**：
+ * RN 侧另编一套排序，同一个榜名就会在原型和 App 落到两张不同的封面。
+ * 命不中返回 null，由 ChartArt 铺 RANK_COVER_DEFAULT 那张兜底封面（同原型 chartFace 那条 ?? 兜底）。
  */
-export const rankChartTint = (name: string, kind: RankCardKind): string =>
-  CHART_TINT[name] ?? CHART_ACCENT[kind] ?? CHART_ACCENT.hot
+export const rankCoverKey = (name: string): string | null => {
+  const n = String(name).toUpperCase()
+  const hit = RANK_COVER_WORDS.find(([, words]) => words.some(word => n.includes(word.toUpperCase())))
+  return hit ? hit[0] : null
+}
 
 /**
  * 该榜名是否命中原型给出的三类主打榜（热歌 / 新歌 / 飙升），用于组内排序排前（第 7b 轮起截断已退役）。
@@ -73,7 +69,7 @@ export const rankChartTint = (name: string, kind: RankCardKind): string =>
  * 全是干净名字没暴露问题，真实目录里「热评榜」「MV新势力」这类名字含单字就插队，
  * 而组头写的明明是「热歌 / 新歌 / 飙升在前」（rankGroupHead L498），名实不符。
  * 收窄口径：热/新按「热歌/新歌」开头认（各平台热歌榜/新歌榜都是这前缀），飙/升保留关键词
- * （飙升榜/上升榜同一语义家族，与 rankBoardKind 的 rise 判定同式）。
+ * （飙升榜/上升榜同一语义家族，与原型 data.js 的 isRankBoardFeatured 同式）。
  */
 export const isRankBoardFeatured = (name: string): boolean =>
   name.startsWith('热歌') || name.startsWith('新歌') || /飙|升/.test(name)

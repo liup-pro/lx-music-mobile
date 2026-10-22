@@ -55,12 +55,12 @@ export {
   NEW_UI_RANK_FOOT_NOTE,
   NEW_UI_RANK_STATUS,
   NEW_UI_RANK_TITLES,
+  RANK_COVER_DEFAULT,
   isRankBoardFeatured,
-  rankBoardKind,
-  rankChartTint,
+  rankCoverKey,
   rankGroupCountLabel,
-  type RankCardKind,
 } from './rank'
+export { RANK_COVER_WORDS } from './rankCoverWords'
 export {
   NEW_UI_PLAYER_CRUMB,
   NEW_UI_PLAYER_FAV_TOAST,

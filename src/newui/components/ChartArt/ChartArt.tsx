@@ -1,31 +1,26 @@
-import { memo, type ReactNode } from 'react'
+import { memo } from 'react'
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
-import Svg, { Circle, Path, Rect } from 'react-native-svg'
 
-import { rankChartTint } from '@/newui/const'
-import {
-  ART_INK,
-  CHART_ART,
-  FONT_SIZE,
-  FONT_WEIGHT,
-  LETTER_SPACING,
-  RADIUS,
-  chartCoverBg,
-  type ChartArtKind,
-} from '@/newui/theme'
+import { RANK_COVER_DEFAULT, rankCoverKey } from '@/newui/const'
+import { ART_INK, CHART_ART, FONT_SIZE, FONT_WEIGHT, LETTER_SPACING, RADIUS } from '@/newui/theme'
 import { withAlpha } from '@/newui/utils'
 
-export type { ChartArtKind, RankCardKind } from '@/newui/theme'
+import { RankCover } from '../RankCover'
 
 export interface ChartArtProps {
   /** 宽（卡片用法传正方边长） */
   width: number
   /** 高，缺省 = width（正方卡）；轮 8 的详情头图传横长值即可复用 */
   height?: number
-  /** 榜名：既上色（rankChartTint 按榜名查 CHART_TINT）也做 .rk-name 文字层 */
+  /** 榜名：既拿它查真实封面（rankCoverKey），也做 .rk-name 文字层 */
   name: string
-  /** 榜型 → 符号形状（原型 CHART_EMBLEM 六枚，缺省回落 hot 由容器查表保证） */
-  kind: ChartArtKind
+  /**
+   * 真实封面 key（new_design/rank-covers/ 的文件名）。
+   * 数据层（useRankBoards）已经按榜名算过就传这里；不传（undefined）则在本组件内按 name 现查
+   * —— 两个入口共用 const/rank.ts 那同一颗 rankCoverKey，不存在第二套判据。
+   * 传 null（或查不中）= 这个榜没有专属封面，铺 RANK_COVER_DEFAULT 那张兜底图。
+   */
+  coverKey?: string | null
   /** .rk-sub 副行（平台全称等真实字段）；不传则不渲染第二行 */
   sub?: string
   /** 是否渲染图上文字层（默认 true；轮 8 头图若要独立排版可关掉） */
@@ -36,152 +31,38 @@ export interface ChartArtProps {
 }
 
 /**
- * 六枚单色线条符号（原型 app.js CHART_EMBLEM L596-628 逐坐标移植，512×512 viewBox）。
- * currentColor → 该榜强调色 accent；黑胶中心孔取该榜深底 bg（原型 fill:var(--rk-bg)），
- * 用同一个底色值实心填该圆，不用透明糊过去。符号自带留白，svg 以 meet 等比居中。
- */
-const emblemShape = (kind: ChartArtKind, accent: string, bg: string): ReactNode => {
-  switch (kind) {
-    // 音符：符杆 + 右上旗 + 实心符头
-    case 'new':
-      return (
-        <>
-          <Path d="M256 140 V340" fill="none" stroke={accent} strokeLinecap="round" strokeWidth={10} />
-          <Path
-            d="M256 140 Q316 160 316 220"
-            fill="none"
-            stroke={accent}
-            strokeLinecap="round"
-            strokeWidth={10}
-          />
-          <Circle cx={216} cy={348} fill={accent} r={34} />
-        </>
-      )
-    // 麦克风：胶囊 + 拾音环 + 站杆 + 底座
-    case 'original':
-      return (
-        <>
-          <Rect fill="none" height={140} rx={40} stroke={accent} strokeWidth={8} width={80} x={216} y={130} />
-          <Path
-            d="M180 240 V250 A76 76 0 0 0 332 250 V240"
-            fill="none"
-            stroke={accent}
-            strokeLinecap="round"
-            strokeWidth={8}
-          />
-          <Path d="M256 326 V382" fill="none" stroke={accent} strokeLinecap="round" strokeWidth={8} />
-          <Path d="M212 382 H300" fill="none" stroke={accent} strokeLinecap="round" strokeWidth={8} />
-        </>
-      )
-    // 上升箭头：折线上扬 + 右上等臂拐角箭头
-    case 'rise':
-      return (
-        <>
-          <Path
-            d="M140 360 L240 260 L300 320 L380 200"
-            fill="none"
-            stroke={accent}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={10}
-          />
-          <Path
-            d="M340 200 H380 V240"
-            fill="none"
-            stroke={accent}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={10}
-          />
-        </>
-      )
-    // 留声机：喇叭臂 + 立柱 + 底座
-    case 'classic':
-      return (
-        <>
-          <Path
-            d="M200 340 V232 L330 168 V300"
-            fill="none"
-            stroke={accent}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={8}
-          />
-          <Rect fill={accent} height={14} rx={7} width={200} x={170} y={340} />
-          <Rect fill={accent} height={108} rx={6} width={16} x={184} y={232} />
-        </>
-      )
-    // 方波：两段高低电平
-    case 'electronic':
-      return (
-        <Path
-          d="M140 320 V192 H236 V320 H332 V192 H372"
-          fill="none"
-          stroke={accent}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={10}
-        />
-      )
-    // hot（含未知 kind 回落，同原型 CHART_EMBLEM[c.kind] ?? CHART_EMBLEM.hot）：
-    // 黑胶：同心圆 + 中心实心 + 中心孔透该榜深底
-    case 'hot':
-    default:
-      return (
-        <>
-          <Circle cx={256} cy={256} fill="none" r={120} stroke={accent} strokeWidth={6} />
-          <Circle cx={256} cy={256} fill="none" opacity={0.55} r={82} stroke={accent} strokeWidth={3} />
-          <Circle cx={256} cy={256} fill={accent} r={44} />
-          <Circle cx={256} cy={256} fill={bg} r={10} />
-        </>
-      )
-  }
-}
-
-/**
- * 榜单封面（原型 app.js chartArt L630-638 / .art.chart-art，styles.css L376-397）：
- * 「该榜」的共用视觉资产 = 平色深底（强调色 ×0.24）+ 单色线条符号 + 可选两行真数据文字。
- * 卡片（RankCard）与轮 8 的详情头图都吃它；同名榜跨平台同色由 const/rank.ts 查表保证。
- * 图上文字锁白（ART_INK），不参与浅/深主题反相——封面恒为深底。
+ * 榜单封面（原型 app.js 的 chartFace / chartArt，styles.css 的 .rk-card / .art.chart-art / .rk-copy / .rk-name / .rk-sub）：
+ * 「该榜」的共用视觉资产，卡片（RankCard）与轮 8 的详情头图都吃它。判据只有一条：
+ * 榜名命中 rankCoverKey 那张表 → 铺 new_design/rank-covers/ 里那一整张插画（RankCover，49 张 512×512：48 张判据 + 1 张兜底，
+ * 母图是无损 PNG 只留原型那侧，进包的是压出来的 q85 WebP）；命不中 → 铺同包那张 default 兜底图。
+ * 两支都是**一张真插画铺满**，卡上那两行白字直接压在图上：两行字钉**左上角**（.rk-copy 一个流内块，
+ * 榜名长到两行时平台行跟着下移），可读性只靠各自那圈紧贴字边的小投影兜（`CHART_ART.shadow*`，两行同档）。
+ * 2026-10-22 之前这里还有一层 .rk-scrim 压顶遮罩（对出包那 49 张 WebP 逐像素反解、最坏像素过 4.5:1），
+ * 用户看后判定「遮罩过了」——插画上半截糊成一块黑，整层撤掉；撤完那档 0 2px 14px 的大模糊投影又摊成
+ * 一层灰纱（判成「像垫了块浅灰底板」），于是两行字的投影一起收紧到 0 1px 3px .55。
+ * 这里以前还有第二支「通用符号」（按榜名上强调色 + 该榜型一枚单色线条符号）：
+ * 2026-10-22 用户交来 default 兜底图后整支退役——自创的无彩底混在一排彩色封面里一眼就掉队。
+ * 图上文字锁白（ART_INK），不参与浅/深主题反相——封面恒为深底/实拍图。
  * 纯展示组件：不读 store、不发请求、不接点击（交互由外层 RankCard/容器负责）。
  */
 export const ChartArt = memo(
-  ({ width, height = width, name, kind, sub, showText = true, radius = RADIUS.m, style }: ChartArtProps) => {
-    const accent = rankChartTint(name, kind)
-    const bg = chartCoverBg(accent)
+  ({ width, height = width, name, coverKey, sub, showText = true, radius = RADIUS.m, style }: ChartArtProps) => {
+    const cover = (coverKey === undefined ? rankCoverKey(name) : coverKey) ?? RANK_COVER_DEFAULT
     return (
       <View
         style={[
           styles.root,
-          { width, height, backgroundColor: bg, borderRadius: radius },
+          // .rk-card / .art.chart-art 那层 #0B1220 底：平时被插画整个盖住，只垫图没到位那一瞬
+          { backgroundColor: CHART_ART.cardBg, borderRadius: radius, height, width },
           style,
         ]}
       >
-        {/* .rk-emblem：inset 0 满幅，512 viewBox 等比居中（meet，同 CSS svg 默认） */}
-        <Svg
-          height="100%"
-          preserveAspectRatio="xMidYMid meet"
-          style={StyleSheet.absoluteFill}
-          viewBox="0 0 512 512"
-          width="100%"
-        >
-          {emblemShape(kind, accent, bg)}
-        </Svg>
+        <RankCover coverKey={cover} height={height} width={width} />
+        {/* .rk-copy：两行字同一个流内块（左上角），榜名长到两行时平台行跟着往下走，不会叠字 */}
         {showText ? (
-          <>
-            {/* .rk-name：榜名（平台给的真名），白 900 + 黑投影 */}
-            <Text
-              numberOfLines={2}
-              style={[
-                styles.name,
-                {
-                  color: ART_INK.fg,
-                  textShadowColor: withAlpha(ART_INK.veil, CHART_ART.nameShadowAlpha),
-                  textShadowOffset: { width: 0, height: CHART_ART.nameShadowOffsetY },
-                  textShadowRadius: CHART_ART.nameShadowRadius,
-                },
-              ]}
-            >
+          <View style={styles.copy}>
+            {/* .rk-name：榜名（平台给的真名），白 900 + 紧贴字边的小投影，最多两行 */}
+            <Text numberOfLines={2} style={styles.name}>
               {name}
             </Text>
             {/* .rk-sub：平台全称。卡上只留这两行真数据，「N 首」「每小时更新」原型已撤，不加 */}
@@ -190,7 +71,7 @@ export const ChartArt = memo(
                 {sub}
               </Text>
             )}
-          </>
+          </View>
         ) : null}
       </View>
     )
@@ -199,30 +80,41 @@ export const ChartArt = memo(
 
 ChartArt.displayName = 'NewUIChartArt'
 
+/** .rk-name / .rk-sub 同一档 text-shadow：0 1px 3px rgba(0,0,0,.55)（两行同值，原型 styles.css） */
+const shadow = {
+  textShadowColor: withAlpha(ART_INK.veil, CHART_ART.shadowAlpha),
+  textShadowOffset: { width: 0, height: CHART_ART.shadowOffsetY },
+  textShadowRadius: CHART_ART.shadowRadius,
+} as const
+
 const styles = StyleSheet.create({
   root: {
     overflow: 'hidden',
   },
-  /** .rk-name：left/right 13 / bottom 30 / 17 / 900 / 行高 1.25 / 字距 .3 */
-  name: {
+  /** .rk-copy：文字块 absolute 钉左上角（top 12 / left·right 13），两行在里面跟着流走 */
+  copy: {
     position: 'absolute',
-    left: CHART_ART.nameInsetX,
-    right: CHART_ART.nameInsetX,
-    bottom: CHART_ART.nameBottom,
+    top: CHART_ART.copyTop,
+    left: CHART_ART.copyInsetX,
+    right: CHART_ART.copyInsetX,
+  },
+  /** .rk-name：17 / 900 / 行高 1.25 / 字距 .3，最多两行（原型 -webkit-line-clamp:2） */
+  name: {
     fontSize: CHART_ART.nameSize,
     fontWeight: FONT_WEIGHT.black,
     lineHeight: CHART_ART.nameLineHeight,
     letterSpacing: LETTER_SPACING.normal,
+    color: ART_INK.fg,
+    ...shadow,
   },
-  /** .rk-sub：left/right 13 / bottom 12 / 10.5 / 700 / 字距 .2 / 白 .76 */
+  /** .rk-sub：紧跟榜名 2px / 10.5 / 700 / 字距 .2 / 白 .76，单行省略（原型 nowrap + ellipsis） */
   sub: {
-    position: 'absolute',
-    left: CHART_ART.subInsetX,
-    right: CHART_ART.subInsetX,
-    bottom: CHART_ART.subBottom,
+    marginTop: CHART_ART.subMarginTop,
     fontSize: FONT_SIZE.tiny,
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: LETTER_SPACING.tight,
     color: withAlpha(ART_INK.fg, CHART_ART.subAlpha),
+    // 原型这行原先没有投影，浅色天空上最弱；2026-10-22 与榜名同挂一档
+    ...shadow,
   },
 })

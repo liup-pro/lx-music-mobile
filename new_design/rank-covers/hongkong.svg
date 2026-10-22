@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="香港地区榜">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#064B62"/><stop offset=".55" stop-color="#14B8C8"/><stop offset="1" stop-color="#064B62"/></linearGradient><radialGradient id="orb"><stop offset="0" stop-color="#B6FFF0"/><stop offset="1" stop-color="#14B8C8"/></radialGradient><linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".12"/><stop offset="1" stop-color="#000000" stop-opacity=".22"/></linearGradient></defs>
-<rect width="512" height="512" fill="url(#bg)"/><path d="M0 340 Q120 240 230 335 T512 290 L512 512 L0 512Z" fill="#FFFFFF" opacity=".06"/><circle cx="154" cy="218" r="3" fill="#B6FFF0" opacity=".45"/><circle cx="245" cy="271" r="4" fill="#B6FFF0" opacity=".45"/><circle cx="336" cy="324" r="5" fill="#B6FFF0" opacity=".45"/><circle cx="427" cy="377" r="3" fill="#B6FFF0" opacity=".45"/><circle cx="168" cy="430" r="4" fill="#B6FFF0" opacity=".45"/>
-<g><circle cx="350" cy="355" r="105" fill="url(#orb)" opacity=".82"/><ellipse cx="350" cy="355" rx="140" ry="48" fill="none" stroke="#B6FFF0" stroke-width="5" opacity=".8" transform="rotate(-25 350 355)"/><path d="M270 300 Q350 260 430 300 M260 350 Q350 390 440 350 M300 260 Q330 355 300 450 M400 260 Q370 355 400 450" fill="none" stroke="#B6FFF0" stroke-width="3" opacity=".42"/></g><rect width="512" height="512" fill="url(#shade)"/>
-
-
-
-</svg>

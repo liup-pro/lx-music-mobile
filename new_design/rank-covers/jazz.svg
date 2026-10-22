@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="爵士榜">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5B1768"/><stop offset=".55" stop-color="#DA4AB2"/><stop offset="1" stop-color="#5B1768"/></linearGradient><radialGradient id="orb"><stop offset="0" stop-color="#FFD0F1"/><stop offset="1" stop-color="#DA4AB2"/></radialGradient><linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".12"/><stop offset="1" stop-color="#000000" stop-opacity=".22"/></linearGradient></defs>
-<rect width="512" height="512" fill="url(#bg)"/><path d="M0 340 Q120 240 230 335 T512 290 L512 512 L0 512Z" fill="#FFFFFF" opacity=".06"/><circle cx="197" cy="439" r="3" fill="#FFD0F1" opacity=".45"/><circle cx="288" cy="232" r="4" fill="#FFD0F1" opacity=".45"/><circle cx="379" cy="285" r="5" fill="#FFD0F1" opacity=".45"/><circle cx="120" cy="338" r="3" fill="#FFD0F1" opacity=".45"/><circle cx="211" cy="391" r="4" fill="#FFD0F1" opacity=".45"/>
-<g><path d="M260 420 L300 300 L330 390 L370 260 L405 390 L445 320" fill="none" stroke="#FFD0F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><circle cx="350" cy="350" r="85" fill="none" stroke="#FFD0F1" stroke-width="4" opacity=".42"/><circle cx="350" cy="350" r="20" fill="url(#orb)"/></g><rect width="512" height="512" fill="url(#shade)"/>
-
-
-
-</svg>

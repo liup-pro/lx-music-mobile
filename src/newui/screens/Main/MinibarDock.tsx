@@ -8,7 +8,7 @@ import { useSettingValue } from '@/store/setting/hook'
 
 import { Minibar } from '@/newui/components'
 import { QUALITY_LABEL, getPlatformMeta } from '@/newui/const'
-import { useFavoriteToggle, useNowPlaying, useWideLayout } from '@/newui/hooks'
+import { useNowPlaying, useWideLayout } from '@/newui/hooks'
 import { MINIBAR, MOTION, PLATFORM_TINTS, TAB_BAR, Z_LAYER, type PlatformTintKey } from '@/newui/theme'
 import { isOnlineMusic } from '@/newui/utils'
 
@@ -41,7 +41,6 @@ interface MinibarView {
   sourceTint: string
   qualityLabel: string
   playing: boolean
-  loved: boolean
   ratio: number
 }
 
@@ -58,7 +57,8 @@ export const MinibarDock = ({ componentId, bottomInset }: MinibarDockProps) => {
   const playMusicInfo = usePlayMusicInfo()
   const { nowPlayTime, maxPlayTime } = useProgress()
   const playQuality = useSettingValue('player.playQuality')
-  const { loved, toggle: toggleFav } = useFavoriteToggle()
+  /* 心钮已按 2026-10-22 用户口径撤掉：本条不再订阅收藏态（useFavoriteToggle 随之不接），
+     喜欢与否则归播放页与行内「⋯」那两处办——同一份收藏数据，只是这条上没那颗入口了 */
   /* 本条的竖直摆位按档走（判据只在 useWideLayout 一处）：
      - 竖屏档：bottom = 安全区 + Tab 60 + 间隙 6 = 安全区 + 66，与原型 `.minibar{bottom:calc(var(--safe-b) + 66px)}`（styles.css:660）同式；
      - 宽屏档：原型 `.wide .minibar{bottom:calc(var(--safe-b) + 52px)}`（styles.css:1326）给的是**整条底距 52**
@@ -95,10 +95,9 @@ export const MinibarDock = ({ componentId, bottomInset }: MinibarDockProps) => {
         isOnlineMusic(currentMusic) ? getPlayQuality(playQuality, currentMusic) : playQuality
       ],
       playing: isPlaying,
-      loved,
       ratio: maxPlayTime > 0 ? Math.min(nowPlayTime / maxPlayTime, 1) : 0,
     }
-  }, [album, currentMusic, hasSong, isPlaying, loved, maxPlayTime, nowPlayTime, picUrl, playQuality, singer, sourceKey, title])
+  }, [album, currentMusic, hasSong, isPlaying, maxPlayTime, nowPlayTime, picUrl, playQuality, singer, sourceKey, title])
   useEffect(() => {
     if (view != null) lastViewRef.current = view
   }, [view])
@@ -163,11 +162,9 @@ export const MinibarDock = ({ componentId, bottomInset }: MinibarDockProps) => {
           sourceTint={view.sourceTint}
           qualityLabel={view.qualityLabel}
           playing={view.playing}
-          loved={view.loved}
           ratio={view.ratio}
           onPress={() => pushNewUiPlayer(componentId)}
           onTogglePlay={togglePlay}
-          onToggleFav={toggleFav}
           // playNext 首参是 isAutoToggle（布尔），不能直接接 onPress（会收到事件对象），
           // 必须无参转接——同播放页口径（screens/Player/index.tsx L258）
           onPlayNext={() => { void playNext() }}

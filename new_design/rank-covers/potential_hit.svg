@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="潜力爆款榜">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#14533C"/><stop offset=".55" stop-color="#34C68A"/><stop offset="1" stop-color="#14533C"/></linearGradient><radialGradient id="orb"><stop offset="0" stop-color="#C9FFE5"/><stop offset="1" stop-color="#34C68A"/></radialGradient><linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".12"/><stop offset="1" stop-color="#000000" stop-opacity=".22"/></linearGradient></defs>
-<rect width="512" height="512" fill="url(#bg)"/><path d="M0 340 Q120 240 230 335 T512 290 L512 512 L0 512Z" fill="#FFFFFF" opacity=".06"/><circle cx="240" cy="400" r="3" fill="#C9FFE5" opacity=".45"/><circle cx="331" cy="193" r="4" fill="#C9FFE5" opacity=".45"/><circle cx="422" cy="246" r="5" fill="#C9FFE5" opacity=".45"/><circle cx="163" cy="299" r="3" fill="#C9FFE5" opacity=".45"/><circle cx="254" cy="352" r="4" fill="#C9FFE5" opacity=".45"/>
-<g><rect x="240" y="350" width="45" height="100" rx="12" fill="#C9FFE5" opacity=".55"/><rect x="315" y="290" width="45" height="160" rx="12" fill="#C9FFE5" opacity=".75"/><rect x="390" y="235" width="45" height="215" rx="12" fill="url(#orb)"/><path d="M230 465 L450 465" stroke="#C9FFE5" stroke-width="5" opacity=".7"/></g><rect width="512" height="512" fill="url(#shade)"/>
-
-
-
-</svg>

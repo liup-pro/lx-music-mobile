@@ -52,14 +52,11 @@ export interface MinibarProps {
   qualityLabel: string
   /** 是否在播（决定 play/pause 图标） */
   playing: boolean
-  /** 已收藏（心钮亮主色） */
-  loved: boolean
   /** 播放进度 0..1（顶部 2px 细进度） */
   ratio: number
   /** 点整条 = 展开播放页（原型 minibar click → player） */
   onPress: () => void
   onTogglePlay: () => void
-  onToggleFav: () => void
   /** 下一曲（2026-10-13 bug-fix「首页」第 2 条：原型 minibar 本无此钮，按用户口径新增于播停右侧） */
   onPlayNext: () => void
   style?: StyleProp<ViewStyle>
@@ -67,9 +64,11 @@ export interface MinibarProps {
 
 /**
  * 迷你播放条（对应原型 .minibar，styles.css L453-477）：
- * 顶部 2px 渐变进度 + 封面 / 曲名 / 「平台·音质·歌手」+ 收藏、播停圆钮与下一曲钮
+ * 顶部 2px 渐变进度 + 封面 / 曲名 / 「平台·音质·歌手」+ 播停圆钮与下一曲钮
  * （副行四段顺序对齐原型 .mini-sub：平台角标 → 音质角标 QTag → 分隔条 → 歌手，
  * 音质为空串的本地曲目时角标与分隔条整段省略；下一曲为 2026-10-13 bug-fix「首页」第 2 条按用户口径新增，原型无此钮）。
+ * 收藏心钮已按 2026-10-22 用户口径撤掉（本条只留「听」这一件事：整条点开进播放页，
+ * 喜欢与否在播放页与行内「⋯」里办）；撤的是控件本身，不是把它藏起来。
  * 底色（2026-10-13 bug-fix「首页」第 1 条，对齐原型毛玻璃；原型 .minibar 底为
  * var(--glass)（= colors.glassPatch，深 rgba(10,10,16,.74) / 浅 rgba(255,255,255,.82)）
  * + backdrop-filter blur(28px) saturate(180%)）——底色层走共通件 `BlurredContainer`
@@ -94,11 +93,9 @@ export const Minibar = memo(
     sourceTint,
     qualityLabel,
     playing,
-    loved,
     ratio,
     onPress,
     onTogglePlay,
-    onToggleFav,
     onPlayNext,
     style,
   }: MinibarProps) => {
@@ -106,9 +103,8 @@ export const Minibar = memo(
     /**
      * `.mini-act:active{transform:scale(.9)}`（styles.css L682）。原型这条规则所在的 `.mini-act`
      * 没有写 transition（`.mini-bar` 那族也没给 transform 时长），与 `.pc` / `.pt-btn` 同族；
-     * 这里沿用家族缺省 200ms 补间，三颗圆钮各持一条 Value（互不串）。
+     * 这里沿用家族缺省 200ms 补间，两颗圆钮各持一条 Value（互不串）。
      */
-    const favFx = usePressFx({ scale: MINIBAR.pressScale })
     const playFx = usePressFx({ scale: MINIBAR.pressScale })
     const nextFx = usePressFx({ scale: MINIBAR.pressScale })
     // 高按档覆盖：宽屏档 52（原型 `.wide .minibar{height:52px}`，styles.css:1326），
@@ -192,20 +188,6 @@ export const Minibar = memo(
 
           <AnimatedPressable
             accessibilityRole="button"
-            accessibilityLabel="喜欢"
-            onPress={onToggleFav}
-            onPressIn={favFx.onPressIn}
-            onPressOut={favFx.onPressOut}
-            style={[styles.act, favFx.animatedStyle]}
-          >
-            <Icon
-              name={loved ? 'heartFill' : 'heart'}
-              size={MINIBAR.actIcon}
-              color={loved ? theme.colors.brand : theme.colors.text2}
-            />
-          </AnimatedPressable>
-          <AnimatedPressable
-            accessibilityRole="button"
             accessibilityLabel="播放/暂停"
             onPress={onTogglePlay}
             onPressIn={playFx.onPressIn}
@@ -225,8 +207,9 @@ export const Minibar = memo(
             />
           </AnimatedPressable>
           {/* 下一曲（2026-10-13 bug-fix「首页」第 2 条）：原型 .minibar 只有收藏 + 播停两枚，
-              按用户口径在播停右侧新增一枚；视觉节奏与收藏钮同款（.mini-act 34 圆底 / 19 图标 / text-2），
-              不缩封面不截曲名。无队列/单曲时行为由 core/player.playNext 自身兜底，不做假 disabled */}
+              按用户口径在播停右侧新增一枚；同款 .mini-act 节奏（34 圆底 / 19 图标 / text-2），
+              不缩封面不截曲名。无队列/单曲时行为由 core/player.playNext 自身兜底，不做假 disabled。
+              心钮撤掉后这两颗仍由 .mini-main 的 gap（11）等距排布，右侧到条边仍是 paddingX 12，不需另补位移 */}
           <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel="下一曲"

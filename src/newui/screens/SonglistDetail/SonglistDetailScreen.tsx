@@ -64,7 +64,6 @@ import {
   NEW_UI_PLD_TOAST,
   NEW_UI_PLAYLIST_ART_SEED,
   newUiPlayableTag,
-  rankBoardKind,
   type NewUiSonglistDetailKind,
   type NewUiTabKey,
 } from '@/newui/const'
@@ -449,11 +448,10 @@ export const SonglistDetailScreen = ({
   const heroArtSeed = localHero?.artSeed ?? artSeed
   const heroArtUri = kind === 'local' ? localHero?.artUri : headerInfo.img
 
-  // rank 形态头图（原型 app.js L891）：方块换 ChartArt，符号由真实榜名查 rankBoardKind——
-  // 与榜单页 RankCard 同一颗查表（useRankBoards L72 的 kind 也是它算的），点进详情认的还是同一张脸。
-  // 非 rank 形态恒 undefined，PlaylistHero 走原 Art 封面路径（真实封面图优先、无图程序化底），零变化。
-  // 注意：氛围底纹 .pl-bg 原型对所有形态都是 palette(seed)（L915），本轮不动，仍用上面的 artSeed。
-  const chartKind = isRank ? rankBoardKind(headerInfo.name) : undefined
+  // rank 形态头图（原型 app.js 的 chartArt(plNow) 分支）：方块换成该榜那张真插画——ChartArt 内部按榜名
+  // 查 rankCoverKey，与榜单页 RankCard 同一颗查表，点进详情认的还是同一张脸。
+  // 非 rank 形态走原 Art 封面路径（真实封面图优先、无图程序化底），零变化。
+  // 注意：氛围底纹 .pl-bg 原型对所有形态都是 palette(seed)，本轮不动，仍用上面的 artSeed。
 
   // 收藏态 = 已进「我的歌单」（本项目无原型 favPl 独立收藏概念，用本地歌单存在性如实映射）。
   // rank 形态按旧榜单视图的存榜坐标匹配：sourceListId = `board__${榜单 id}`
@@ -667,7 +665,7 @@ export const SonglistDetailScreen = ({
         sub={headerInfo.desc || headerInfo.author}
         metaTag={metaTag}
         metaParts={metaParts}
-        chartKind={chartKind}
+        isChart={isRank}
       />
 
       {/* .pl-actions：ghost 占 flex:1 + 42 方形随机钮（底色走 IconButton 缺省 glass .07） */}

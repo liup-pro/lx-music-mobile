@@ -96,15 +96,6 @@ export {
   wideStructuralOf,
   wideTierOf,
 } from './tokens'
-/* 榜单封面体系（第 7a 轮）：色表与深底换算在 chart.ts，查表函数在 const/rank.ts */
-export {
-  CHART_ACCENT,
-  CHART_BG_SHADE,
-  CHART_TINT,
-  chartCoverBg,
-  type ChartArtKind,
-  type RankCardKind,
-} from './chart'
 export type { PlatformTintKey, WideStructural, WideTier } from './tokens'
 export type {
   GlassLayerSpec,

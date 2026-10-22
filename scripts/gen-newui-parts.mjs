@@ -246,7 +246,7 @@ const PART_DEFS = [
 
   P('U39', 'U39', 'rank', 'rank-grid', '.rank-grid / .rk-card（rk-emblem/rk-name/rk-sub）榜单卡网格；卡由 rankCard() 生成。轻量宽屏档在本件同样持有两条列数覆盖：.wide.wcols3 → 3 列（gap 16×14）、.wide.wcols4 → 4 列（gap 16×12）；组头 .rank-group 与分页状态行仍是 grid-column:1/-1，不跟着摊列', { js: ['renderRankPage', 'rankCard', 'paintRankGrid', 'rankView', 'RANK_PAGE_SIZE'] }),
   P('U40', 'U40', 'rank', 'rank-group', '.rank-group 平台分段组头（「N 个榜 · 热歌/新歌/飙升在前」文案见符号行）', { doc: true, js: ['rankGroupHead'] }),
-  P('U41', 'U41', 'rank', 'chart-art', 'chartArt 符号体系：色按榜名（CHART_TINT）、形按榜型（CHART_EMBLEM 六枚 512 符号）、底色=强调色×shadeHex；不随主题反相', { doc: true, js: ['chartArt', 'CHART_ACCENT', 'CHART_TINT', 'CHART_EMBLEM', 'chartTint', 'shadeHex'] }),
+  P('U41', 'U41', 'rank', 'chart-art', 'chartArt 封面体系（两支脸，判据只有一条）：① <em>真实封面</em>为一路——榜名命 data.js 的 RANK_COVER_WORDS 判据表（rankCoverKey：名字大写后取第一条命中的词组，序为长词优先、同长按 外部授权榜 &gt; 语种 &gt; 地区 &gt; 曲风 &gt; 场景 &gt; 权益 &gt; 排名机制 &gt; 主打）就用 new_design/rank-covers/ 里那张同名图铺满（母图是 512×512 位图 PNG，入库不改像素；进包压成 q85 WebP，无损 17.03 MB 原样进包会把 APK 顶到 32 MB；图上不带字、四角方角）；卡上再压两行白字（<em>左上角</em>一块 <code>.rk-copy</code>，榜名最多两行、平台行紧跟其下），<em>文字一律白墨、不随图变色</em>，字底下<em>不叠遮罩</em>——原先那档压顶 <code>.rk-scrim</code>（<code>.7/.65</code>，由 scripts/rank-scrim-solver.html 对<em>出包这 49 张 WebP</em>逐像素反解、最低 5.04:1）2026-10-22 按用户口径整层撤掉：为过 4.5:1 把插画上半截糊成一块黑，遮得过了；现在可读性只剩两行字<em>紧贴字边的小投影</em>兜（<code>.rk-name</code> 与 <code>.rk-sub</code> 同一档 <code>0 1px 3px rgba(0,0,0,.55)</code>，此前那档 <code>0 2px 14px</code> 的大模糊在浅色封面上摊成一层灰纱，也一并撤了，平台行原先没投影这轮挂上）。② 判据命不中（146 个真榜名里 30 个）落<em>同一张兜底插画</em> <code>default.png</code>——它不在 manifest 的 48 条里、不参与判据，口味与这批一致（无字、方角、512×512），两支同一套画法与同一层文字。原先自画的「按榜名定色 + 按榜型挑单色线条符号」那一套底板（CHART_TINT／CHART_ACCENT／CHART_EMBLEM／chartTint／shadeHex）与这张真图摆在一起就是两种画风同台，已整族删除（kind 也随之从卡与头图的 props 里去掉）。两支都不随主题反相，底色统一 #0B1220（图未就位那一瞬的底色）。卡与详情头图共用同一颗 chartFace（它现在只管铺图，<code>opt.text</code> 那档遮罩开关随之去掉），头图那一份文字在图外', { doc: true, js: ['chartFace', 'chartArt', 'RANK_COVER_DIR', 'RANK_COVER_DEFAULT', 'rankCoverKey'] }),
 
   P('U42', 'U42', 'mine', 'mine-head', '.mine-head 个人头部（mh-*/头像大字；副行固定文案在件内）', { js: ['renderMinePage', 'renderProfile', 'nickInitial'] }),
   P('U43', 'U43', 'mine', 'stat-row', '.stat-row / .stat 本地统计三项（喜欢/歌单/最近播放）', { js: ['renderMinePage'] }),
@@ -517,7 +517,7 @@ const CSS_MATCHERS = [
   ['U32', ['.section-note']],
   ['U36', ['.my-pl-row', '.my-pl']],
   ['U37', ['.pl-count']],
-  ['U39', ['.rank-grid', '.rk-card', '.rk-scrim', '.rk-emblem', '.rk-name', '.rk-sub']],
+  ['U39', ['.rank-grid', '.rk-card', '.rk-emblem', '.rk-copy', '.rk-name', '.rk-sub']],
   ['U40', ['.rank-group']],
   ['U42', ['.mine-head', '.mh-art', '.mh-body', '.mh-name', '.mh-sub', '.mh-edit']],
   ['U43', ['.stat-row', '.stat']],

@@ -68,5 +68,4 @@ buck-out/
 /coverage
 
 # design's parts
-/new_design/parts
-/new_design/todo-list.md
+/new_design

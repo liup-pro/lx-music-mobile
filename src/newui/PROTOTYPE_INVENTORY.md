@@ -71,7 +71,7 @@
 |---|------|--------------------------|------------------|----------|
 | U39 | `.rank-grid` `.rk-card`（rk-emblem/rk-name/rk-sub） | rank/rank-grid.html（L208） | renderRankPage L538 / rankCard L635 / paintRankGrid L547 / RANK_PAGE_SIZE L469 | 榜名 + 副题 |
 | U40 | `.rank-group` 组头 | rank/rank-group.html（运行时生成） | rankGroupHead L494 | 「N 个榜 · 热歌 / 新歌 / 飙升在前」 |
-| U41 | chartArt 符号体系（CHART_ACCENT/TINT/EMBLEM/shadeHex） | rank/chart-art.html（运行时生成） | chartArt L626 / CHART_ACCENT L573 / CHART_TINT L585 / CHART_EMBLEM L598 / chartTint L593 / shadeHex L595 | — |
+| U41 | chartFace 封面体系（真插画铺满 + `default` 兜底；自画符号底板 2026-10-22 已退役） | rank/chart-art.html（运行时生成） | chartFace L585 / chartArt L597 / RANK_COVER_DIR L583 / RANK_COVER_DEFAULT L584 / rankCoverKey（data.js） | — |
 
 ### E. 我的页（page-mine L218-255）
 
@@ -226,7 +226,7 @@ Art、ArtistCard、Banner、BrandAvatar、CardGrid、ChartArt、Chip、ChipFlow�
 | U38 推荐池 .pl-grid | playlist/pl-pool.html | Section 头 + PageListView 池行（PlCard 两列）+ EmptyTip | 1:1（复用 U27 卡系，同原型口径） |
 | U39 .rank-grid/.rk-card | rank/rank-grid.html | RankCard + CardGrid | 1:1 |
 | U40 .rank-group 组头 | rank/rank-group.html | RankGroupHead | 1:1 |
-| U41 chartArt 符号体系 | rank/chart-art.html | ChartArt（components/ChartArt/ + theme/chart.ts） | 1:1 |
+| U41 chartFace 封面体系 | rank/chart-art.html | ChartArt（components/ChartArt/ + components/RankCover/） | 1:1 |
 | U42 .mine-head | mine/mine-head.html | MineHeader（内拆 BrandAvatar+PillButton） | 偏细（1 单元 → 3 件；BrandAvatar 同时供 TopBar 复用，拆分有复用理由） |
 | U43 .stat-row | mine/stat-row.html | StatRow | 1:1 |
 | U44 .fav-card | mine/fav-card.html | FavCard | 1:1 |

@@ -5,7 +5,7 @@ export {
   subscribeContentPlatform,
   type NewUiContentPlatform,
 } from './contentPlatform'
-export { formatCount, formatDuration, getToday } from './format'
+export { formatCacheSize, formatCount, formatDuration, getToday } from './format'
 export { hashString } from './hash'
 export { playQueue } from './play'
 export { getQualityFallback, isQualitySupported } from './quality'
