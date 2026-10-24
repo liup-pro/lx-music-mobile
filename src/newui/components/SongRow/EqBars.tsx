@@ -10,6 +10,8 @@ interface EqBarProps {
   /** 首次启动前的延迟占周期比例（0 / 0.2 / 0.4） */
   delayRatio: number
   color: string
+  /** 条高（原型 .eq 11px；磁吸圆点正中那枚状态标同高，见 MinibarSnapped） */
+  height: number
 }
 
 /** 单根均衡条：延迟一次后进入 1s 常驻循环（3px ↔ 11px，ease-in-out）
@@ -22,7 +24,7 @@ interface EqBarProps {
  * 而原型 `.eq{align-items:flex-end}` 是**底对齐**生长，故同步补一段 translateY=(11-3)/2→0
  * 把缩掉的半截位移回底部，起跳线与 CSS 一致。
  */
-const EqBar = memo(({ delayRatio, color }: EqBarProps) => {
+const EqBar = memo(({ delayRatio, color, height }: EqBarProps) => {
   const progress = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
@@ -56,12 +58,15 @@ const EqBar = memo(({ delayRatio, color }: EqBarProps) => {
   })
   const translateY = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: [(SONG_ROW.eqHeight - SONG_ROW.eqMinHeight) / 2, 0],
+    outputRange: [(height - SONG_ROW.eqMinHeight * height / SONG_ROW.eqHeight) / 2, 0],
   })
 
   return (
     <Animated.View
-      style={[styles.bar, { backgroundColor: color, transform: [{ translateY }, { scaleY }] }]}
+      style={[
+        styles.bar,
+        { backgroundColor: color, height, transform: [{ translateY }, { scaleY }] },
+      ]}
     />
   )
 })
@@ -69,15 +74,25 @@ const EqBar = memo(({ delayRatio, color }: EqBarProps) => {
 EqBar.displayName = 'NewUIEqBar'
 
 /**
- * 正在播放的均衡条（对应原型 .eq）：品牌色三根条错相位跳动。
- * 目前仅歌曲行内使用；如他处再出现同样的播放指示，再提升为公共组件。
+ * 正在播放的均衡条（对应原型 .eq）：三根条错相位跳动。
+ * 2026-10-22 起有两处消费：歌曲行内用品牌色（默认形态）；磁吸圆点正中那枚 22 状态标
+ * 用「状态标墨色」（`.mini-dock-mark .eq i{background:currentColor}`），所以颜色与条高
+ * 开成可选参数，缺省仍是行内那一档（SONG_ROW 的 11 高 + 品牌色）。
  */
-export const EqBars = memo(() => {
+export interface EqBarsProps {
+  /** 条色，缺省品牌主色（行内口径） */
+  color?: string
+  /** 条高，缺省 SONG_ROW.eqHeight（11） */
+  height?: number
+}
+
+export const EqBars = memo(({ color, height = SONG_ROW.eqHeight }: EqBarsProps) => {
   const theme = useTheme()
+  const barColor = color ?? theme.colors.brand
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { height }]}>
       {EQ_DELAY_RATIOS.map(ratio => (
-        <EqBar key={ratio} delayRatio={ratio} color={theme.colors.brand} />
+        <EqBar key={ratio} delayRatio={ratio} color={barColor} height={height} />
       ))}
     </View>
   )

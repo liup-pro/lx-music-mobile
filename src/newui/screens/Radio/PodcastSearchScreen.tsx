@@ -17,6 +17,7 @@ import { usePodcastSearch } from '@/newui/podcast/hooks'
 
 import { ChipFlow } from '@/newui/components/ChipFlow'
 import { Icon } from '@/newui/components/Icon'
+import { MinibarHost } from '@/newui/components/Minibar'
 import { PagingStatus } from '@/newui/components/PagingStatus'
 import { PodcastRow } from '@/newui/components/PodcastRow'
 import { SearchTop } from '@/newui/components/SearchTop'
@@ -342,6 +343,9 @@ export const PodcastSearchScreen = ({ componentId }: PodcastSearchScreenProps) =
           </>
         )}
       </Animated.ScrollView>
+      {/* 常驻迷你播放条：本层默认磁吸圆点（原型 miniPageSnapped：不在首页就是圆点）。
+          挂在滚动轴之后、屏幕根层最后——圆点浮在内容之上，弹层与提示胶囊仍压在它上面 */}
+      <MinibarHost componentId={componentId} bottomInset={bottom} defaultSnapped />
     </View>
   )
 }

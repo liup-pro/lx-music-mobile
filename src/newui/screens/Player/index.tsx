@@ -140,7 +140,7 @@ export const PlayerScreen = ({ componentId }: PlayerScreenProps) => {
   )
 
   // 平台角标取曲目自身的 source（本地曲目为 'local'；没有在播曲目时为空，不显示角标）
-  // 'source' in 收窄：下载项（ListItem）无顶层 source，口径同 MinibarDock
+  // 'source' in 收窄：下载项（ListItem）无顶层 source，口径同 MinibarHost
   const sourceKey = currentMusic && 'source' in currentMusic ? currentMusic.source : undefined
   const sourceMeta = sourceKey ? getPlatformMeta(sourceKey) : null
   const sourceTint = sourceKey

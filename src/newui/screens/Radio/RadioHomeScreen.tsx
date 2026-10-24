@@ -5,6 +5,7 @@ import { Navigation } from 'react-native-navigation'
 import { Art } from '@/newui/components/Art'
 import { HScroll } from '@/newui/components/HScroll'
 import { Icon } from '@/newui/components/Icon'
+import { MinibarHost } from '@/newui/components/Minibar'
 import { useViewportScroll } from '@/newui/components/PageViewport'
 import { PagingEnd } from '@/newui/components/PagingEnd'
 import { PagingStatus } from '@/newui/components/PagingStatus'
@@ -327,6 +328,9 @@ export const RadioHomeScreen = ({ componentId }: RadioHomeScreenProps) => {
         onLayout={scrollHandlers.onLayout}
       />
 
+      {/* 常驻迷你播放条：本层默认磁吸圆点（原型 miniPageSnapped：不在首页就是圆点）。
+          排在地区抽屉与提示胶囊之前——圆点浮在榜列内容之上，抽屉面板仍盖过它 */}
+      <MinibarHost componentId={componentId} bottomInset={bottom} defaultSnapped />
       {/* U85 地区抽屉：屏内 absolute-fill 覆盖层，不走 RNN Modal / 新路由（Sheet.tsx 头注口径） */}
       <PodRegionSheet
         visible={regionSheetVisible}

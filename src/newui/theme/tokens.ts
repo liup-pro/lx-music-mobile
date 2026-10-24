@@ -57,6 +57,15 @@ export const PALETTES: Record<ThemeScheme, ThemeColors> = {
        按半径逐像素涂抹，22 大半径可能糊成当前行身后可见暗斑；本轮按「原型即真相」恢复数字，
        真机若确实脏，改的是这条口径记录而不是偷偷改值 */
     lyricGlow: 'rgba(0, 0, 0, 0.55)',
+    /* 磁吸圆点那一族（原型 :root L27-35）。与上面 glassPatch 同属「浮在内容上的贴片」，
+       但圆点要透出底下的字，所以底色薄一档（.30 对 .74），另配外圈进度弧底 / 发丝描边 /
+       正中状态标三样。逐值照抄，深浅两套各一档（浅色 .phone.light L1506-1512 单项覆盖）。 */
+    miniVeil: 'rgba(10, 10, 16, 0.30)',
+    miniRing: 'rgba(255, 255, 255, 0.20)',
+    miniDotLine: 'rgba(255, 255, 255, 0.22)',
+    miniMarkBg: 'rgba(8, 8, 12, 0.52)',
+    miniMarkInk: '#FFFFFF',
+    miniMarkLine: 'rgba(255, 255, 255, 0.24)',
   },
   light: {
     bg: '#F6F6FA',
@@ -97,6 +106,14 @@ export const PALETTES: Record<ThemeScheme, ThemeColors> = {
     dangerInk: '#C43C2E',
     /** 同 dark 档注释：原型 .phone.light .ln.on 为 rgba(21,22,28,.22)（styles.css L1171，QA D77） */
     lyricGlow: 'rgba(21, 22, 28, 0.22)',
+    /* 磁吸圆点那一族浅色档（.phone.light L1506-1512）：底换成白色薄纱、外圈弧与描边换成深墨，
+       正中状态标反过来（白底深墨）。圆点外框在浅底上靠 miniDotLine 站住轮廓。 */
+    miniVeil: 'rgba(255, 255, 255, 0.26)',
+    miniRing: 'rgba(21, 22, 28, 0.16)',
+    miniDotLine: 'rgba(21, 22, 28, 0.16)',
+    miniMarkBg: 'rgba(255, 255, 255, 0.72)',
+    miniMarkInk: '#15161C',
+    miniMarkLine: 'rgba(21, 22, 28, 0.14)',
   },
 }
 
@@ -271,8 +288,10 @@ export const Z_LAYER = {
   wash: 0,
   /** 层内内容（原型 .pl-layer > * / .player-layer > * z-index:1） */
   layerContent: 1,
-  /** 迷你播放条（原型 .minibar z-index:45，styles.css L455）：恒浮在滚动内容之上 */
-  minibar: 45,
+  /** 迷你播放条（原型 .minibar z-index:68，styles.css L687-710）：浮在滚动内容与推入层内容之上，
+   *  但让位于底部浮层（sheet 80）——弹层打开时圆点被遮罩盖住，不浮在遮罩上。
+   *  旧值 45 是「只在主屏内压过内容」那一档；圆点要压在推入层内容之上，故随原型回到 68。 */
+  minibar: 68,
   /** 吸顶顶栏（原型 .topbar z-index:40）：恒在滚动内容之上，与滚动状态无关 */
   topbar: 40,
   /** LRC 浮窗（原型 .lrc-float z-index:75，styles.css L667；U61 轮）：主屏内可拖动歌词气泡，
@@ -502,19 +521,20 @@ export const TAB_BAR = {
 /* ================= 玻璃层（backdrop-filter 毛玻璃） ================= */
 
 /**
- * 首页三处「与原型不一致（原型有毛玻璃）」位点的统一参数
+ * 三处常驻玻璃位（顶栏 / Tab 栏 / 迷你播放条）的统一参数
  * （2026-10-13 bug-fix「首页」第 1 条；共通件见 components/Glass/BlurredContainer）。
- * 逐段提取自 new_design/styles.css：
+ * 原型字面值逐段来自 new_design/styles.css：
  *  - .topbar  L86-93：blur(22px) saturate(180%)；background linear-gradient(to bottom,
  *                     rgba(8,8,12,.92) 0%, rgba(8,8,12,.66) 62%, rgba(8,8,12,0) 100%)
  *    —— 顶栏铺满含系统状态栏背后那一段，所以「状态栏背后区域」的玻璃位就是顶栏玻璃层。
  *  - .tabbar  L479-486：blur(26px) saturate(180%)；background linear-gradient(to top,
- *                     rgba(8,8,12,.96), rgba(8,8,12,.62)）—— to top 即底浓顶淡，
- *                     RN 方向按顶→底写，alpha 顺序相应倒置为 [.62, .96]。
- *  - .minibar L515-523（background:var(--glass) 在 L518）：blur(28px) saturate(180%)；
- *                     底色即 glassPatch 贴片 token 本身（深 rgba(10,10,16,.74) /
- *                     浅 rgba(255,255,255,.82)）——两套主题 alpha 档位不同，
- *                     「色板键 × 单一 alpha」表达不了，tintAlphas 省略即直取 token 原值。
+ *                     rgba(8,8,12,.96), rgba(8,8,12,.62)）—— to top 即底浓顶淡。
+ *  - .minibar L687-710：blur(28px) saturate(180%)；background:var(--glass)（.74 / .82 贴片）。
+ *  - .minibar.is-snapped L728-735：blur(3px) saturate(150%)；background:var(--mini-veil)（.30 / .26）。
+ * **2026-10-22 用户口径改档**：顶栏再加一档（更透、模糊更强）；TabBar 与 Minibar 反过来对齐
+ * 「顶栏改档前」的综合观感（模糊 + 染色浓度两条一起对齐，不是照抄原型的字面数字）。
+ * 因此下面 topBar / tabBar / minibar 三块的 alpha 与 intensity 已**不再等于原型字面值**，
+ * 每一块的头注写清了「和谁对齐、为什么」，改档理由一律不写回原型。
  * 口径说明：
  *  - tint 基色不抄 CSS 字面 rgba，而是「色板键 × alpha」：深色下与原型逐值相等，
  *    浅色主题自动换成同语义浅底（如 light bg #F6F6FA × .96），不写死颜色。
@@ -524,35 +544,73 @@ export const TAB_BAR = {
  *    保证分层不回退（尤其 Minibar「背景透明和背后内容重叠」的旧修复不得复活）。
  */
 export const GLASS = {
-  /** 顶栏（含系统状态栏背后区域） */
+  /** 顶栏（含系统状态栏背后区域）
+   *
+   * 2026-10-22 毛玻璃加档（用户口径「顶部栏自身再把毛玻璃和透明度加大一档」）：
+   * - 模糊 22 → 30：Android 侧库内按 ×0.8 折算并封顶 25（blurAmount 30 → blurRadius 24，
+   *   旧值 22 → 18），实际糊度 +33%；iOS 走 blurAmount 直传，同步加强。
+   * - 染色 [.92, .66, 0] → [.78, .52, 0]：整体更透一档，坡形不变（顶端最实、盒底收到全透明，
+   *   所以盒外仍然没有任何铺底 / 渐隐带 —— 历史回归点，见 TOP_BAR 头注）。
+   * - 可读性：搜索框自身还有 fill-2 底 + hairline 描边，头像与波纹钮是实色块，
+   *   0.78 的染色 + 更狠的模糊足以托住它们；不再加任何遮罩。
+   */
   topBar: {
-    intensity: 22,
+    intensity: 30,
     tintBase: 'bg',
-    tintAlphas: [0.92, 0.66, 0],
+    tintAlphas: [0.78, 0.52, 0],
     tintLocations: [0, 0.62, 1],
     start: { x: 0.5, y: 0 },
     end: { x: 0.5, y: 1 },
     fallbackBase: 'bg',
   },
-  /** 底部 Tab 栏（含系统导航条安全区那一段） */
+  /** 底部 Tab 栏（含系统导航条安全区那一段）
+   *
+   * 2026-10-22（用户口径「把顶栏现在这套毛玻璃效果和透明度用到 TabBar 上」）：
+   * 对齐的是顶栏**改档前**那一套的综合观感 —— 模糊 26 → 22（Android 折算 21 → 18，
+   * 与顶栏旧档同一个数），染色从原来那条 [.62, .96] 的「几乎实底」换成顶栏那条
+   * .92→.66→0 的坡，只是按「底栏贴底、自由边在上」镜像过来：[0, .66, .92]（顶透底实）。
+   * 平均浓度从 .79 降到约 .55，这一档就是用户说的「透明感不够大」的落点；
+   * 图标与文字仍压在坡的实端（.92），不会被透掉。
+   */
   tabBar: {
-    intensity: 26,
+    intensity: 22,
     tintBase: 'bg',
-    tintAlphas: [0.62, 0.96],
-    tintLocations: [0, 1],
+    tintAlphas: [0, 0.66, 0.92],
+    tintLocations: [0, 0.38, 1],
     start: { x: 0.5, y: 0 },
     end: { x: 0.5, y: 1 },
     fallbackBase: 'bg',
   },
-  /** 迷你播放条（原型 .minibar：background var(--glass) + blur(28px)） */
+  /** 迷你播放条完整态（原型 .minibar：background var(--glass) + blur(28px)）
+   *
+   * 2026-10-22 与 TabBar 同一条口径对齐顶栏旧档：模糊 28 → 22（Android 折算 22 → 18，
+   * 与顶栏旧档同数）；染色从 glassPatch 那个恒定 .74/.82 的近实底，换成顶栏同族的
+   * 「色板键 × alpha」坡 [.86, .60, .18] —— 顶实底薄：这条浮在内容上，上沿要压住封面与歌名，
+   * 下沿只托住副行，留 0.18 收尾（全透明收尾会让发丝描边变成一条悬空的线）。
+   * 平均浓度约 .55，与 TabBar 对齐；降级路径仍垫不透明 surface2（fallbackBase 未变）。
+   */
   minibar: {
-    intensity: 28,
-    /** 贴片底色直取 glassPatch token（tintAlphas 省略 = 染色即该键原值，深浅两套各按自身 alpha） */
-    tintBase: 'glassPatch',
-    /** 单色染色不需要方向，起终点同值仅为满足 LinearGradient 必填 props */
+    intensity: 22,
+    /** 基色改为中性 bg（旧档直取 glassPatch 贴片 token）；深浅两套自动跟随 */
+    tintBase: 'bg',
+    tintAlphas: [0.86, 0.6, 0.18],
+    tintLocations: [0, 0.6, 1],
+    start: { x: 0.5, y: 0 },
+    end: { x: 0.5, y: 1 },
+    /** surface2 不透明底 = 2026-10-12 分层修复的原值：降级态垫在染色层之下保底不透明 */
+    fallbackBase: 'surface2',
+  },
+  /** 磁吸圆点（原型 .minibar.is-snapped：background var(--mini-veil) + blur(3px) saturate(150%)，
+   *  styles.css L728-735）
+   *  ——圆点压在推入层的内容上，**只有 3px**：糊得越狠，底下的字就越像没有（原型注释与实测截图
+   *  两种都拍过：3px 还能看出底下是字还是封面，8px 只剩一团雾）。
+   *  染色直取 miniVeil token（深 .30 / 浅 .26），降级底走 surface2 实底：
+   *  原生模糊不可用时圆点变成一枚不透明小圆，宁可厚一点也不漏内容。 */
+  miniSnapped: {
+    intensity: 3,
+    tintBase: 'miniVeil',
     start: { x: 0, y: 0 },
     end: { x: 0, y: 0 },
-    /** surface2 不透明底 = 2026-10-12 分层修复的原值：降级态垫在 glassPatch 染色层之下保底不透明 */
     fallbackBase: 'surface2',
   },
   /** 提示胶囊（原型 .toast：background var(--glass) + backdrop-filter blur(18px)，styles.css L796-799）
@@ -592,8 +650,9 @@ export const GLASS = {
  * 非必要请关掉）。iOS 走 UIVisualEffectView，由系统合成，不受本开关影响。
  *
  * 关掉后的代价：模糊像是「最后一次失效时的那一帧快照」，滚动时不跟随刷新（静止后与新内容
- * 差一层静态雾）。三处玻璃位之上的染色渐变 alpha 分别是 .92→0（顶栏）、.62→.96（Tab 栏）、
- * .74（Minibar），即绝大部分面积本就由染色层承担，模糊只贡献一点点颗粒化质感，观感差极小。
+ * 差一层静态雾）。三处玻璃位之上的染色渐变 alpha 分别是 .78→0（顶栏）、0→.92（Tab 栏）、
+ * .86→.18（Minibar，2026-10-22 改档后口径），即绝大部分面积本就由染色层承担，
+ * 模糊只贡献一点点颗粒化质感，观感差极小。
  * 若上机对比认为「静态雾」不可接受，把本值改回 true 即一处复原。
  */
 export const GLASS_PERF = {
@@ -1564,6 +1623,44 @@ export const MINIBAR = {
   primaryIcon: 17,
   /** .mini-act:active scale(.9) */
   pressScale: 0.9,
+  /** `.minibar.is-dragging{opacity:.94}`（styles.css L717）：拖拽中整条微透，交回过渡时复原 */
+  dragOpacity: 0.94,
+
+  /* ---- 磁吸圆点（.minibar.is-snapped，styles.css L728-795）----
+   * 完整条与圆点是同一只条的两形态：完整条 58 高 / 20 圆角 / 左右各留 12；
+   * 圆点是「正圆 + 离屏边 3」贴在屏幕上，点一下展开回完整条（不直接进播放页）。 */
+  /** --mini-dot:56px（`.wide .minibar{--mini-dot:52px}`，styles.css L1446；Pad 那档 60，本 App 无 Pad 档不做） */
+  snappedSize: 56,
+  /** `.wide .minibar{--mini-dot:52px}`（styles.css L1446） */
+  snappedSizeWide: 52,
+  /** --mini-edge:3px：圆点外缘离屏边的那一线（不把投影与进度弧切掉） */
+  snappedEdge: 3,
+  /** `.minibar.is-snapped .mini-main{padding:4px}` + 封面 = 直径 − 8（48 见方，随直径走） */
+  snappedArtInset: 4,
+  /** `.is-snapped::after` 的 mask：100%−2.1 → 100%−1.8，即贴外缘的 2px 环带 */
+  snappedRingWidth: 2,
+  /** `.is-snapped .mini-dock-mark{width:22px;height:22px}` */
+  snappedMarkSize: 22,
+  /** `.mini-dock-mark .ic{width:10px}`（暂停那一枚静三角） */
+  snappedMarkIcon: 10,
+  /** 正中状态标里三柱的尺寸（`.mini-dock-mark .eq`：高 11 / gap 1.5，与行内 .eq 同一族）。
+   *  gap 与 SONG_ROW.eqGap 同值，但按「一选择器一登记」留在这里：对账脚本要在这块数值池里
+   *  找得到 1.5，删掉它就报 B 类缺值（实测过）。 */
+  snappedEqHeight: 11,
+  snappedEqGap: 1.5,
+  /** `--mini-morph:.2s`：两态互相变形的时长（用户口径 180–220ms 就落在这一档） */
+  morphMs: 200,
+  /** 手势三段门槛（app.js MINI L2589-2594）：<8 点击 / 8–24 弹回 / ≥24 吸附 */
+  slop: 8,
+  commit: 24,
+  /** `--pull:22`：完整条几乎铺满屏宽，拖动只给这一段「拎起来拉一把」的余量 */
+  pull: 22,
+  /** 完整条拖动余量的压缩比（app.js miniPullPx：`raw * .45` 后钳到 ±pull） */
+  pullDamp: 0.45,
+  /** `--ease-snap:cubic-bezier(.3,.72,.2,1)`：吸附 / 变形那条缓动 */
+  snapEasing: [0.3, 0.72, 0.2, 1],
+  /** `--mini-art-alpha`：圆点里封面压到的透明度（深 .70 / 浅 .76，原型 L32 与 L1509） */
+  snappedArtAlpha: { dark: 0.7, light: 0.76 },
 } as const
 
 /* ================= 底部浮层（.sheet，styles.css L716-733，阶段 9b） ================= */

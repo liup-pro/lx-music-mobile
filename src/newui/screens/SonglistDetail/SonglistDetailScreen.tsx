@@ -43,6 +43,7 @@ import {
   PagingEnd,
   PagingStatus,
   pickArtPalette,
+  MinibarHost,
   PlActions,
   PlTop,
   SongRow,
@@ -755,6 +756,9 @@ export const SonglistDetailScreen = ({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={listContentStyle}
       />
+      {/* 常驻迷你播放条：本层默认磁吸圆点（原型 miniPageSnapped：不在首页就是圆点）。
+          排在单曲面板与提示胶囊之前——圆点压在推入层内容之上，弹层（sheet 80）与胶囊（90）仍盖过它 */}
+      <MinibarHost componentId={componentId} bottomInset={bottom} defaultSnapped />
       {/* 单曲操作面板（原型 #moreSheet）：与主屏同一组件，本屏行内 ⋯ 的目标曲在这里。
           自建 / 本地形态（isHostLocalList）额外把宿主单报给它，面板据此插「从「该单」移出」一行
           （件 U76 需求 2）；平台歌单 / 榜单 / 内置「我喜欢」不传，那一行就不出现 */}

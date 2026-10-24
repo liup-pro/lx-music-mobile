@@ -4,6 +4,7 @@ import { Navigation } from 'react-native-navigation'
 
 import { EmptyTip } from '@/newui/components/EmptyTip'
 import { GhostButton } from '@/newui/components/GhostButton'
+import { MinibarHost } from '@/newui/components/Minibar'
 import { PlTop } from '@/newui/components/PlTop'
 import { SongRow } from '@/newui/components/SongRow'
 import { NEW_UI_OFFLINE, QUALITY_LABEL } from '@/newui/const'
@@ -184,6 +185,9 @@ export const OfflineScreen = ({ componentId }: OfflineScreenProps) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={listContentStyle}
       />
+      {/* 常驻迷你播放条：本层默认磁吸圆点（原型 miniPageSnapped：不在首页就是圆点）。
+          挂在轴之后、屏幕根层最后——圆点浮在列表内容之上 */}
+      <MinibarHost componentId={componentId} bottomInset={bottom} defaultSnapped />
     </View>
   )
 }

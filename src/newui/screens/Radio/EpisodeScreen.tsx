@@ -6,6 +6,7 @@ import { Art, pickArtPalette } from '@/newui/components/Art'
 import { ChipFlow } from '@/newui/components/ChipFlow'
 import { CoverWash } from '@/newui/components/CoverWash'
 import { GroupLabel } from '@/newui/components/GroupLabel'
+import { MinibarHost } from '@/newui/components/Minibar'
 import { PcButton } from '@/newui/components/PcButton'
 import { PlTop } from '@/newui/components/PlTop'
 import { SeekControl } from '@/newui/components/SeekControl'
@@ -432,6 +433,9 @@ export const EpisodeScreen = ({
         <ChipFlow items={rateItems} activeKey={String(rate)} onSelect={handleRateSelect} />
       </ScrollView>
 
+      {/* 常驻迷你播放条：本层默认磁吸圆点（原型 miniPageSnapped：不在首页就是圆点）。
+          排在提示胶囊之前——圆点浮在整层内容之上，胶囊仍盖过它 */}
+      <MinibarHost componentId={componentId} bottomInset={bottom} defaultSnapped />
       {/*
         提示胶囊的承接位（共通件，主屏 / 播放页 / 详情层 / 搜索层各挂一台的同一口径）。
         本屏必须有这一台：投递方在本屏之下——`podcast/podPlayer.ts` 那道「定时停止播放开着就不起播」的闸

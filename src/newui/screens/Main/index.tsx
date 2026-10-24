@@ -4,7 +4,7 @@ import { Navigation } from 'react-native-navigation'
 
 import { useSettingValue } from '@/store/setting/hook'
 
-import { ConfirmSheet, NewUiToastHost, PageViewport, TabBar, TopBar } from '@/newui/components'
+import { ConfirmSheet, MinibarHost, NewUiToastHost, PageViewport, TabBar, TopBar } from '@/newui/components'
 import {
   NEW_UI_SEARCH_PLACEHOLDER,
   NEW_UI_SETTING_LABELS,
@@ -13,7 +13,7 @@ import {
   type NewUiTabKey,
 } from '@/newui/const'
 import { useApiSupport, emitPageEndReached, useNickName, useRecentPlayRecorder, useSafeArea, useWideLayout } from '@/newui/hooks'
-// 直连 navigation/entry（绕开桶口），与 MinibarDock / 各页跳播放同一做法，防 register→screens→pages 循环引用
+// 直连 navigation/entry（绕开桶口），与 MinibarHost / 各页跳播放同一做法，防 register→screens→pages 循环引用
 import { pushNewUiSearch } from '@/newui/navigation/entry'
 import { subscribeNewUiTab } from '@/newui/utils'
 import { RANK_PAGING, newUiStatusBarStyle, useTheme, useThemeMode } from '@/newui/theme'
@@ -26,7 +26,6 @@ import {
   SettingPage,
 } from './pages'
 import { CatStickerBar } from './CatStickerBar'
-import { MinibarDock } from './MinibarDock'
 import { CreateListSheet, MoreSheet, NameSheet, PlIdSheet, PlTagsSheet, SourceSheet } from './sheets'
 import type { NewUiPageProps } from '../types'
 
@@ -269,8 +268,16 @@ export const MainScreen = ({ componentId }: MainScreenProps) => {
       {tabKey === 'playlist' && catStuck ? (
         <CatStickerBar topInset={top} onOpenPlTagsSheet={openPlTagsSheet} />
       ) : null }
-      {/* 原型 .minibar：有曲目在放时浮在内容之上、Tab 栏之上（自身按播放态显隐） */}
-      <MinibarDock componentId={componentId} bottomInset={bottom} />
+      {/* 原型 .minibar：有曲目在放时浮在内容之上、Tab 栏之上（自身按播放态显隐）。
+          形态按页面默认态走：只有首页给完整条，切到另外四个 Tab 自动收成磁吸圆点；
+          resetKey = tabKey —— 手动在非首页展开过之后切页，按该页默认重置（原型 syncMiniPage）。
+          推入层（搜索 / 歌单详情 / 已缓存 / 电台…）各自带一份挂点，本屏这一颗被它们整个盖住 */}
+      <MinibarHost
+        componentId={componentId}
+        bottomInset={bottom}
+        defaultSnapped={tabKey !== 'home'}
+        resetKey={tabKey}
+      />
       <TopBar
         avatarText={avatarText}
         onAvatarPress={handleAvatarPress}

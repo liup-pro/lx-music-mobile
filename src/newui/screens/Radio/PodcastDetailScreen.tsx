@@ -6,6 +6,7 @@ import { pickArtPalette } from '@/newui/components/Art'
 import { CoverWash } from '@/newui/components/CoverWash'
 import { EmptyTip } from '@/newui/components/EmptyTip'
 import { GhostButton } from '@/newui/components/GhostButton'
+import { MinibarHost } from '@/newui/components/Minibar'
 import { PagingStatus } from '@/newui/components/PagingStatus'
 import { PlTop } from '@/newui/components/PlTop'
 import { newUiPodArtSeed } from '@/newui/const/radio'
@@ -327,6 +328,9 @@ export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenPr
         showsVerticalScrollIndicator={false}
         contentContainerStyle={axisContent}
       />
+      {/* 常驻迷你播放条：本层默认磁吸圆点（原型 miniPageSnapped：不在首页就是圆点）。
+          挂在轴之后、屏幕根层最后——圆点浮在单集列表之上 */}
+      <MinibarHost componentId={componentId} bottomInset={bottom} defaultSnapped />
     </View>
   )
 }

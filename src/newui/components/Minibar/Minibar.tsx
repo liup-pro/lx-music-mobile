@@ -59,6 +59,14 @@ export interface MinibarProps {
   onTogglePlay: () => void
   /** 下一曲（2026-10-13 bug-fix「首页」第 2 条：原型 minibar 本无此钮，按用户口径新增于播停右侧） */
   onPlayNext: () => void
+  /** 条高：挂点按档算好传进来（竖屏 58 / 宽屏 52）；缺省仍取 useWideLayout 那一档 */
+  barHeight?: number
+  /**
+   * 三颗动作钮「按下 / 松开」的通知。原型对 `.mini-act` 做的是 `pointerdown` stopPropagation
+   * （app.js bindMiniDock 首段）——想按播放却把整条拖走了，是最典型的一次误触。
+   * RN 侧拿不到「阻止父级捕获」，所以由挂点记一个「手指落在钮上」的标记，手势见它就让路。
+   */
+  onControlTouchChange?: (active: boolean) => void
   style?: StyleProp<ViewStyle>
 }
 
@@ -69,19 +77,19 @@ export interface MinibarProps {
  * 音质为空串的本地曲目时角标与分隔条整段省略；下一曲为 2026-10-13 bug-fix「首页」第 2 条按用户口径新增，原型无此钮）。
  * 收藏心钮已按 2026-10-22 用户口径撤掉（本条只留「听」这一件事：整条点开进播放页，
  * 喜欢与否在播放页与行内「⋯」里办）；撤的是控件本身，不是把它藏起来。
- * 底色（2026-10-13 bug-fix「首页」第 1 条，对齐原型毛玻璃；原型 .minibar 底为
- * var(--glass)（= colors.glassPatch，深 rgba(10,10,16,.74) / 浅 rgba(255,255,255,.82)）
- * + backdrop-filter blur(28px) saturate(180%)）——底色层走共通件 `BlurredContainer`
- * （玻璃规格 theme.GLASS.minibar：真模糊 + glassPatch 染色；2c 轮 tint 基色已切到 glassPatch，
- * 两条渲染路径共用同一染色层，天然同源），两条历史口径同时满足：
+ * 底色（2026-10-13 bug-fix「首页」第 1 条，对齐原型毛玻璃；2026-10-22 按用户口径与 TabBar 一起
+ * 对齐顶栏那套玻璃——更透、更糊，参数见 theme.GLASS.minibar 头注）——底色层走共通件 `BlurredContainer`
+ * （真模糊 + 「色板键 × alpha 坡」染色；两条渲染路径共用同一染色层，天然同源），
+ * 历史口径同时满足：
  * 1. **与内容分层不糊成一片**（2026-10-12 修复）：模糊像 + 半透明染色天然与锐利滚过的内容分层；
  *    真模糊不可用（原生模块缺失/位点 enabled=false）时玻璃层自动退回**不透明 surface2 底层**
- *    （垫在 glassPatch 染色层之下保底不透明）；
+ *    （垫在染色层之下保底不透明）；
  * 2. 底层 pointerEvents="none"，点击仍归整条 Pressable 与其上的圆钮；
- * 3. 浮在滚动内容之上的层叠数由容器（MinibarDock）经 Z_LAYER.minibar 显式声明，
+ * 3. 浮在滚动内容之上的层叠数由挂点（MinibarHost）经 Z_LAYER.minibar 显式声明，
  *    组件本体保持纯展示、不关心自己排在第几层。
- * 纯展示组件：进度每秒由容器（MinibarDock）传入，此处不订阅 store；
+ * 纯展示组件：进度每秒由挂点（MinibarHost）传入，此处不订阅 store；
  * 只把「一拍一步」抹成 300ms 线性补间（原型 `.mini-progress i` 的 transition，判据见 hooks/useSmoothProgress）。
+ * 两态（完整条 / 磁吸圆点）拆成两件：圆点见 MinibarSnapped，交叉与手势在 MinibarHost。
  */
 export const Minibar = memo(
   ({
@@ -97,6 +105,8 @@ export const Minibar = memo(
     onPress,
     onTogglePlay,
     onPlayNext,
+    barHeight,
+    onControlTouchChange,
     style,
   }: MinibarProps) => {
     const theme = useTheme()
@@ -107,6 +117,32 @@ export const Minibar = memo(
      */
     const playFx = usePressFx({ scale: MINIBAR.pressScale })
     const nextFx = usePressFx({ scale: MINIBAR.pressScale })
+    /**
+     * 「手指落在动作钮上」的通知：原件对 `.mini-act` 做 pointerdown stopPropagation，
+     * RN 里父级 responder 拦不住子级按下，改由挂点记标记、手势见它就让路（见 MinibarHost 手势段）。
+     * 钮本身不在时（缺省不传）三颗钮行为一字不变。
+     */
+    // 拆成标识符再进依赖：usePressFx 每次渲染都会现造返回对象，按对象引用做 memo 等于没 memo
+    const playIn = playFx.onPressIn
+    const playOut = playFx.onPressOut
+    const nextIn = nextFx.onPressIn
+    const nextOut = nextFx.onPressOut
+    const handlePlayIn = useCallback(() => {
+      playIn()
+      onControlTouchChange?.(true)
+    }, [onControlTouchChange, playIn])
+    const handlePlayOut = useCallback(() => {
+      playOut()
+      onControlTouchChange?.(false)
+    }, [onControlTouchChange, playOut])
+    const handleNextIn = useCallback(() => {
+      nextIn()
+      onControlTouchChange?.(true)
+    }, [nextIn, onControlTouchChange])
+    const handleNextOut = useCallback(() => {
+      nextOut()
+      onControlTouchChange?.(false)
+    }, [nextOut, onControlTouchChange])
     // 高按档覆盖：宽屏档 52（原型 `.wide .minibar{height:52px}`，styles.css:1326），
     // compact 回 MINIBAR.height 的 58 基线（判据只在 useWideLayout 一处）
     const { wide } = useWideLayout()
@@ -124,12 +160,13 @@ export const Minibar = memo(
     return (
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="播放条 · 点一下打开播放页，左右拖一下可以贴在边缘"
         onPress={onPress}
-        style={[styles.root, { height: wide?.minibarHeight ?? MINIBAR.height, borderColor: theme.colors.line }, SHADOW.float, style]}
+        style={[styles.root, { height: barHeight ?? wide?.minibarHeight ?? MINIBAR.height, borderColor: theme.colors.line }, SHADOW.float, style]}
       >
-        {/* 玻璃底：真模糊（blur 28）+ glassPatch 贴片染色（原型 .minibar background:var(--glass)，
-            GLASS.minibar tintBase='glassPatch'，深浅两套各按 token 自身 alpha）；
-            不可用时退回不透明 surface2 底层，染色层两路径同源 */}
+        {/* 玻璃底：真模糊（blur 22）+ 染色渐变（2026-10-22 起 GLASS.minibar 与顶栏同一族：
+            「色板键 bg × alpha 坡」，不再直取 glassPatch 贴片 token，改档理由见 tokens 该块头注）；
+            不可用时退回不透明 surface2 底层，两条路径染色层同源 */}
         <BlurredContainer spec={GLASS.minibar} />
         {/* .mini-progress：底为控件叠色 fill-2（原型 L529 background:var(--fill-2)，
             结构件叠色 fill-4 是 .seek 那条规则，与此不是同一档），填充为品牌渐变。
@@ -190,8 +227,8 @@ export const Minibar = memo(
             accessibilityRole="button"
             accessibilityLabel="播放/暂停"
             onPress={onTogglePlay}
-            onPressIn={playFx.onPressIn}
-            onPressOut={playFx.onPressOut}
+            onPressIn={handlePlayIn}
+            onPressOut={handlePlayOut}
             style={[styles.act, styles.actPrimary, SHADOW.miniPrimary, playFx.animatedStyle]}
           >
             <LinearGradient
@@ -214,8 +251,8 @@ export const Minibar = memo(
             accessibilityRole="button"
             accessibilityLabel="下一曲"
             onPress={onPlayNext}
-            onPressIn={nextFx.onPressIn}
-            onPressOut={nextFx.onPressOut}
+            onPressIn={handleNextIn}
+            onPressOut={handleNextOut}
             style={[styles.act, nextFx.animatedStyle]}
           >
             <Icon name="next" size={MINIBAR.actIcon} color={theme.colors.text2} />

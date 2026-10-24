@@ -87,6 +87,21 @@ export interface ThemeColors {
    *  2026-10-15 曾把两档浓度自降为 .30 / .10（怕 RN 大半径阴影糊成暗块），2026-10-16 审计轮按
    *  「原型即真相」回到原值；半径/偏移见 PLAYER.lyricGlow*，真机若确实脏再改口径 */
   lyricGlow: string
+  /* ==== 磁吸圆点那一族（原型 :root L27-35 / 浅色 .phone.light L1506-1512） ====
+   * 迷你播放条「贴边收圆」态的底、外圈进度弧、发丝描边与正中状态标各一档。
+   * 与 glassPatch 同属浮在上面的贴片，但底色刻意薄一档 —— 圆点要透出底下是字还是封面。 */
+  /** --mini-veil：圆点底（深 .30 / 浅 .26，比 --glass 薄一档） */
+  miniVeil: string
+  /** --mini-ring：外圈进度弧的整环底色 */
+  miniRing: string
+  /** --mini-dot-line：圆点外缘 1px 发丝描边 */
+  miniDotLine: string
+  /** --mini-mark-bg：正中那颗 22 状态标的底 */
+  miniMarkBg: string
+  /** --mini-mark-ink：状态标的墨色（播放中三柱 / 暂停三角） */
+  miniMarkInk: string
+  /** --mini-mark-line：状态标的 1px 内描边 */
+  miniMarkLine: string
 }
 
 /** 主题对象：配色方案 + 色板 */

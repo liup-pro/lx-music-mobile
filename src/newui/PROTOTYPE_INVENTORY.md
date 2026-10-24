@@ -190,7 +190,7 @@ Art、ArtistCard、Banner、BrandAvatar、CardGrid、ChartArt、Chip、ChipFlow�
 | U02 .icon-btn | common-control/icon-btn.html | IconButton | 1:1 |
 | U03 .pulse-dot | common-control/pulse-dot.html | IconButton `dot` prop（TopBar.tsx L148） | 1:1 |
 | U04 .tabbar | common-control/tabbar.html | TabBar | 1:1（Pad 专属 nav-* 归 V4 不承接） |
-| U05 .minibar | common-control/minibar.html | Minibar + Main/MinibarDock | 1:1 |
+| U05 .minibar | common-control/minibar.html | Minibar（完整条）+ MinibarSnapped（贴边圆点）+ MinibarHost（挂点：形态 / 手势 / 侧边） | 1:1（2026-10-22 补上 `.is-snapped` 贴边态与拖拽吸附，原 Main/MinibarDock 换成 components/Minibar/MinibarHost） |
 | U06 .toast | common-control/toast.html | Toast(NewUiToastHost) + utils/newUiToast | 1:1（D-09 轮落地） |
 | U07 .art | common-control/art.html | Art + utils/pickArtPalette | 1:1 |
 | U08 .chip | common-control/chip.html | Chip | 1:1 |
@@ -282,7 +282,7 @@ PageViewport/PageListView/usePageEndReached/useViewportScroll（R1）、CatStick
 | R4 | Glass/BlurredContainer | 共通基础件 · 保留 | `backdrop-filter` 原生等价物；Sheet/Minibar/Toast + LrcFloat 使用者 |
 | R5 | RunningDots | 共通基础件 · 保留 | 原型 `.pl-status .spin` 是静态 CSS 转圈；RN 换三点接力动画（2026-10-15 轮），子件挂在 PagingStatus 内，未外溢 |
 | R6 | CardGrid / ChipRow / ChipFlow / HScroll | 共通基础件 · 保留 | 原型的 grid/flex/hscroll 是每处一条 CSS；RN 收敛成布局壳，被 ≥3 处复用 |
-| R7 | Main/MinibarDock.tsx | 共通基础件 · 保留 | 挂载容器（谁在播、点去哪），原型由全局事件承担，RN 需壳件接 store 订阅；展示本体仍是 Minibar |
+| R7 | components/Minibar/MinibarHost.tsx（原 Main/MinibarDock.tsx，2026-10-22 迁入组件域） | 共通基础件 · 保留 | 挂载容器（谁在播、点去哪、现在显示哪一态），原型由全局事件承担，RN 需壳件接 store 订阅；展示本体是 Minibar / MinibarSnapped 两件。每屏各挂一份的原因（RNN 每屏独立原生视图，主屏浮层压不到推入层）见该件头注 |
 | R8 | utils/newUiToast 投递总线 + 各屏根层 NewUiToastHost | 共通基础件 · 保留 | 原型 `#toast` 全站单例；RN 四屏导航独立，必须每台宿主 + 总线，原型 `.toast z-index:90` 层序语义靠「根层最后一子」维持 |
 | R9 | PageListView PoolRow（两列成行） | 自造抽象 · **保留但挂账** | numColumns FlatList 虚拟化必须成行喂数据（numColumns 1↔2 原地变更崩 RN 0.73 FlatList 的前车之鉴）；属虚拟化税，拆件时别把它当 UI 单元 |
 | R10 | ~~hooks/useLrcFloat（模块级 store） + screens/Main/LrcFloatDock.tsx~~ **阶段 3 下线** | **共通基础件 · 已拆除** | U61 气泡曾分属两棵挂载树：展示件在 components/LrcFloat，开关态跨屏共享收敛为独立模块（同 playlistTagSelection 款），Dock 是主屏挂点。**feature.md【newui】「歌词浮窗要是系统浮窗，不是应用内浮窗」→ 浮窗宿主改为 core/desktopLyric 的原生悬浮窗**，这条应用内链路（useLrcFloat + LrcFloatDock）整体拆除，components/LrcFloat 视觉件与 theme/LRC_FLOAT token 按原型留存未挂载（宿主等原型口径回来）。原记「RN 两屏 push 会盖住主屏气泡」的已知缺口随宿主下线一并消失 |

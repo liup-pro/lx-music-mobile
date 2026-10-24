@@ -11,7 +11,7 @@ import type { ListInfoItem } from '@/store/songlist/state'
 // 直连 entry 而非 '@/newui/navigation' 桶口：避免 navigation/index → register → screens → 本文件的循环引用
 import { pushNewUiSonglistDetail } from '@/newui/navigation/entry'
 
-import { NewUiToastHost, SearchTop } from '@/newui/components'
+import { MinibarHost, NewUiToastHost, SearchTop } from '@/newui/components'
 import { MoreSheet } from '@/newui/screens/Main/sheets'
 import {
   NEW_UI_SEARCH_CANCEL,
@@ -319,6 +319,9 @@ export const SearchScreen = ({ componentId }: SearchScreenProps) => {
           />
         </ScrollView>
       )}
+      {/* 常驻迷你播放条：本层默认磁吸圆点（原型 miniPageSnapped：不在首页就是圆点）。
+          排在单曲面板与提示胶囊之前——圆点浮在搜索结果之上，弹层与胶囊仍盖过它 */}
+      <MinibarHost componentId={componentId} bottomInset={bottom} defaultSnapped />
       {/* 单曲操作面板（原型 #moreSheet）：本屏搜索结果行的 ⋯ 目标曲在这里 */}
       <MoreSheet
         visible={moreMusic != null}

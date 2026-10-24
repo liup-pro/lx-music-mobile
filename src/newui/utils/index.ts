@@ -29,3 +29,10 @@ export {
 export { getCachedSongPic, resolveSongPic } from './songPic'
 export { requestNewUiTab, subscribeNewUiTab } from './tabJump'
 export { isDeletableUserListId, isOwnedMusicListId } from './userList'
+export {
+  getNewUiMiniSide,
+  hydrateNewUiMiniSide,
+  NEW_UI_MINI_SIDE_STORAGE_KEY,
+  setNewUiMiniSide,
+  type NewUiMiniSide,
+} from './miniSnapped'
