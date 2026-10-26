@@ -243,6 +243,9 @@
       "screens/Main/sheets/MoreSheet.tsx",
       "screens/Main/sheets/SourceSheet.tsx"
     ],
+    "sheets/name-sheet": [
+      "screens/Main/sheets/NameSheet.tsx"
+    ],
     "sheets/plid-sheet": [
       "components/Chip/Chip.tsx",
       "components/ChipFlow/ChipFlow.tsx"
@@ -312,6 +315,9 @@
     ],
     "radio/episode": [
       "screens/Radio/EpisodeScreen.tsx"
+    ],
+    "sheets/name-sheet": [
+      "screens/Main/sheets/NameSheet.tsx"
     ]
   }
 }

@@ -192,13 +192,44 @@ export const MinibarHost = ({
   }, [view])
 
   /* ---- 形态与侧边（原型 MINI.snapped / MINI.side） ---- */
+  // morph：1 = 完整条，0 = 磁吸圆点（原型那条 left/width/height/border-radius 联动）
+  const morph = useRef(new Animated.Value(defaultSnapped ? 0 : 1)).current
+  const morphAnimRef = useRef<Animated.CompositeAnimation | null>(null)
   const [snapped, setSnapped] = useState(defaultSnapped)
   const [side, setSide] = useState<NewUiMiniSide>(getNewUiMiniSide)
+
+  /**
+   * 形态的**唯一写入口**（原型 `syncMiniPage(instant)`，app.js L2748-2757）。
+   * `instant` = 这一下只落位、不跑 morph：切 Tab / 进出推入层那一帧页面刚整页重铺过，
+   * 再叠几何过渡必掉帧（原型 6× CPU 节流实测：铺页 39–55ms，叠 8 条过渡后首帧 50–83ms），
+   * 所以那几路一帧到位；用户自己动手那两路（点圆点展开、拖到边缘松手吸附）没有重铺，
+   * 照旧走 MINIBAR.morphMs 的 180ms。
+   */
+  const applySnap = useCallback((target: boolean, instant: boolean) => {
+    setSnapped(target)
+    morphAnimRef.current?.stop()
+    if (instant) {
+      morphAnimRef.current = null
+      morph.setValue(target ? 0 : 1)
+      return
+    }
+    const animation = Animated.timing(morph, {
+      toValue: target ? 0 : 1,
+      duration: MINIBAR.morphMs,
+      easing: SNAP_EASE,
+      // 这一档只动 opacity / scale（不逐帧改宽高），可以整段交给原生驱动
+      useNativeDriver: true,
+    })
+    morphAnimRef.current = animation
+    animation.start()
+  }, [morph])
+
   // 页面默认态只在一处落：切换 Tab / 进出一层，按该页默认重置（原型 syncMiniPage 的口径）。
   // 手动展开过的那一份记忆不许跨页飘着——那比每次都收回去更让人抓不到规律。
+  // 重置一律 instant：挂载时初值本来就是 defaultSnapped，这一下 setValue 到同一个值，不会多播一次入场。
   useEffect(() => {
-    setSnapped(defaultSnapped)
-  }, [defaultSnapped, resetKey])
+    applySnap(defaultSnapped, true)
+  }, [applySnap, defaultSnapped, resetKey])
 
   /* 切 Tab 那条只管屏内换页；**离开本屏**（被推入层 / 播放页盖住、被弹掉）算另一次「进了一页」，
    * 回来也得是默认态 —— 原型 syncMiniPage 就是在开 / 收那一层时立刻按新页重算（app.js L2606-2611），
@@ -230,14 +261,15 @@ export const MinibarHost = ({
       componentDidDisappear: () => {
         if (!alive) return
         if (AppState.currentState !== 'active') return
-        setSnapped(defaultSnappedRef.current)
+        // 离开本屏也算「进了一页」：只落位，不跑 morph（与切 Tab 同口径）
+        applySnap(defaultSnappedRef.current, true)
       },
     }, componentId)
     return () => {
       alive = false
       subscription.remove()
     }
-  }, [componentId])
+  }, [applySnap, componentId])
 
   // 侧边跨屏记住，并在一生一次的异步读盘后跟上本机存过的值
   useEffect(() => {
@@ -249,24 +281,15 @@ export const MinibarHost = ({
   }, [])
 
   /* ---- 动画 ---- */
-  // morph：1 = 完整条，0 = 磁吸圆点（原型那 .2s 的 left/width/height/border-radius 联动）
-  const morph = useRef(new Animated.Value(defaultSnapped ? 0 : 1)).current
   // 拖拽位移（跟手，JS 侧 setValue；松手后同一段缓动归零）。这一条始终走 JS 驱动，
   // 因为它的位移是手势逐帧写的，不能中途被「原生驱动」接管（RN 不允许同一个值半路换驱动）
   const dragX = useRef(new Animated.Value(0)).current
   const [dragging, setDragging] = useState(false)
 
-  useEffect(() => {
-    const animation = Animated.timing(morph, {
-      toValue: snapped ? 0 : 1,
-      duration: MINIBAR.morphMs,
-      easing: SNAP_EASE,
-      // 这一档只动 opacity / scale（不逐帧改宽高），可以整段交给原生驱动
-      useNativeDriver: true,
-    })
-    animation.start()
-    return () => animation.stop()
-  }, [morph, snapped])
+  // morph 的驱动全交给 applySnap（来源分明：重置落位 / 用户动作走动画）；卸载时收掉在途动画
+  useEffect(() => () => {
+    morphAnimRef.current?.stop()
+  }, [])
 
   /**
    * 进退场（原型 `.minibar` / `.minibar.show` 的 transform/opacity 两段 transition）：
@@ -345,7 +368,8 @@ export const MinibarHost = ({
       const next: NewUiMiniSide = dx < 0 ? 'left' : 'right'
       setSide(next)
       setNewUiMiniSide(next)
-      setSnapped(true)
+      // 用户自己拖到边缘吸附：这一帧没有整页重铺，走 morphMs 的动画（instant=false）
+      applySnap(true, false)
     }
     pullRef.current = 0
     Animated.timing(dragX, {
@@ -417,7 +441,8 @@ export const MinibarHost = ({
    * - 完整条 → 打开现有全屏播放器（行为不变）。
    */
   const handleFullPress = () => { pushNewUiPlayer(componentId) }
-  const handleSnappedPress = () => { setSnapped(false) }
+  // 用户自己点圆点展开：同样没有整页重铺，照旧走 morphMs 的动画
+  const handleSnappedPress = () => { applySnap(false, false) }
 
   if (!contentShown || view == null) return null
 

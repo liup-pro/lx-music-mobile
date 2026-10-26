@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 
+import { LIST_IDS } from '@/config/constant'
 import { clearListDetail, getListDetail, setListDetail, setListDetailInfo } from '@/core/songlist'
 // rank 形态数据分支：core/leaderboard 是另一套取数 API（leaderboard.getList，id={source}__{bangId}），
 // 分页 store 也独立（store/leaderboard），别名单引避免与 songlist 同名函数交叉污染
@@ -53,10 +54,10 @@ import {
   getPlatformMeta,
   NEW_UI_BOARD_LIST_ID_PREFIX,
   NEW_UI_PAGING_END_TEXT,
-  NEW_UI_PLD_CRUMB,
   NEW_UI_PLD_DELETE_CONFIRM,
   NEW_UI_PLD_EMPTY,
-  NEW_UI_PLD_FOOT_NOTE,
+  NEW_UI_PLD_EMPTY_BY_OWNER,
+  NEW_UI_PLD_FOOT_BY_OWNER,
   NEW_UI_PLD_LABELS,
   NEW_UI_PLD_LOAD_TIMEOUT_MS,
   NEW_UI_PLD_STATUS,
@@ -64,7 +65,9 @@ import {
   NEW_UI_PLD_TAG_PENDING,
   NEW_UI_PLD_TOAST,
   NEW_UI_PLAYLIST_ART_SEED,
+  newUiPlCrumb,
   newUiPlayableTag,
+  type NewUiPlaylistOwner,
   type NewUiSonglistDetailKind,
   type NewUiTabKey,
 } from '@/newui/const'
@@ -92,8 +95,10 @@ export interface SonglistDetailScreenProps {
   componentId: string
   /** 歌单坐标与已知信息（形状即旧 pushSonglistDetailScreen 的 ListInfoItem）；平台形态必传，local 形态不传 */
   info?: ListInfoItem
-  /** 形态（面包屑 / 页脚文案），缺省 pl；平台导入的自建卡传 mine，纯本地歌单传 local，
-   *  内置「我喜欢」传 fav（QA D04：取数走 local 那一套，文案走 PLD_* 的 fav 一档） */
+  /** 形态（取数链路与按钮能力）；缺省 pl。平台导入的自建卡传 mine，纯本地歌单传 local，
+   *  内置「我喜欢」传 fav（QA D04：取数走 local 那一套）。
+   *  **2026-10-24 起 kind 不再决定文案**：面包屑 / 页脚 / 空态一律按「归属 owner」取（见屏内
+   *  ownerOf 那段，原型 PLD_OWNER / playlistOwnerOf，app.js L805-841），同一张单子从哪进来都同名 */
   kind?: NewUiSonglistDetailKind
   /** local / fav 形态必传：本地歌单 id（store/list 的 allList 项，非平台坐标） */
   listId?: string
@@ -147,6 +152,9 @@ interface DetailHeaderInfo {
  * + 歌目记录一并清掉，成功 toast 后退出详情层回上一页；取消则一切不变。
  * 2026-10-15（拆件转正轮）：`.pl-top` / `.pl-actions` 两个原内联单元转正为独立组件
  * （PlTop / PlActions），渲染零变化、接线原样。
+ * 2026-10-24（标题按归属）：面包屑 / 页脚 / 空态 / 右上钮不再按入口 kind 取文案，改按这份单子的
+ * **归属 owner**（own / collected / platform / rank / fav，判据见屏内 ownerOf 与 const/songlistDetail
+ * 末尾那段）。kind 继续只管取数链路与能力；入口推入逻辑（MinePage / PlaylistPage / 搜索层）一处未改。
  */
 export const SonglistDetailScreen = ({
   componentId,
@@ -470,6 +478,29 @@ export const SonglistDetailScreen = ({
   )
   const collected = collectedList != null
 
+  /**
+   * —— 归属 owner（原型 PLD_OWNER / playlistOwnerOf，app.js L805-841；2026-10-24 落地）——
+   * 这一屏「顶上叫什么、页脚怎么说、空单子怎么劝、右上那颗是删是收」一律看它，不看入口 kind：
+   * kind 继续只管取数链路（songlist / leaderboard / core.list 三套）与按钮能力。
+   *   fav       —— 内置「我喜欢」：固定 listId（LOVE），不靠入口自称；
+   *   own       —— 纯自建：没有平台坐标的本机单子（kind='local' 那一支的数据链路）；
+   *   rank      —— 整榜（含从「我的歌单」点进来的「存整榜」那份：入口已剥掉 board__ 前缀，
+   *                取数走 core/leaderboard，这一支本就只能由 kind='rank' 表达）；
+   *   collected —— 平台单且已在本机 userList 里（source + sourceListId 命中；
+   *                从搜索层 / 歌单页池子 / 我的歌单哪一处再点进同一张已收藏单，都算出这一档）；
+   *   platform  —— 平台单还没收。
+   * 收藏关系命中用的就是上面 collectedList 那一份（myLists 来自 @/store/list 的 allList，
+   * 订阅 mylistUpdated），所以在页内点收藏后标题会当场从「歌单」变成「收藏歌单 · 平台名」。
+   * 判据顺序照原型：fav 先于 own（LOVE 虽在 userList 名单里，但它不是自建单）。
+   */
+  const owner: NewUiPlaylistOwner = listId === LIST_IDS.LOVE || isFav
+    ? 'fav'
+    : isLocal
+      ? 'own'
+      : isRank
+        ? 'rank'
+        : collectedList != null ? 'collected' : 'platform'
+
   // —— 动作（原型 L452-470：播放全部 / 随机 / 点行；均走旧屏同款 handlePlay 队列升级）——
   // pl / mine = SonglistDetail/listAction（core/songlist 全量升级）；
   // rank = Leaderboard/listAction（core/leaderboard 全量升级，旧榜单视图同款「整榜先播已载、全量升级临时队列」）；
@@ -551,7 +582,9 @@ export const SonglistDetailScreen = ({
   // —— 本地歌单删除（2026-10-13 清单「我的」第 2 条后半）——
   // 可删判定只按 id（口径见 utils/userList.isDeletableUserListId：照抄旧 MyList/ListMenu L77-87，
   // 试听 / 我的收藏这类系统列表不在 userList 里，删不掉也不该出现入口）。
-  const canDeleteList = isLocal && isDeletableUserListId(listId)
+  // 2026-10-24 起这一格改由归属判：只有 own（纯自建）才谈得上「删这份单子」——
+  // 收藏来的平台单删不掉平台侧那张，只能「移出收藏」（右上那颗心）。
+  const canDeleteList = owner === 'own' && isDeletableUserListId(listId)
 
   // —— 单曲「⋯」面板的宿主单口径（件 U76，需求 2）——
   // 原型 openMore L1559 判的是 `plNow.kind === 'local'` 且能在 MY_PLAYLISTS 里命中这张单，
@@ -636,26 +669,30 @@ export const SonglistDetailScreen = ({
     <View>
       {/* .pl-top：grid 34 / 1fr / 34，返回钮 = chevron 转 180°，图标底 .08 取 strong */}
       <PlTop
-        crumbText={NEW_UI_PLD_CRUMB[kind]}
+        // 面包屑按归属取（原型 plCrumbOf）：收藏单补平台全名，自建 / 榜单 / 我喜欢各自一句
+        crumbText={newUiPlCrumb(owner, info?.source)}
         backLabel={NEW_UI_PLD_LABELS.back}
         onBack={goBack}
-        // 右上那一格（#plFavBtn）三分支语义见 PlTop 头注：local 形态「存进我的歌单」没有意义
-        //（它本来就在我的歌单里），2026-10-13 起可删的单子这一位改放「删除本歌单」
-        //（trash 字形 + err 色 + 按下必过二次确认），系统列表删不掉则维持同尺寸空槽顶住配重；
-        // 其余形态照旧收藏心钮——榜单卡进来的收藏 = 存整榜，语义全靠 accessibilityLabel 那一句
+        // 右上那一格（#plFavBtn）按归属分（原型 openPlaylist 的 owner 分支，app.js L902-922）：
+        // own —— 可删的单子给「删除本歌单」（trash + err 色 + 按下必过二次确认），系统列表留空槽；
+        // fav —— 存自己没意义、也删不掉，同尺寸空槽（原型 visibility:hidden 占位）；
+        // collected / platform / rank —— 收藏心钮（已收 → 实心 + 按下移出；榜单收起整榜，
+        // 语义全靠 accessibilityLabel 那一句）
         right={
-          isLocal
+          owner === 'own'
             ? (canDeleteList
               ? { kind: 'delete', onPress: handleDeletePress, label: NEW_UI_PLD_LABELS.deleteList }
               : { kind: 'none' })
-            : {
-              kind: 'fav',
-              collected,
-              onPress: handleFavPress,
-              label: isRank
-                ? (collected ? NEW_UI_PLD_LABELS.unfavBoard : NEW_UI_PLD_LABELS.favBoard)
-                : (collected ? NEW_UI_PLD_LABELS.unfav : NEW_UI_PLD_LABELS.fav),
-            }
+            : owner === 'fav'
+              ? { kind: 'none' }
+              : {
+                  kind: 'fav',
+                  collected,
+                  onPress: handleFavPress,
+                  label: owner === 'rank'
+                    ? (collected ? NEW_UI_PLD_LABELS.unfavBoard : NEW_UI_PLD_LABELS.favBoard)
+                    : (collected ? NEW_UI_PLD_LABELS.unfav : NEW_UI_PLD_LABELS.fav),
+                }
         }
       />
 
@@ -697,16 +734,16 @@ export const SonglistDetailScreen = ({
           ? (
             <>
               <PagingEnd text={NEW_UI_PAGING_END_TEXT} />
-              <FootNote text={NEW_UI_PLD_FOOT_NOTE[kind]} />
+              {/* 页脚按归属取（原型 PLD_FOOT）：只有 own 才说「只存在这台设备上」，
+                  收藏 / 平台单用歌单那一档，榜单与「我喜欢」各自保留——不再出现
+                  「收藏歌单 + 只存在这台设备上」这种自相矛盾 */}
+              <FootNote text={NEW_UI_PLD_FOOT_BY_OWNER[owner]} />
             </>
           )
-          // 空单子分三种对象（10b 轮，走查缺陷 bug-fix.md L58 + QA D04）：
-          // 内置「我喜欢」空收藏走原型 PLD_EMPTY.fav 那句，刚建的本地空歌单引导去加歌，
-          // 平台歌单明细为空才说「换一份听听」——措辞各归各，不互相顶替
-          : <EmptyTip variant="layer"
-              text={isFav
-                ? NEW_UI_PLD_EMPTY.fav
-                : isLocal ? NEW_UI_PLD_EMPTY.localEmpty : NEW_UI_PLD_EMPTY.end} />)}
+          // 空单子按归属分（原型 renderPlTracks 空分支，app.js L1053-1058）：
+          // 内置「我喜欢」说清去哪收；自建单被搬空，引导去「⋯」里加歌；
+          // 收藏 / 平台单 / 榜单是平台侧给的就空，如实请换一份
+          : <EmptyTip variant="layer" text={NEW_UI_PLD_EMPTY_BY_OWNER[owner]} />)}
       {status === 'error' &&
         (tracks.length
           ? (

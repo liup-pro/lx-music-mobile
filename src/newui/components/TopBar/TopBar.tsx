@@ -22,8 +22,10 @@ import { IconButton } from '../IconButton'
 import { BlurredContainer } from '../Glass'
 
 export interface TopBarProps {
-  /** 头像文字（原型 #topAvatar 为昵称首字，无昵称时用品牌字） */
+  /** 头像文字（原型 #topAvatar 为昵称首字，无昵称时用品牌字；有头像图时只当兜底） */
   avatarText: string
+  /** 头像图的本机文件路径（原型 state.avatar，paintAvatar 同时刷 #topAvatar）；不传 = 走首字 */
+  avatarImageUri?: string | null
   /** 头像入口（原型 #avatarBtn：手机端切到「我的」） */
   onAvatarPress?: () => void
   /** 搜索栏占位文案（原型 .searchbar .ph） */
@@ -51,13 +53,18 @@ export interface TopBarProps {
  * 本组件只保留可点击外壳与按压反馈。
  */
 const AvatarButton = memo(
-  ({ text, onPress }: { text: string; onPress?: () => void }) => (
+  ({ text, imageUri, onPress }: { text: string, imageUri?: string | null, onPress?: () => void }) => (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.avatarBtn, pressed && styles.pressed]}
     >
-      <BrandAvatar size={BRAND_AVATAR.top.size} textSize={BRAND_AVATAR.top.textSize} text={text} />
+      <BrandAvatar
+        size={BRAND_AVATAR.top.size}
+        textSize={BRAND_AVATAR.top.textSize}
+        text={text}
+        imageUri={imageUri}
+      />
     </Pressable>
   ),
 )
@@ -117,6 +124,7 @@ SearchBar.displayName = 'NewUITopBarSearch'
 export const TopBar = memo(
   ({
     avatarText,
+    avatarImageUri,
     onAvatarPress,
     searchPlaceholder,
     onSearchPress,
@@ -152,7 +160,7 @@ export const TopBar = memo(
             两层都只铺满本盒（absoluteFill），不外溢——原型 backdrop-filter/渐变均止于盒底 */}
         <BlurredContainer spec={GLASS.topBar} />
         <View style={styles.row}>
-          <AvatarButton text={avatarText} onPress={onAvatarPress} />
+          <AvatarButton text={avatarText} imageUri={avatarImageUri} onPress={onAvatarPress} />
           <SearchBar placeholder={searchPlaceholder} onPress={onSearchPress} />
           <IconButton name="wave" dot={sourceDot} onPress={onSourcePress} />
         </View>

@@ -1,6 +1,7 @@
 export { useApiSourceName } from './useApiSourceName'
 export { useApiSourceTick } from './useApiSourceTick'
 export { useApiSupport } from './useApiSupport'
+export { useAvatarPick, type NewUiAvatarPick } from './useAvatarPick'
 export { useContentPlatform } from './useContentPlatform'
 export { useDailyRecommend, type DailyRecommend } from './useDailyRecommend'
 export { useDesktopLyricToggle, type DesktopLyricToggle } from './useDesktopLyricToggle'

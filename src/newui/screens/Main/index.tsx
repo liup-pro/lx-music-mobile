@@ -65,8 +65,9 @@ export const MainScreen = ({ componentId }: MainScreenProps) => {
   // 顶栏总高按档走（宽屏 92 / 竖屏 110）：吸顶触发线的换算与 TopBar 盒高、CatStickerBar 的 paddingTop
   // 必须同源同一个 useWideLayout，否则横屏档这三处会错开
   const { topBarHeight } = useWideLayout()
-  // 原型 renderProfile：顶栏头像恒显示昵称首字（未设置时 useNickName 回落品牌首字母「E」）
-  const { initial: avatarText } = useNickName()
+  // 原型 renderProfile：顶栏头像与我的页、浮层预览读同一份 state（昵称首字 + 头像图）；
+  // 未设置昵称时 useNickName 回落品牌首字母「E」，头像路径指空时回落首字
+  const { initial: avatarText, avatarUri } = useNickName()
   const [tabKey, setTabKey] = useState<NewUiTabKey>('home')
   const [pinned, setPinned] = useState(false)
   // 歌单页分类条吸顶（QA 2026-10-14 D-06，原型 .cat-row position:sticky）：
@@ -81,7 +82,7 @@ export const MainScreen = ({ componentId }: MainScreenProps) => {
   // 原型 #sourceSheet 是 .screen 内的覆盖层（index.html L374）：RN 同款挂在主屏根层，
   // 顶栏波纹钮与首页「音源公告」轮播共用这一个实例（app.js L1585 castBtn / L1570 navFoot 都是开它）
   const [sourceSheetVisible, setSourceSheetVisible] = useState(false)
-  // 改昵称浮层（原型 #nameSheet，app.js #mineEdit L1591 → openNameSheet）；同层挂载，盖过 Tab 栏
+  // 「修改」浮层（原型 #nameSheet，app.js #mineEdit L1591 → openNameSheet）；同层挂载，盖过 Tab 栏
   const [nameSheetVisible, setNameSheetVisible] = useState(false)
   // 单曲操作面板（原型 #moreSheet，app.js openMore L722）；目标曲目为空即退场
   const [moreMusic, setMoreMusic] = useState<LX.Music.MusicInfo | null>(null)
@@ -280,6 +281,7 @@ export const MainScreen = ({ componentId }: MainScreenProps) => {
       />
       <TopBar
         avatarText={avatarText}
+        avatarImageUri={avatarUri}
         onAvatarPress={handleAvatarPress}
         onSearchPress={handleSearchPress}
         searchPlaceholder={NEW_UI_SEARCH_PLACEHOLDER}
@@ -303,7 +305,7 @@ export const MainScreen = ({ componentId }: MainScreenProps) => {
         onClose={closeSourceSheet}
         bottomInset={bottom}
       />
-      {/* 改昵称浮层（原型 #nameSheet）：与音源浮层同层，后挂载者盖其上 */}
+      {/* 「修改」浮层（原型 #nameSheet，昵称 + 头像）：与音源浮层同层，后挂载者盖其上 */}
       <NameSheet
         visible={nameSheetVisible}
         onClose={closeNameSheet}

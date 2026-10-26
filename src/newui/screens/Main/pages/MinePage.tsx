@@ -87,7 +87,7 @@ const plCardMeta = (list: MyPlaylistItem, collected: boolean): string => {
  * 分叉只发生在渲染层，取数仍是 useMyPlaylists 那一份 allList（顺序、数据源、存储都不动）。
  */
 export const MinePage = ({ componentId, onOpenNameSheet, onOpenMore, onOpenCreateListSheet }: NewUiPageProps) => {
-  const { nickName, initial } = useNickName()
+  const { nickName, initial, avatarUri } = useNickName()
   const loveSongs = useLoveSongs()
   const recentPlays = useRecentPlays()
   const myLists = useMyPlaylists()
@@ -146,7 +146,7 @@ export const MinePage = ({ componentId, onOpenNameSheet, onOpenMore, onOpenCreat
     showNewUiToast(NEW_UI_MINE_TOAST.recentCleared)
   }, [])
 
-  // 原型 #mineEdit（app.js L1591）：点「改昵称」弹 #nameSheet（浮层本体挂在 MainScreen 根层，9e）
+  // 原型 #mineEdit（app.js L1591）：点「修改」弹 #nameSheet（昵称 + 头像两件事；浮层本体挂在 MainScreen 根层，9e）
   const handleEditNick = useCallback(() => {
     onOpenNameSheet?.()
   }, [onOpenNameSheet])
@@ -176,6 +176,7 @@ export const MinePage = ({ componentId, onOpenNameSheet, onOpenMore, onOpenCreat
     <>
       <MineHeader
         initial={initial}
+        avatarImageUri={avatarUri}
         name={nickName}
         sub={NEW_UI_MINE_HEAD_SUB}
         editLabel={NEW_UI_MINE_EDIT}

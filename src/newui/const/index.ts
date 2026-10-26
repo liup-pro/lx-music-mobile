@@ -95,7 +95,12 @@ export {
   formatQualityList,
   type NewUiSourceStateKey,
 } from './sourceSheet'
-export { NEW_UI_NICK_PICKS, NEW_UI_SHEET_NAME } from './nameSheet'
+export {
+  NEW_UI_AVATAR_EXTS,
+  NEW_UI_AVATAR_MAX_BYTES,
+  NEW_UI_NICK_PICKS,
+  NEW_UI_SHEET_NAME,
+} from './nameSheet'
 export { NEW_UI_SHEET_CONFIRM } from './confirmSheet'
 export { NEW_UI_SHEET_MORE } from './moreSheet'
 export { NEW_UI_SHEET_QUEUE, newUiPlayerQueueAria } from './queueSheet'
@@ -105,14 +110,19 @@ export {
   NEW_UI_PLD_CRUMB,
   NEW_UI_PLD_DELETE_CONFIRM,
   NEW_UI_PLD_EMPTY,
+  NEW_UI_PLD_EMPTY_BY_OWNER,
+  NEW_UI_PLD_FOOT_BY_OWNER,
   NEW_UI_PLD_FOOT_NOTE,
   NEW_UI_PLD_LABELS,
   NEW_UI_PLD_LOAD_TIMEOUT_MS,
+  NEW_UI_PLD_OWNER_LABEL,
   NEW_UI_PLD_STATUS,
   NEW_UI_PLD_TAG_EMPTY_FAV,
   NEW_UI_PLD_TAG_PENDING,
   NEW_UI_PLD_TOAST,
+  newUiPlCrumb,
   newUiPlayableTag,
+  type NewUiPlaylistOwner,
   type NewUiSonglistDetailKind,
 } from './songlistDetail'
 export {

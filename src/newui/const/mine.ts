@@ -66,8 +66,12 @@ export const NEW_UI_MINE_STAT_LABELS = {
   recent: '最近播放',
 } as const
 
-/** 「改昵称」胶囊（.mh-edit） */
-export const NEW_UI_MINE_EDIT = '改昵称'
+/**
+ * 「修改」胶囊（.mh-edit，原型 index.html L230）。
+ * 2026-10-24 原型把浮层扩成「昵称 + 头像」两件事，入口钮文案随之从「改昵称」改成「修改」，
+ * 这里逐字跟上——钮上还叫「改昵称」就盖不住浮层里那一行头像。
+ */
+export const NEW_UI_MINE_EDIT = '修改'
 
 /** 空态文案（原型 .empty-tip / .fav-card p 原句优先照抄） */
 export const NEW_UI_MINE_EMPTY = {
@@ -90,7 +94,7 @@ export const NEW_UI_MINE_FOOT_NOTE = '收藏 · 播放记录 · 自建歌单都�
 
 /** 还没接上的动作用一句话提示（说人话，别漏开发术语） */
 export const NEW_UI_MINE_TOAST = {
-  // 「改昵称」的浮层已在阶段 9e 落地（NameSheet），原过渡 toast 删除
+  // 「修改」浮层（昵称 + 头像）已在阶段 9e 落地，2026-10-24 扩成两件事（NameSheet），原过渡 toast 删除
   // 卡片那颗直接开播的圆钮本轮随「两张卡合一」撤掉，原「收藏里的歌当前音源都放不出来」
   // 这条预览期提示（loveUnplayable）一并删除——开播回到详情层的「播放全部」，口径归它
   /** 原型 #recentClear 点击后的原句 */

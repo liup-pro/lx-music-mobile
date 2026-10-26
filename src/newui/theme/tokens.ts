@@ -1648,8 +1648,9 @@ export const MINIBAR = {
    *  找得到 1.5，删掉它就报 B 类缺值（实测过）。 */
   snappedEqHeight: 11,
   snappedEqGap: 1.5,
-  /** `--mini-morph:.2s`：两态互相变形的时长（用户口径 180–220ms 就落在这一档） */
-  morphMs: 200,
+  /** `--mini-morph:.18s`（styles.css L692，2026-10-24 由 .2s 收窄）：两态互相变形的时长。
+   *  切 Tab / 进出推入层那几条重置路径不走它——那几帧整页刚重铺，一律一帧落位（见 MinibarHost.applySnap）。 */
+  morphMs: 180,
   /** 手势三段门槛（app.js MINI L2589-2594）：<8 点击 / 8–24 弹回 / ≥24 吸附 */
   slop: 8,
   commit: 24,
@@ -2058,6 +2059,29 @@ export const OP_FILE = {
   iconSize: 15,
   /** .op-file:active scale(.99) */
   pressScale: 0.99,
+} as const
+
+/* ================= 「修改」浮层的头像一行（.av-box / .av-preview / .av-acts，styles.css L1089-1097） ================= */
+
+/**
+ * 2026-10-24 原型把 #nameSheet 扩成「昵称 + 头像」两件事，头像一行是：
+ * 左边一颗 64 的圆预览（就是顶栏那颗圆放大一号），右边两枚 .op-file 次级钮上下叠
+ * （选一张本机图片 / 改回昵称首字）。预览本身走共通件 BrandAvatar（同一个渐变首字 / 同一张图），
+ * 这里只登记这一行的几何：外框 14 间距、距副题 16、预览 64 见方、右列两钮之间 8。
+ * 圆角取 RADIUS.full（原型 `border-radius:50%` 的百分比圆在 RN 就是全圆），预览首字字号 24 是本行专属
+ * （比我的页 .mh-art 的 26 小一号），字重与字距沿用 FONT_WEIGHT.black / LETTER_SPACING.wider（原型 .av-preview 的 900 / .5）。
+ */
+export const AVATAR_ROW = {
+  /** .av-box：display:flex / align-items:center / gap:14（L1092） */
+  gap: 14,
+  /** .av-box：margin-top:16（贴 .sheet-sub 之下，与 .op-box 的 16 同档） */
+  marginTop: 16,
+  /** .av-preview：64×64 见方（L1093） */
+  previewSize: 64,
+  /** .av-preview：font-size:24（L1095；同一规则里 font-weight:900 / letter-spacing:.5 归上面两族 token） */
+  previewFontSize: 24,
+  /** .av-acts：两枚次级钮上下叠，gap:8（L1096）；`.av-acts .op-file{margin-top:0}`（L1097）由列内不留上边距表达 */
+  actsGap: 8,
 } as const
 
 /* ================= 行尾移除钮（.or-del，styles.css L771-774，件 opt-list.css L43-48） ================= */

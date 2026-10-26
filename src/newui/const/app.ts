@@ -9,7 +9,7 @@ export const NEW_UI_APP_NAME = 'EchoIsle'
  */
 export const NEW_UI_APP_VERSION = version
 
-/** 顶栏头像缺省首字（原型 #topAvatar 取昵称首字，昵称功能落地前用品牌首字母；EchoIsle 为拉丁品牌，取 'E'） */
+/** 头像缺省首字（原型 #topAvatar 取昵称首字；昵称缺省已是 EchoIsle，这里只兜空昵称的异常路径。EchoIsle 为拉丁品牌，取 'E'） */
 export const NEW_UI_DEFAULT_AVATAR_TEXT = 'E'
 
 /** 顶栏搜索栏占位（原型 .searchbar .ph） */

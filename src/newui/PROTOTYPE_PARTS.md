@@ -5,8 +5,8 @@
 
 ## 无损校验数字（本次生成实测，运行时断言）
 
-- index.html 元素：原件 **1640** = 各件持有之和 **1640**（重复 0 / 丢失 0 / 无归属 0）。
-- styles.css 规则：原件 **761** 条 = 各件收纳之和 **761**；选择器 **790** 个，逐条唯一归属（@media 2 块整体归 _chrome，@keyframes 按登记表归属）。
+- index.html 元素：原件 **1652** = 各件持有之和 **1652**（重复 0 / 丢失 0 / 无归属 0）。
+- styles.css 规则：原件 **774** 条 = 各件收纳之和 **774**；选择器 **806** 个，逐条唯一归属（@media 3 块整体归 _chrome，@keyframes 按登记表归属）。
 - app.js：只读；件头注释的符号行号在运行时实探，符号缺失即报错退出。
 - 四个原型文件（index.html / styles.css / app.js / data.js）零改动。
 
@@ -15,12 +15,12 @@
 | 单元 | 件（相对 parts/） | 持有元素 | 收纳规则 | 一句话 |
 |---|---|---|---|---|
 | 壳层 | `_shell` | 16 | 5 | 文档壳与页面骨架：html/head/body、#viewport、五只 .page |
-| V1–V4 | `_chrome` | 1095 | 213 | 查看器 chrome |
+| V1–V4 | `_chrome` | 1095 | 214 | 查看器 chrome |
 | U01 | `common-control/topbar` | 12 | 9 | .topbar 吸顶头部 |
 | U02 | `common-control/icon-btn` | 0 | 0 | .icon-btn 圆钮原子 |
 | U03 | `common-control/pulse-dot` | 0 | 3 | .pulse-dot 音源告警呼吸点 |
 | U04 | `common-control/tabbar` | 21 | 10 | .tabbar / .tab 底部 Tab |
-| U05 | `common-control/minibar` | 18 | 35 | .minibar 迷你播放条 |
+| U05 | `common-control/minibar` | 18 | 41 | .minibar 迷你播放条 |
 | U06 | `common-control/toast` | 1 | 2 | .toast 全站单例提示 |
 | U07 | `common-control/art` | 0 | 0 | .art 程序化封面原子 |
 | U08 | `common-control/chip` | 0 | 0 | .chip 胶囊原子 |
@@ -35,7 +35,7 @@
 | U17 | `common-control/sheet-chrome` | 0 | 14 | .sheet 浮层 chrome 定义 |
 | U18 | `common-control/group-label` | 0 | 8 | .group-label 浮层分组标题 |
 | U19 | `common-control/opt-list` | 0 | 22 | .opt-list / .opt-row |
-| U20 | `common-control/op-box` | 0 | 11 | .op-box / .op-input / .op-go / .op-err / .op-file 输入行族 |
+| U20 | `common-control/op-box` | 0 | 12 | .op-box / .op-input / .op-go / .op-err / .op-file 输入行族 |
 | U21 | `common-control/q-chips` | 0 | 2 | .q-chips |
 | U22 | `common-control/toggle` | 0 | 4 | .toggle / .sw-row 开关行唯一定义 |
 | U23 | `common-control/sprite` | 104 | 1 | SVG sprite |
@@ -55,7 +55,7 @@
 | U39 | `rank/rank-grid` | 1 | 9 | .rank-grid / .rk-card |
 | U40 | `rank/rank-group` | 0 | 4 | .rank-group 平台分段组头 |
 | U41 | `rank/chart-art` | 0 | 1 | chartArt 封面体系 |
-| U42 | `mine/mine-head` | 8 | 9 | .mine-head 个人头部 |
+| U42 | `mine/mine-head` | 8 | 10 | .mine-head 个人头部 |
 | U43 | `mine/stat-row` | 1 | 4 | .stat-row / .stat 本地统计三项 |
 | U44 | `mine/fav-card` | 2 | 12 | .fav-card 入口卡家族：「我的」页这一处现在只有<em>一张整宽卡</em> |
 | U45 | `mine/song-list-compact` | 7 | 3 | .song-list.compact 最近播放区块 |
@@ -96,7 +96,7 @@
 | U73 | `sheets/plid-sheet` | 15 | 1 | plIdSheet 打开歌单浮层实例 |
 | U74 | `sheets/create-sheet` | 11 | 0 | createSheet 新建歌单浮层实例 |
 | U75 | `sheets/tags-sheet` | 7 | 0 | plTagsSheet 全部分类浮层实例 |
-| U47 | `sheets/name-sheet` | 13 | 0 | nameSheet 改昵称浮层实例 |
+| U47 | `sheets/name-sheet` | 25 | 3 | nameSheet 修改浮层实例 |
 | U76 | `sheets/more-sheet` | 6 | 6 | moreSheet 单曲操作面板实例 |
 | U78+U79 | `sheets/player-sheet` | 8 | 0 | #playerSheet 播放页子面板宿主：定时 / 评论 / 播放列表三种实例共用这一只 DOM |
 | U78 | `sheets/timer-sheet` | 0 | 1 | timer 浮层内容件 |

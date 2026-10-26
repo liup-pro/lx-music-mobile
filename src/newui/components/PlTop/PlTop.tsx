@@ -21,7 +21,7 @@ export type PlTopRight =
       /** 已收藏（.pl-fav-btn.on：心形翻实心亮主色） */
       collected: boolean
       onPress: () => void
-      /** 无障碍文案（容器按 kind 与收藏态给 PLD_LABELS 四句之一） */
+      /** 无障碍文案（容器按归属 owner 与收藏态给 PLD_LABELS 四句之一） */
       label: string
     }
   | { kind: 'delete'; onPress: () => void; label: string }
@@ -35,7 +35,7 @@ export type PlTopRight =
   | { kind: 'none' }
 
 export interface PlTopProps {
-  /** 面包屑文字（容器传 const NEW_UI_PLD_CRUMB[kind]） */
+  /** 面包屑文字（容器传 const newUiPlCrumb(owner, source)：按归属取，2026-10-24 起不按入口 kind） */
   crumbText: string
   /** 返回钮无障碍文案 */
   backLabel: string

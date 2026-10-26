@@ -1,7 +1,11 @@
 /**
  * 歌单详情层文案常量（对应原型 #plLayer 与 app.js openPlaylist L408-483）。
- * kind 五种形态（pl / rank / mine / local / fav）的面包屑与页脚一一对应原型里的映射表。
+ * kind 五种形态（pl / rank / mine / local / fav）只管取数链路与按钮能力。
+ * **标题 / 页脚 / 空态自 2026-10-24 起按「归属 owner」取**（原型 PLD_OWNER / playlistOwnerOf /
+ * plCrumbOf，app.js L805-841）：同一张单子从哪进来都叫同一个名字，收藏来的不会被叫成「自建歌单」。
+ * 归属表见文件末尾那段；按 kind 取的白名单原样保留（旧调用点若还传 kind 也有话可读）。
  */
+import { getPlatformMeta } from './sources'
 
 /**
  * 详情层形态：歌单 / 排行榜 / 自建歌单（原型 openPlaylist(p, kind)）/ 本地歌单（2026-10-12 修复：
@@ -137,3 +141,71 @@ export const NEW_UI_PLD_TOAST = {
   listDeleted: (name: string): string => `已删除「${name}」· 我的歌单已更新`,
   listDeleteFailed: '没删掉 · 存储写入不顺，稍后再试',
 } as const
+
+/* ================= 归属（owner）：详情层顶上那一行到底该叫什么 =================
+ * 原型 PLD_OWNER / playlistOwnerOf() / plCrumbOf()（app.js L805-841）在 RN 侧的落地。
+ *
+ * 原来面包屑与页脚都按「入口 kind」取表，于是同一张单子从哪进来就换一个名字：
+ * 平台收藏来的单子在我的歌单区里点开叫「自建歌单」，从歌单页池子点开叫「歌单」，
+ * 名不对物，页脚也跟着说错（收藏来的平台单被说成「这份歌单只存在这台设备上」）。
+ * 现在只认这份单子本身，与入口无关：
+ *   own       —— 纯自建：没有平台坐标的本机单子，能加歌、能移出、能整份删；
+ *   collected —— 平台收藏：平台单 + 已收进本机 userList，只读，右上那颗按下去是「移出」；
+ *   platform  —— 平台单还没收：只读，右上那颗按下去是「存进我的歌单」；
+ *   rank      —— 排行榜（含「存整榜」进来的那份）：平台榜，只读，右上那颗收的是整榜；
+ *   fav       —— 内置「我喜欢」：不能改名、不能删，右上那一格留空占位。
+ * cache（已缓存）不在这屏——它自己一屏，文案归 const/offline.ts，这里不登记。
+ * 判据写在详情屏内（要用 myLists 做收藏命中）：`ownerOf` 见 SonglistDetailScreen。
+ */
+
+/** 归属的五个取值（原型 PLD_OWNER 去掉 cache 一档） */
+export type NewUiPlaylistOwner = 'own' | 'collected' | 'platform' | 'rank' | 'fav'
+
+/** 归属标题（原型 PLD_OWNER 逐字；collected 只是主词，后面带平台全名，见 newUiPlCrumb） */
+export const NEW_UI_PLD_OWNER_LABEL: Record<NewUiPlaylistOwner, string> = {
+  own: '自建歌单',
+  collected: '收藏歌单',
+  platform: '歌单',
+  rank: '排行榜',
+  fav: '我喜欢',
+}
+
+/**
+ * 面包屑 = 归属标题（原型 plCrumbOf app.js L836-841）：
+ * 收藏单补一个平台全名——收藏来的要能看出是从哪家收的；
+ * 自建单子没有平台坐标，不补；榜单与平台单的平台在 hero 的胶囊上已经有一份，不重复。
+ * 平台名取工程现成映射的全称（网易云 / QQ音乐 / 酷狗音乐…，`newUi…` 不走短称）。
+ */
+export const newUiPlCrumb = (owner: NewUiPlaylistOwner, source?: LX.Source): string =>
+  owner === 'collected' && source != null
+    ? `${NEW_UI_PLD_OWNER_LABEL.collected} · ${getPlatformMeta(source).label}`
+    : NEW_UI_PLD_OWNER_LABEL[owner]
+
+/**
+ * .foot-note 页脚说明按归属取（原型 PLD_FOOT 三档语义，app.js L842-848）：
+ * 只有 own 才说「只存在这台设备上」——收藏单 / 平台单的曲目在平台上，说这句自相矛盾；
+ * collected 与 platform 同用「歌单」那一档（先列曲目、能不能播以点开那刻为准）；
+ * rank / fav 各自保留原句。
+ * 复用上面按 kind 的白名单条目，不另抄一份文案。
+ */
+export const NEW_UI_PLD_FOOT_BY_OWNER: Record<NewUiPlaylistOwner, string> = {
+  own: NEW_UI_PLD_FOOT_NOTE.local,
+  collected: NEW_UI_PLD_FOOT_NOTE.pl,
+  platform: NEW_UI_PLD_FOOT_NOTE.pl,
+  rank: NEW_UI_PLD_FOOT_NOTE.rank,
+  fav: NEW_UI_PLD_FOOT_NOTE.fav,
+}
+
+/**
+ * 空态按归属取（原型 renderPlTracks 的空分支，app.js L1053-1058）：
+ * own 是被用户自己搬空的本机单子——下一句得告诉他怎么往里加歌（PLD_EMPTY.local）；
+ * collected / platform / rank 是平台侧给的就空，如实请换一份（PLD_EMPTY.end）；
+ * fav 空的是收藏本身，说清去哪收（PLD_EMPTY.fav）。
+ */
+export const NEW_UI_PLD_EMPTY_BY_OWNER: Record<NewUiPlaylistOwner, string> = {
+  own: NEW_UI_PLD_EMPTY.localEmpty,
+  collected: NEW_UI_PLD_EMPTY.end,
+  platform: NEW_UI_PLD_EMPTY.end,
+  rank: NEW_UI_PLD_EMPTY.end,
+  fav: NEW_UI_PLD_EMPTY.fav,
+}

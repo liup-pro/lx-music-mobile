@@ -279,7 +279,7 @@ const PART_DEFS = [
 
   P('UDETAIL_shell', '详情层壳', 'songlist-detail', '_layer', 'pl-layer 推入壳层（搜索层也复用这份基础样式，见 search/_layer 头注）', { js: ['openPlaylist', 'closePlLayer'] }),
   P('U66', 'U66', 'songlist-detail', 'pl-bg', '.pl-bg 封面氛围层（blur64+saturate150；RN 侧 CoverWash 是降级共通件）', { js: ['openPlaylist'] }),
-  P('U67', 'U67', 'songlist-detail', 'pl-top', '.pl-top / .pl-crumb / .pl-fav-btn 顶排（RN 缺件·内联，转正候选；面包屑文案见 PLD_CRUMB）：静态实例现在有四层共用同一份顶排——歌单详情、电台首页（右槽是搜节目那颗 #podSearchBtn）、播客详情、单集屏（后两层右槽不放钮）；左槽一律是返回 chevron，靠本件那条 :first-child 规则转 180°。顶排一律<em>不做 sticky、不吸顶</em>，但落法分两种：<em>歌单详情与单集屏</em>顶排仍在滚动容器里随整层滚；<em>电台首页与播客详情</em>本轮起顶排挂在固定段 .pl-head 里，根本不参与滚动（所以「全站右推层没有第二处吸顶顶栏、别造 sticky」那条旧口径本轮作废，两屏靠结构分段而不是 sticky）。<em>本轮起</em>电台两层那颗 crumb 回显<em>节目名</em>而非类别词，长名字只截断一行：两条 #podcastLayer / #episodeLayer 的 .player-crumb>span 截断规则随本件登记（管的就是四层共用的那颗 crumb，不塞进 radio/ 那两件）；flex 容器里的裸文字挂不出省略号，所以详情屏那颗的标记也改成 .player-crumb>span 这个形状——与播放页、单集屏同一判例', { js: ['PLD_CRUMB', 'togglePlFav'] }),
+  P('U67', 'U67', 'songlist-detail', 'pl-top', '.pl-top / .pl-crumb / .pl-fav-btn 顶排（RN 缺件·内联，转正候选；面包屑文案见 PLD_OWNER + plCrumbOf）：静态实例现在有四层共用同一份顶排——歌单详情、电台首页（右槽是搜节目那颗 #podSearchBtn）、播客详情、单集屏（后两层右槽不放钮）；左槽一律是返回 chevron，靠本件那条 :first-child 规则转 180°。顶排一律<em>不做 sticky、不吸顶</em>，但落法分两种：<em>歌单详情与单集屏</em>顶排仍在滚动容器里随整层滚；<em>电台首页与播客详情</em>本轮起顶排挂在固定段 .pl-head 里，根本不参与滚动（所以「全站右推层没有第二处吸顶顶栏、别造 sticky」那条旧口径本轮作废，两屏靠结构分段而不是 sticky）。<em>本轮起</em>电台两层那颗 crumb 回显<em>节目名</em>而非类别词，长名字只截断一行：两条 #podcastLayer / #episodeLayer 的 .player-crumb>span 截断规则随本件登记（管的就是四层共用的那颗 crumb，不塞进 radio/ 那两件）；flex 容器里的裸文字挂不出省略号，所以详情屏那颗的标记也改成 .player-crumb>span 这个形状——与播放页、单集屏同一判例。<em>2026-10-24 起这颗 crumb 的归属口径改了</em>：原来按「从哪个入口进来」（kind）取文案，收藏自平台的单子会被叫成「我的歌单 / 歌单」，真实侧还有一处叫成「自建歌单」；现在只认这份单子自己（data.js 的 origin 三档 + 收藏关系，判据 playlistOwnerOf，表 PLD_OWNER），与入口无关——同一张单子哪个入口进来都同名，收藏单额外带平台名（`收藏歌单 · 网易云`）。右上角那颗钮的能力判断（自建才给删除 / 收藏给移出收藏）也一并跟着 owner 走', { js: ['PLD_OWNER', 'playlistOwnerOf', 'plCrumbOf', 'togglePlFav'] }),
   P('U68', 'U68', 'songlist-detail', 'pl-hero', '.pl-hero 头图区（ph-body/ph-sub/ph-meta/sep；「N/M 首可播」等文案在 openPlaylist）', { js: ['openPlaylist', 'chartArt'] }),
   P('U69', 'U69', 'songlist-detail', 'pl-actions', '.pl-actions 播放全部 + 随机钮（RN 缺件·内联，转正候选；PLD_LABELS 文案见符号行；「播放全部」实心 .ghost-btn.solid 实例在 openPlaylist 内生成，样式本体在 _base）', { js: ['PLD_LABELS', 'openPlaylist'] }),
   P('U70', 'U70', 'songlist-detail', 'pl-tracks', '#plTracks 曲目表（song-list 复用 U29；分页状态行 .pl-status/.pl-end 样式在 _base——三页共用；PLD_STATUS 文案见符号行）；本轮起播那一列改由 plPlayableQueue() 出，顺手把「这一列是谁家的」标在数组上（queueOwner：本机一张单子的名字，其余 null），供 U80 的「移出」文案分叉', { js: ['renderPlTracks', 'plStatusRow', 'loadPlPage', 'plEndRow', 'PLD_STATUS', 'PLD_EMPTY', 'PL_PAGE_SIZE', 'plPlayableQueue'] }),
@@ -295,7 +295,7 @@ const PART_DEFS = [
   P('U73', 'U73', 'sheets', 'plid-sheet', 'plIdSheet 打开歌单浮层实例（PLID 样例表与错误文案见符号行；本件持有「打开」按钮与三句固定提示）', { js: ['openPlIdSheet', 'PLID', 'pidOf', 'bareIdOf', 'renderPlIdPlats', 'renderPlIdSamples', 'plIdError'] }),
   P('U74', 'U74', 'sheets', 'create-sheet', 'createSheet 新建歌单浮层实例（CREATE_TXT 见符号行；本件持有「创建」与校验提示）', { js: ['openCreateSheet', 'submitCreateList', 'doCreate', 'CREATE_TXT', 'CREATE_NAME_MAX', 'createListError'] }),
   P('U75', 'U75', 'sheets', 'tags-sheet', 'plTagsSheet 全部分类浮层实例（分组由 renderTagGroups() 灌入；「正在从平台获取分类…」见符号行）', { js: ['openTagSheet', 'renderTagGroups', 'plGroups', 'PL_TAG_REC'] }),
-  P('U47', 'U47', 'sheets', 'name-sheet', 'nameSheet 改昵称浮层实例（NICK_PICKS 见符号行；本件持有「想叫什么/保存/换个快的」与收尾提示全文）', { js: ['openNameSheet', 'saveNick', 'NICK_PICKS'] }),
+  P('U47', 'U47', 'sheets', 'name-sheet', 'nameSheet 修改浮层实例（NICK_PICKS 见符号行；本件持有「想叫什么/保存/换个快的」与收尾提示全文）。<em>2026-10-24 起这一层管两件事</em>：昵称 + 头像——入口钮文案随之从「改昵称」改成「修改」。头像一行 .av-box（预览 .av-preview 64 圆 + 右侧两枚 .op-file 次级钮：选一张本机图片 / 改回昵称首字），选图走 .op-file 背后那个隐藏的 file input #avFile（与音源导入同一条路数），FileReader 读 → canvas 缩到 512 见方内 → JPEG 压一道 → 存进 echoisle.proto.v1 的 avatar 键；不选图 / 点了「改回昵称首字」就回落成昵称首字（nickInitial）。头像三处位点同源：顶栏圆 #topAvatar（U01）、我的页头部 #mineArt（U42）、本层预览 #avPreview，都由 paintAvatar() 写同一份 state.avatar', { js: ['openNameSheet', 'saveNick', 'NICK_PICKS', 'applyAvatarFile', 'resetAvatar', 'paintAvatar'] }),
   P('U76', 'U76', 'sheets', 'more-sheet', 'moreSheet 单曲操作面板实例（.more-song 头 + opt-list 动作；「收藏到「我喜欢」」等文案见 openMore；加入候选组头「加入自建歌单」与空态句见 MORE_TXT，候选名单即 addablePlaylists）；本轮两处改动：① songRow 多收第 5 参 scene，传 \'queue\' 时整份菜单换成 U80 那一屏专属的几项（openQueueMore），其余落点不传仍是这一份；② 上一轮往这份通用菜单里加的那条「从这次播放里移出」已整行收走，「下一曲播放」抽出为共享行 nextRow()（与 U80 同一族），且本件 DOM 已挪到 #playerSheet 之后以拿到更高层级', { js: ['openMore', 'actRow', 'moreSong', 'MORE_TXT', 'addablePlaylists', 'nextRow'] }),
   P('U78_79', 'U78+U79', 'sheets', 'player-sheet', '#playerSheet 播放页子面板宿主：定时 / 评论 / 播放列表三种实例共用这一只 DOM（内容件见 timer-sheet / comment-sheet / queue-sheet；钉住规则归 U17 chrome；openSheet(kind) 的 map 三档）', { js: ['openSheet', 'closeLayer'] }),
   P('U78', 'U78', 'sheets', 'timer-sheet', 'timer 浮层内容件（renderTimerSheet() 灌入 player-sheet；「不开启」「N 分钟」「等当前这首放完再停」见符号行；开关本体归 U22）', { doc: true, js: ['renderTimerSheet', 'paintTimerTag', 'sleepSub', 'stopAtEdge'] }),
@@ -485,6 +485,8 @@ const CSS_EXC = [
   // 若不指名会被 U17 的 '#psBody' 模式先吃掉（U17 是 chrome 定义件，不该持有实例专属规则）。
   [/^#psBody \.song-row \.rank$/, 'U80'],
   [/^#psBody \.song-list$/, 'U80'],
+  // 头像图铺满那一条跨两个件（顶栏圆 U01 与我的页头部 U42 共用），按「跨件原子」定到 _base
+  [/^\.avatar img,\.mh-art img$/, '_base'],
 ]
 const CSS_MATCHERS = [
   ['_chrome', ['.pad ', '.phone.pad', 'body.pad', 'body.wide', '.phone.wide', '.stage', '.phone', '.screen', '.island', '.statusbar', '.sb-time', '.sb-right', '.sb-signal', '.sb-batt', '.viewer-bar', '.vb-label', '.vb-seg', '.vb-btn', '.vb-note', '.nav-brand', '.nav-sep', '.nav-label', '.nav-foot', '.notes', '.swatches', '.sw']],
@@ -519,6 +521,9 @@ const CSS_MATCHERS = [
   ['U37', ['.pl-count']],
   ['U39', ['.rank-grid', '.rk-card', '.rk-emblem', '.rk-copy', '.rk-name', '.rk-sub']],
   ['U40', ['.rank-group']],
+  // 头像一行（.av-box 家族，2026-10-24）：只出现在 #nameSheet 里，随修改浮层实例件 U47；
+  // 图片铺满那一条是跨件原子（顶栏圆 U01 与我的页头部 U42 共用同一条规则），用 CSS_EXC 定到 _base
+  ['U47', ['.av-box', '.av-preview', '.av-acts']],
   ['U42', ['.mine-head', '.mh-art', '.mh-body', '.mh-name', '.mh-sub', '.mh-edit']],
   ['U43', ['.stat-row', '.stat']],
   // .fav-duo / .fc-half：「我喜欢」与「已缓存」合一卡的壳与两半几何，全族样式都在 U44（右半不另开一套）

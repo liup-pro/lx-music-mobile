@@ -122,7 +122,7 @@
 | # | 单元 | parts 件（index.html 行） | app.js 渲染/逻辑 | 固定文案 |
 |---|------|--------------------------|------------------|----------|
 | U66 | `.pl-bg`（blur64+saturate150 氛围层） | songlist-detail/pl-bg.html（L376） | openPlaylist L888 | — |
-| U67 | `.pl-top` `.pl-crumb` `.pl-fav-btn` | songlist-detail/pl-top.html（L377-381，8 元素） | PLD_CRUMB L826 / togglePlFav L1040 | 分类面包屑 |
+| U67 | `.pl-top` `.pl-crumb` `.pl-fav-btn` | songlist-detail/pl-top.html（L377-381，8 元素） | PLD_OWNER L817 / plCrumbOf L838 / togglePlFav L1105 | 分类面包屑（按归属 owner 取，2026-10-24 起不按入口 kind） |
 | U68 | `.pl-hero`（ph-body/ph-sub/ph-meta/sep） | songlist-detail/pl-hero.html（L382） | openPlaylist L888（chartArt 头图） | 「n/m 首可播」「N 首」「N播放」 |
 | U69 | `.pl-actions`（ghost+随机钮） | songlist-detail/pl-actions.html（L383） | PLD_LABELS L848 | 「播放全部 N 首」「随机播放」 |
 | U70 | 详情曲目表（song-list 复用 + `.pl-status` `.pl-end`） | songlist-detail/pl-tracks.html（L384） | renderPlTracks L985 / plStatusRow L1003 / loadPlPage L1011 / plEndRow L845 / PLD_STATUS L842 / PLD_EMPTY L834 / PL_PAGE_SIZE L824 | PLD_STATUS「正在载入下一批…」「这一批没有载入 · 点击重试」「没有更多了」 |
@@ -256,7 +256,7 @@ Art、ArtistCard、Banner、BrandAvatar、CardGrid、ChartArt、Chip、ChipFlow�
 | U68 .pl-hero/ph-* | songlist-detail/pl-hero.html | PlaylistHero.tsx | 1:1 |
 | U69 .pl-actions | songlist-detail/pl-actions.html | **PlActions**（SonglistDetailScreen.tsx L646；钮=GhostButton+IconButton） | 1:1（本轮转正） |
 | U70 详情曲目表 | songlist-detail/pl-tracks.html | PagingStatus(+RunningDots)/PagingEnd + EmptyTip(PLD_EMPTY 三句 const) + SongRow | 1:1 |
-| U71 #plFoot | common-control/foot-note.html（第 5 处根） | FootNote（NEW_UI_PLD_FOOT_NOTE[kind]） | 1:1 |
+| U71 #plFoot | common-control/foot-note.html（第 5 处根） | FootNote（NEW_UI_PLD_FOOT_BY_OWNER[owner]，按归属取） | 1:1 |
 | U72 sourceSheet | sheets/source-sheet.html | Main/sheets/SourceSheet.tsx | 1:1 |
 | U73 plIdSheet | sheets/plid-sheet.html | Main/sheets/PlIdSheet.tsx | 1:1 |
 | U74 createSheet | sheets/create-sheet.html | Main/sheets/CreateListSheet.tsx（+ConfirmSheet 复用） | 1:1 |
