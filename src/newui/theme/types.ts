@@ -96,12 +96,9 @@ export interface ThemeColors {
   miniRing: string
   /** --mini-dot-line：圆点外缘 1px 发丝描边 */
   miniDotLine: string
-  /** --mini-mark-bg：正中那颗 22 状态标的底 */
-  miniMarkBg: string
-  /** --mini-mark-ink：状态标的墨色（播放中三柱 / 暂停三角） */
-  miniMarkInk: string
-  /** --mini-mark-line：状态标的 1px 内描边 */
-  miniMarkLine: string
+  /* 2026-10-26：原 --mini-mark-bg / -ink / -line 三键（贴边态正中那颗 22px 毛玻璃状态标）
+     随 CD 碟面改造退役整组删除——播放中不再渲染状态标，暂停只在中心孔里落一枚 7px 白三角
+     （容器 11×11、透明底、无描边，墨色取 ART_INK.fg）。 */
 }
 
 /** 主题对象：配色方案 + 色板 */

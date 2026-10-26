@@ -58,14 +58,14 @@ export const PALETTES: Record<ThemeScheme, ThemeColors> = {
        真机若确实脏，改的是这条口径记录而不是偷偷改值 */
     lyricGlow: 'rgba(0, 0, 0, 0.55)',
     /* 磁吸圆点那一族（原型 :root L27-35）。与上面 glassPatch 同属「浮在内容上的贴片」，
-       但圆点要透出底下的字，所以底色薄一档（.30 对 .74），另配外圈进度弧底 / 发丝描边 /
-       正中状态标三样。逐值照抄，深浅两套各一档（浅色 .phone.light L1506-1512 单项覆盖）。 */
+       但圆点要透出底下的字，所以底色薄一档（.30 对 .74），另配外圈进度弧底 / 发丝描边两样。
+       逐值照抄，深浅两套各一档（浅色 .phone.light L1506-1512 单项覆盖）。
+       2026-10-26：正中那颗 22px 毛玻璃状态标被 CD 碟面取代（播放中不显示、暂停只在孔里落一枚
+       7px 白三角），原型 --mini-mark-bg / -ink / -line 三键在 RN 侧从此无消费点，整组删除；
+       完整条原本就不画这枚标（原型 base 规则本身就是 opacity:0 + visibility:hidden）。 */
     miniVeil: 'rgba(10, 10, 16, 0.30)',
     miniRing: 'rgba(255, 255, 255, 0.20)',
     miniDotLine: 'rgba(255, 255, 255, 0.22)',
-    miniMarkBg: 'rgba(8, 8, 12, 0.52)',
-    miniMarkInk: '#FFFFFF',
-    miniMarkLine: 'rgba(255, 255, 255, 0.24)',
   },
   light: {
     bg: '#F6F6FA',
@@ -106,14 +106,13 @@ export const PALETTES: Record<ThemeScheme, ThemeColors> = {
     dangerInk: '#C43C2E',
     /** 同 dark 档注释：原型 .phone.light .ln.on 为 rgba(21,22,28,.22)（styles.css L1171，QA D77） */
     lyricGlow: 'rgba(21, 22, 28, 0.22)',
-    /* 磁吸圆点那一族浅色档（.phone.light L1506-1512）：底换成白色薄纱、外圈弧与描边换成深墨，
-       正中状态标反过来（白底深墨）。圆点外框在浅底上靠 miniDotLine 站住轮廓。 */
+    /* 磁吸圆点那一族浅色档（.phone.light L1506-1512）：底换成白色薄纱、外圈弧与描边换成深墨。
+       圆点外框在浅底上靠 miniDotLine 站住轮廓。
+       2026-10-26 同 dark 档：--mini-mark-* 三键随 22px 状态标退役整组删除。
+       CD 碟面那四层（孔 / 纹 / 柔光 / 碟沿）不在此处——它们压在封面图上，两套主题同值，见 ART_INK 与 MINIBAR.cd*。 */
     miniVeil: 'rgba(255, 255, 255, 0.26)',
     miniRing: 'rgba(21, 22, 28, 0.16)',
     miniDotLine: 'rgba(21, 22, 28, 0.16)',
-    miniMarkBg: 'rgba(255, 255, 255, 0.72)',
-    miniMarkInk: '#15161C',
-    miniMarkLine: 'rgba(21, 22, 28, 0.14)',
   },
 }
 
@@ -1626,7 +1625,7 @@ export const MINIBAR = {
   /** `.minibar.is-dragging{opacity:.94}`（styles.css L717）：拖拽中整条微透，交回过渡时复原 */
   dragOpacity: 0.94,
 
-  /* ---- 磁吸圆点（.minibar.is-snapped，styles.css L728-795）----
+  /* ---- 磁吸圆点（.minibar.is-snapped，styles.css L727-864，含 2026-10-24 的 CD 碟面那一族）----
    * 完整条与圆点是同一只条的两形态：完整条 58 高 / 20 圆角 / 左右各留 12；
    * 圆点是「正圆 + 离屏边 3」贴在屏幕上，点一下展开回完整条（不直接进播放页）。 */
   /** --mini-dot:56px（`.wide .minibar{--mini-dot:52px}`，styles.css L1446；Pad 那档 60，本 App 无 Pad 档不做） */
@@ -1639,15 +1638,57 @@ export const MINIBAR = {
   snappedArtInset: 4,
   /** `.is-snapped::after` 的 mask：100%−2.1 → 100%−1.8，即贴外缘的 2px 环带 */
   snappedRingWidth: 2,
-  /** `.is-snapped .mini-dock-mark{width:22px;height:22px}` */
-  snappedMarkSize: 22,
-  /** `.mini-dock-mark .ic{width:10px}`（暂停那一枚静三角） */
-  snappedMarkIcon: 10,
-  /** 正中状态标里三柱的尺寸（`.mini-dock-mark .eq`：高 11 / gap 1.5，与行内 .eq 同一族）。
-   *  gap 与 SONG_ROW.eqGap 同值，但按「一选择器一登记」留在这里：对账脚本要在这块数值池里
-   *  找得到 1.5，删掉它就报 B 类缺值（实测过）。 */
+  /** `.mini-dock-mark .eq{height:11px;gap:1.5px}`（L861）：完整条那颗状态标里三柱的度量。
+   *  **本轮不动完整条那颗标**（它还没在 RN 落地），这两个值因此暂时没有消费点，但不能删：
+   *  它们是上面那条共享规则（完整条 / 贴边两态同一份 .eq 声明）的直译，
+   *  且 gap 1.5 是对账脚本数值池里的登记值 —— 2026-10-26 实删过一次，parity 立刻报
+   *  `common-control/minibar .mini-dock-mark .eq { gap: 1.5px }` 的 B 类缺值。
+   *  彻底清掉的前提是完整条那颗标落地（届时它自己会消费这两档），或对账脚本给这条选择器做豁免，
+   *  两件都不在本轮范围，故按「先 grep 再权衡」保留。 */
   snappedEqHeight: 11,
   snappedEqGap: 1.5,
+
+  /* ---- 贴边态那张「在转的 CD」（2026-10-26；原型 `--mini-cd-*` :root L40-45 +
+     `.minibar.is-snapped .mini-art` / `::before` / `::after`，styles.css L796-826）----
+   * 碟面 = 原来那张封面（直径 − 8）上压四层光学件：中心孔 / 两道同心纹 / 一道柔光带 / 碟沿。
+   * 四层压在**封面图上**、不压在页面底色上，所以跟播放页 `.disc` 同一口径：深浅两套同值，不随主题反相
+   * （原型注释：浅色主题下这四层底下压的仍是封面，反相成叠黑反而糊成一块灰）。
+   * 故颜色只登记浓度、基色一律取 ART_INK（白 fg / 黑 veil），不进色板。 */
+  /** `.mini-art{animation:spin 12s linear infinite}`（L796-801）：一圈 12s 匀速；
+   *  播放页那张 `.disc` 是 22s（MOTION.discSpin），48 的小碟走更短一圈 */
+  cdSpinMs: 12000,
+  /** `.mini-art::after{inset:38%}`（L823-826）→ 孔直径 = 碟径 × 24%（与 PLAYER.discHoleRatio 同源同值） */
+  cdHoleRatio: 0.24,
+  /** --mini-cd-hole:rgba(0,0,0,.55)（孔底；与 .disc::after 逐字相同） */
+  cdHoleAlpha: 0.55,
+  /** --mini-cd-hole-line:rgba(255,255,255,.12)（孔内 1px 高光，同为 .disc 那一档） */
+  cdHoleRingAlpha: 0.12,
+  /** --mini-cd-groove:rgba(255,255,255,.09)：两道同心纹共用的线色浓度 */
+  cdGrooveAlpha: 0.09,
+  /** 两道纹的半径占**碟半径**的比例（原型 radial-gradient closest-side 的 62% / 84%），线宽各 1px */
+  cdGrooveInnerRatio: 0.62,
+  cdGrooveOuterRatio: 0.84,
+  cdGrooveWidth: 1,
+  /** --mini-cd-rim:rgba(255,255,255,.18)：碟沿 1px（与外圈 miniDotLine 分开：那是圆点的边，这是碟的边） */
+  cdRimWidth: 1,
+  cdRimAlpha: 0.18,
+  /** --mini-cd-sheen:rgba(255,255,255,.20)：
+   *  `linear-gradient(115deg,transparent 24%,白.20 44%,transparent 64%)`。
+   *  三停点各给一档透明度与位置（基色取 ART_INK.fg 由组件合成，不写 'transparent' 关键字——
+   *  Android 的 LinearGradient 把 transparent 当 rgba(0,0,0,0)，插值会带出灰黑）；
+   *  start/end 是按 CSS 115° 算出的渐变线两端（单位方框坐标，115° = 下行偏右：
+   *  方向向量 (sin115°,−cos115°) ≈ (.9063,.4226)，方框边长 S 时半线长 S(.9063+.4226)/2 = .6645S，
+   *  于是 start = (.5−.6022, .5−.2808) / end = (.5+.6022, .5+.2808)，可反过来代回 CSS 验算） */
+  cdSheenAlphas: [0, 0.2, 0],
+  cdSheenStops: [0.24, 0.44, 0.64],
+  cdSheenStart: { x: -0.1, y: 0.22 },
+  cdSheenEnd: { x: 1.1, y: 0.78 },
+  /** 暂停时孔里那枚静三角（`.minibar.is-snapped .mini-dock-mark` 11×11 + `.ic` 7，L846-854 / L860）：
+   *  容器透明底、无描边、无模糊，墨色取 ART_INK.fg（--mini-cd-ink:#fff，两套主题同值） */
+  cdMarkSize: 11,
+  cdMarkIcon: 7,
+  /** `.minibar.is-snapped .mini-dock-mark .ic{margin-left:1px}`：静三角的视觉居中补偿 */
+  cdMarkIconOffset: 1,
   /** `--mini-morph:.18s`（styles.css L692，2026-10-24 由 .2s 收窄）：两态互相变形的时长。
    *  切 Tab / 进出推入层那几条重置路径不走它——那几帧整页刚重铺，一律一帧落位（见 MinibarHost.applySnap）。 */
   morphMs: 180,

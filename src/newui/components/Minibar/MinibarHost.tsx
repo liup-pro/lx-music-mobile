@@ -258,8 +258,13 @@ export const MinibarHost = ({
   useEffect(() => {
     let alive = true
     const subscription = Navigation.events().registerComponentListener({
+      componentDidAppear: () => {
+        if (alive) setScreenVisible(true)
+      },
       componentDidDisappear: () => {
         if (!alive) return
+        // 被上层屏盖住 / 本屏退场：圆点不可见，碟面停转（挂点仍挂载，不能靠卸载来停）
+        setScreenVisible(false)
         if (AppState.currentState !== 'active') return
         // 离开本屏也算「进了一页」：只落位，不跑 morph（与切 Tab 同口径）
         applySnap(defaultSnappedRef.current, true)
@@ -298,6 +303,8 @@ export const MinibarHost = ({
    * 换曲不触发：整段只认 `hasSong` 这一个开关。
    */
   const [contentShown, setContentShown] = useState(view != null)
+  // 本屏是否在最前（RNN 被盖住的屏不卸载）：圆点碟面只在「贴边 + 本屏可见」时转
+  const [screenVisible, setScreenVisible] = useState(true)
   const [slide] = useState(() => new Animated.Value(view != null ? 1 : 0))
   const [fade] = useState(() => new Animated.Value(view != null ? 1 : 0))
 
@@ -502,6 +509,7 @@ export const MinibarHost = ({
               artSeed={view.artSeed}
               artUri={view.artUri}
               playing={view.playing}
+              active={snapped && screenVisible}
               ratio={view.ratio}
               size={dotSize}
               onPress={handleSnappedPress}
