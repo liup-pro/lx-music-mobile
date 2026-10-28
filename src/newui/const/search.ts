@@ -25,6 +25,24 @@ export const NEW_UI_SEARCH_LABELS = {
 /** 热搜词条显示上限（真实列表是各平台合并，屏上取前 10 个足够） */
 export const NEW_UI_SEARCH_HOT_LIMIT = 10
 
+/**
+ * 搜过的词留存条数（原型 `searchHistory` 定长 8：
+ * 读时 `slice(0, 8)`（app.js L3548）、记词时 `length = Math.min(length, 8)`（L3568））。
+ */
+export const NEW_UI_SEARCH_HISTORY_LIMIT = 8
+
+/**
+ * 一条历史都没有时那一行 `.empty-tip`（原型 renderSearchIdle 的 else 支，
+ * app.js L3599 逐字：「不塌成空白，也不摆『暂无数据』那种话」）。
+ */
+export const NEW_UI_SEARCH_HISTORY_EMPTY = '还没有搜过的词 · 输入歌名或歌手就能搜'
+
+/**
+ * 「清空」文字链的无障碍文案（原型该钮是 close 图标 + 纯文字，没有 aria-label，这句 RN 侧自补）。
+ * 同屏输入框内还有一颗清除钮（`clearLabel="清空输入"`），两颗都叫「清空」读屏分不开，这句带上范围。
+ */
+export const NEW_UI_SEARCH_CLEAR_HISTORY_LABEL = '清空搜索历史'
+
 /** 热搜拉取失败 / 为空时的说明（原型 mock 恒有词，真实数据需要一个如实的空态） */
 export const NEW_UI_SEARCH_HOT_EMPTY = '热搜暂时载入失败 · 直接输入关键词搜索'
 

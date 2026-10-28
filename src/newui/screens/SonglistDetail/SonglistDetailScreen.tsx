@@ -189,6 +189,19 @@ export const SonglistDetailScreen = ({
   // 翻页请求在途（2026-10-15 触底补强配套）：同一拍里原生 onEndReached 与我们的补判
   // 可能先后落到 handleEndReached，status 还没翻新时靠这道闸挡住重复取同一页
   const pageBusyRef = useRef(false)
+  // —— 翻页游标收回本屏自己手里（2026-10-28 todo 第 3 条「偶尔只铺一屏、下滑不再加载」）——
+  // 原先本屏不记账，每次触底都去读那份**进程内全局共享、会被就地改写**的分页仓
+  // （store/songlist 或 store/leaderboard 的 listDetailInfo）反推页码，还拿它跟入口坐标做身份比对。
+  // 仓被首页失败那条兜底清空后（id='' / source='kw' / page=1 / maxPage=1），比对必然对不上，
+  // loadNext 就静默 return——屏幕停在已到手的那一批，滑到底什么都不发生，且永不复活（只能杀进程）。
+  // pageRef：本屏最后一次**成功**取到第几页（0 = 首屏还没落过页）；失败不推进，重试打的还是同一页。
+  const pageRef = useRef(0)
+  // maxPageRef：平台报的总页数快照（成功时写），判「还有没有下一页」只看本屏这一份，不吃仓里的值
+  const maxPageRef = useRef(0)
+  // reqSeqRef：请求代次令牌，写法照同项目先例 src/newui/hooks/usePlaylistPool.ts:105/:117。
+  // 只有最新一代的 settle 才允许落 state / 推游标 / 复位闸门；迟到响应（连点重试留下的旧请求、
+  // 30 秒超时后才落地的、effect 重跑作废旧批）整份作废，不会再出现「旧失败把新页码冲掉」的残留
+  const reqSeqRef = useRef(0)
   // 收藏全量导入进行中标记（防连点重复抓全量，见 handleFavPress）
   const favBusyRef = useRef(false)
   // 删除已确认落库标记：置真后本页不再回读这张已经不存在的单子（见 loadLocalList / handleDeletePress）
@@ -214,6 +227,8 @@ export const SonglistDetailScreen = ({
   const loadPage = useCallback((page: number) => {
     // local 形态整单一次取全（见 loadLocalList），不进平台分页 API
     if (isLocal || info == null) return
+    // 代次令牌：本次请求的身份，四个 settle 回调开头都按它作废过期响应（见 reqSeqRef 注释）
+    const seq = ++reqSeqRef.current
     pageBusyRef.current = true
     setStatus('loading')
     if (isRank) {
@@ -221,18 +236,25 @@ export const SonglistDetailScreen = ({
       // 超时护栏（QA D-08）：脚本/网络挂死时 Promise 可能永不 settle，到限走既有 error 分支给重试入口
       void withTimeout(getBoardListDetail(info.id, page), NEW_UI_PLD_LOAD_TIMEOUT_MS)
         .then(result => {
-          if (isUnmountedRef.current) return
+          if (seq !== reqSeqRef.current) return
+          // 闸门复位排在卸载判定**之前**（第 3 条）：旧写法把复位写在 isUnmounted 之后，
+          // 页面还活着而这一发是重挂载/重跑 effect 之前的迟到响应时，闸门被永久留在「在途」
           pageBusyRef.current = false
+          if (isUnmountedRef.current) return
           // 与旧榜单视图 MusicList 同款：合并写回 leaderboard 分页 store 后取快照落 state
           const merged = setBoardListDetail(result, info.id, page)
           setTotal(merged.total)
           setTracks([...merged.list])
+          pageRef.current = page
+          maxPageRef.current = merged.maxPage
           setStatus(merged.maxPage <= page ? 'end' : 'idle')
         })
         .catch(() => {
-          if (isUnmountedRef.current) return
+          if (seq !== reqSeqRef.current) return
           pageBusyRef.current = false
-          // 首页失败且 store 里已有残页时清掉，避免下页错位（旧 MusicList 同款兜底）
+          if (isUnmountedRef.current) return
+          // 首页失败且 store 里已有残页时清掉，避免下页错位（旧 MusicList 同款兜底）。
+          // 本屏不再拿这份仓当翻页依据，清不清都不影响续取，故原样保留
           if (boardState.listDetailInfo.list.length && page == 1) clearBoardListDetail()
           setStatus('error')
         })
@@ -241,12 +263,15 @@ export const SonglistDetailScreen = ({
     // 超时护栏（QA D-08）：同上，平台歌单明细取数到限推到 error 分支
     void withTimeout(getListDetail(info.id, info.source, page), NEW_UI_PLD_LOAD_TIMEOUT_MS)
       .then(result => {
-        if (isUnmountedRef.current) return
+        if (seq !== reqSeqRef.current) return
         pageBusyRef.current = false
+        if (isUnmountedRef.current) return
         // setListDetail 返回的就是 store 对象本体，取快照落 state（分页合并 / 去重已在 store 内做）
         const merged = setListDetail(result, info.id, page)
         setTotal(merged.total)
         setTracks([...merged.list])
+        pageRef.current = page
+        maxPageRef.current = merged.maxPage
         setHeaderInfo({
           name: info.name || merged.info.name || '',
           desc: merged.info.desc || info.desc || '',
@@ -260,8 +285,9 @@ export const SonglistDetailScreen = ({
         setStatus(merged.maxPage <= page ? 'end' : 'idle')
       })
       .catch(() => {
-        if (isUnmountedRef.current) return
+        if (seq !== reqSeqRef.current) return
         pageBusyRef.current = false
+        if (isUnmountedRef.current) return
         // 与旧 MusicList 同款兜底：首页失败且 store 里已有残页时清掉，避免下页错位
         if (songlistState.listDetailInfo.list.length && page == 1) clearListDetail()
         setStatus('error')
@@ -292,6 +318,11 @@ export const SonglistDetailScreen = ({
   useEffect(() => {
     if (isLocal || info == null) return
     isUnmountedRef.current = false
+    // 本屏游标随进层归零：从第 1 页重取（原型 app.js L933-941「换单子从第一页重取」同一取向）。
+    // 闸门也一并放开：上一代在途请求会被 loadPage(1) 的代次令牌作废，没人再替它复位
+    pageRef.current = 0
+    maxPageRef.current = 0
+    pageBusyRef.current = false
     if (isRank) setBoardListDetailInfo(info.id)
     else setListDetailInfo(info.source, info.id)
     void loadPage(1)
@@ -319,22 +350,36 @@ export const SonglistDetailScreen = ({
   }, [isLocal, listId, loadLocalList])
 
   const loadNext = useCallback(() => {
-    // local 形态整单在手，无下一页可言
+    // local 形态整单在手，无下一页可言（它的页脚恒为「没有更多了」或失败重读那一档，看得见）
     if (isLocal || info == null) return
-    if (isRank) {
-      const cached = boardState.listDetailInfo
-      if (cached.id !== info.id) return
-      const page = cached.list.length ? cached.page + 1 : 1
-      if (cached.maxPage <= page) return
-      void loadPage(page)
+    // 在途闸门（同 usePlaylistPool.ts:189）：这一条什么都不发，但此刻页脚正在转「正在载入下一批…」
+    if (pageBusyRef.current) return
+    // 页码由本屏自己记（第 3 条核心，不再从共享分页仓反推、也不再跟它比身份）：游标只在
+    // 「本页成功落定」时推进，所以这里要么重取那一页还没到手的（首屏失败过一次 → 仍是 0 → 重打第 1 页），
+    // 要么续下一页；不会越过第 1 页去要第 2 页（core 的页缓存按「上一页」推源页，跳页会整页漏歌）
+    const page = pageRef.current + 1
+    // 判到「没有下一页」显式收尾 end（第 3 条：任何 return 都不许静默）——
+    // 让用户看到「没有更多了」那一行，而不是对着列表尾什么都不发生。
+    // maxPageRef 只在成功时写，为 0 说明本屏还没落过页，不参与判定
+    if (maxPageRef.current > 0 && maxPageRef.current <= page) {
+      setStatus('end')
       return
     }
-    const cached = songlistState.listDetailInfo
-    if (cached.id !== info.id || cached.source !== info.source) return
-    const page = cached.list.length ? cached.page + 1 : 1
-    if (cached.maxPage <= page) return
     void loadPage(page)
-  }, [info, isLocal, isRank, loadPage])
+  }, [info, isLocal, loadPage])
+
+  /** 首屏失败的重试入口（页脚那行 EmptyTip）：闸门挡住「连点重试留下两条第 1 页请求并存」——
+   * 这正是第 3 条死锁的第二条入口（后发的那条先成功、先发的那条 30 秒后才超时落地，把仓里的残页清空；
+   * 现在代次令牌已让旧请求整份作废，这里再少发一发没必要的请求） */
+  const handleRetryPress = useCallback(() => {
+    if (pageBusyRef.current) return
+    // local 形态重读本地整单（loadPage 不吃 local），与旧行为一致
+    if (isLocal) {
+      loadLocalList()
+      return
+    }
+    void loadPage(1)
+  }, [isLocal, loadLocalList, loadPage])
 
   const handleEndReached = useCallback(() => {
     if (pageBusyRef.current) return
@@ -722,7 +767,8 @@ export const SonglistDetailScreen = ({
   // 2026-10-15 起静态转圈换动画标识，请求发出到数据回来的整个窗口持续跳动）；handleEndReached
   // 已按 status + pageBusyRef 挡重入，翻页在途不会再发下一页。
   // end：全量列完收一行「没有更多了」再落页脚说明（pl-end + #plFoot 原型两物同在，一屏列完的
-  // 短单子也如实收尾，不留「对着空白猜还在不在加载」的列表尾）。
+  // 短单子也如实收尾，不留「对着空白猜还在不在加载」的列表尾）。这一档现在有两个来源：
+  // 取回末页时成功回调直接写 end；本屏判到「没有下一页」时 loadNext 也显式补一次 end（2026-10-28 第 3 条）。
   // error（已载过首批）：裸文字可点的重试行（brand + 700），点一下接着取同一页。
   const listFooter = (
     <View>
@@ -751,8 +797,9 @@ export const SonglistDetailScreen = ({
             <PagingStatus text={NEW_UI_PLD_STATUS.loadMoreError} onPress={loadNext} />
           )
           : (
-            // 首屏失败重试：平台形态重取第 1 页，local 形态重读本地整单（loadPage 不吃 local）
-            <Pressable onPress={() => { isLocal ? loadLocalList() : void loadPage(1) }}>
+            // 首屏失败重试：平台形态重取第 1 页，local 形态重读本地整单（loadPage 不吃 local）；
+            // 走统一入口，连点不再留下两条并存的首页请求（见 handleRetryPress）
+            <Pressable onPress={handleRetryPress}>
               <EmptyTip variant="layer" text={isLocal ? NEW_UI_PLD_EMPTY.localError : NEW_UI_PLD_EMPTY.error} />
             </Pressable>
           ))}

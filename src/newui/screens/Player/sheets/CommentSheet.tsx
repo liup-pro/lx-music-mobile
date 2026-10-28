@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View, type ListRenderItem } from 'react-na
 
 import { filterList, getHotComment, type Comment } from '@/screens/Comment/utils'
 
-import { QTag, Sheet } from '@/newui/components'
+import { PagingEnd, QTag, Sheet } from '@/newui/components'
 import { NEW_UI_SHEET_COMMENT } from '@/newui/const'
 import { COMMENT, FONT_SIZE, FONT_WEIGHT, SHEET, useTheme } from '@/newui/theme'
 import { formatCount } from '@/newui/utils'
@@ -190,22 +190,36 @@ export const CommentSheet = ({ visible, musicInfo, onClose, bottomInset }: Comme
     </View>
   )
 
-  // 尾部 cell：分页状态行（旧 List.tsx L108-127 Footer 的等价物），失败可点重试，三句文案不变
+  /**
+   * 尾部 cell（旧 List.tsx L108-127 Footer 的等价物）。三档互斥、同一位置只出一行
+   * （原型 paintComments 的 if / else 链，app.js L3228-L3236）：
+   * - 列到热门评论尽头 → **全站共用收行 `PagingEnd`**（原型 `plEndRow(CMT_TXT.moreEnd, 'cmt-status')`，
+   *   app.js L3230）：形状与居中跟着 `styles.css` 那条 `.pl-end` 共用规则走，文案仍是这一列自己那句
+   *   「热门评论到此为止」（`const/sheet.ts` 的 moreEnd，一个字没改）。改前这一档是手搓的块级左对齐文字，
+   *   而它上面两态本来就是居中的状态行——同一列尾巴一居中一靠左，本轮统一（todo-list 第 2 条）。
+   * - 正在翻 / 上一页没翻到 → 状态行（失败可点重试），两句文案不变。
+   * - 其余（idle）→ 什么都不摆，滚到底自己去取。
+   */
   const listFooter =
-    phase === 'ready' && comments.length > 0 && moreState !== 'idle' ? (
-      <Pressable
-        onPress={moreState === 'error' ? handleLoadMore : undefined}
-        hitSlop={8}
-        style={({ pressed }) => [styles.more, pressed ? styles.pressed : null]}
-        accessibilityRole={moreState === 'error' ? 'button' : undefined}
-      >
-        <Text style={[styles.moreText, { color: theme.colors.text3 }]}>
-          {moreState === 'loading' && NEW_UI_SHEET_COMMENT.moreLoading}
-          {moreState === 'end' && NEW_UI_SHEET_COMMENT.moreEnd}
-          {moreState === 'error' && NEW_UI_SHEET_COMMENT.moreError}
-        </Text>
-      </Pressable>
-    ) : null
+    phase === 'ready' && comments.length > 0
+      ? moreState === 'end'
+        ? <PagingEnd text={NEW_UI_SHEET_COMMENT.moreEnd} />
+        : moreState === 'idle'
+          ? null
+          : (
+            <Pressable
+              onPress={moreState === 'error' ? handleLoadMore : undefined}
+              hitSlop={8}
+              style={({ pressed }) => [styles.more, pressed ? styles.pressed : null]}
+              accessibilityRole={moreState === 'error' ? 'button' : undefined}
+            >
+              <Text style={[styles.moreText, { color: theme.colors.text3 }]}>
+                {moreState === 'loading' && NEW_UI_SHEET_COMMENT.moreLoading}
+                {moreState === 'error' && NEW_UI_SHEET_COMMENT.moreError}
+              </Text>
+            </Pressable>
+            )
+      : null
 
   return (
     <Sheet

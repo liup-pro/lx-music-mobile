@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 
-import { clearHistoryList, getSearchHistory, addHistoryWord } from '@/core/search/search'
 import { search as searchMusic } from '@/core/search/music'
 import { search as searchSonglist } from '@/core/search/songlist'
 import { getList as getHotSearchList } from '@/core/hotSearch'
@@ -32,6 +31,12 @@ import { normalizeSearchListInfoItem, playQueue, requestNewUiTab, showNewUiToast
 
 import { SearchIdlePanel } from './SearchIdlePanel'
 import {
+  clearSearchHistory,
+  peekSearchHistory,
+  readSearchHistory,
+  rememberSearchWord,
+} from './searchHistory'
+import {
   SearchResultPanel,
   SearchTabs,
   type NewUiSearchTab,
@@ -47,7 +52,9 @@ export interface SearchScreenProps {
  * styles.css L776-808）。
  * 全屏右推屏幕（转场见 navigation/entry.ts 的 pushNewUiSearch，复刻 .pl-layer 的 translateX 100%→0 / .44s）。
  * 数据全部走既有核心：core/search/music + core/search/songlist（'all' 合并搜索）、
- * core/search/search（历史）、core/hotSearch（热搜）；动作为既有 playQueue / pushNewUiSonglistDetail（阶段 9c 换线）。
+ * core/hotSearch（热搜）；「搜过的词」走本目录 searchHistory.ts（读写 `@/utils/data` 同格存储，
+ * 绕开 core/search/search 里那枚只属于旧 UI 的 `search.isShowHistorySearch` 写闸，见该文件头注）。
+ * 动作为既有 playQueue / pushNewUiSonglistDetail（阶段 9c 换线）。
  * 与原型差异：真实搜索是异步的，补 loading 态；结果按提交（回车 / 点词）触发，不做逐字本地过滤。
  * 2026-10-15（拆件转正轮）：`.sc-top` 原内联单元转正为独立组件 SearchTop，渲染零变化、接线原样。
  */
@@ -69,7 +76,8 @@ export const SearchScreen = ({ componentId }: SearchScreenProps) => {
   const [loading, setLoading] = useState(false)
   const [songs, setSongs] = useState<LX.Music.MusicInfoOnline[]>([])
   const [pls, setPls] = useState<ListInfoItem[]>([])
-  const [history, setHistory] = useState<string[]>([])
+  // null = 还没从本机读完（冷启动首帧）：先不渲染历史区，避免闪一下空态那行
+  const [history, setHistory] = useState<string[] | null>(peekSearchHistory)
   const [hotWords, setHotWords] = useState<string[]>([])
 
   const inputRef = useRef<TextInput>(null)
@@ -84,9 +92,11 @@ export const SearchScreen = ({ componentId }: SearchScreenProps) => {
   }, [songs])
 
   // —— 空输入态的两组词：历史 + 真实热搜（进页取一次） ——
+  // 本屏每次打开都是新挂载（push/pop 整层），所以「进页读一次」就等于「每次都读最新」；
+  // 历史走本目录的 searchHistory 适配层（见该文件头注：新 UI 不依赖旧 UI 那枚历史开关）
   useEffect(() => {
     void (async () => {
-      setHistory(await getSearchHistory())
+      setHistory(await readSearchHistory())
     })()
     void (async () => {
       try {
@@ -123,8 +133,8 @@ export const SearchScreen = ({ componentId }: SearchScreenProps) => {
     setText(word)
     setQuery(word)
     void (async () => {
-      await addHistoryWord(word)
-      setHistory(await getSearchHistory())
+      // 记词：提到最前、去重、截 8 条并写回本机，返回值即写后的最新列表（省一次读）
+      setHistory(await rememberSearchWord(word))
     })()
     runSearch(word)
     // 换词时的初始 tab：下面两个结果长度要读最新值，统一在 allSettled 回调里判定更稳，
@@ -238,10 +248,10 @@ export const SearchScreen = ({ componentId }: SearchScreenProps) => {
     setText(value)
   }, [resetToIdle])
 
+  /** 清空整区（原型 .sc-clear：清完写回本机空数组，重启不回魂，见 searchHistory.ts） */
   const handleClearHistory = useCallback(() => {
-    clearHistoryList()
     void (async () => {
-      setHistory(await getSearchHistory())
+      setHistory(await clearSearchHistory())
     })()
   }, [])
 

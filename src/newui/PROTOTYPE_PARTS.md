@@ -5,7 +5,7 @@
 
 ## 无损校验数字（本次生成实测，运行时断言）
 
-- index.html 元素：原件 **1652** = 各件持有之和 **1652**（重复 0 / 丢失 0 / 无归属 0）。
+- index.html 元素：原件 **1713** = 各件持有之和 **1713**（重复 0 / 丢失 0 / 无归属 0）。
 - styles.css 规则：原件 **774** 条 = 各件收纳之和 **774**；选择器 **806** 个，逐条唯一归属（@media 3 块整体归 _chrome，@keyframes 按登记表归属）。
 - app.js：只读；件头注释的符号行号在运行时实探，符号缺失即报错退出。
 - 四个原型文件（index.html / styles.css / app.js / data.js）零改动。
@@ -15,7 +15,7 @@
 | 单元 | 件（相对 parts/） | 持有元素 | 收纳规则 | 一句话 |
 |---|---|---|---|---|
 | 壳层 | `_shell` | 16 | 5 | 文档壳与页面骨架：html/head/body、#viewport、五只 .page |
-| V1–V4 | `_chrome` | 1095 | 214 | 查看器 chrome |
+| V1–V4 | `_chrome` | 1156 | 214 | 查看器 chrome |
 | U01 | `common-control/topbar` | 12 | 9 | .topbar 吸顶头部 |
 | U02 | `common-control/icon-btn` | 0 | 0 | .icon-btn 圆钮原子 |
 | U03 | `common-control/pulse-dot` | 0 | 3 | .pulse-dot 音源告警呼吸点 |

@@ -7,8 +7,10 @@ import { CoverWash } from '@/newui/components/CoverWash'
 import { EmptyTip } from '@/newui/components/EmptyTip'
 import { GhostButton } from '@/newui/components/GhostButton'
 import { MinibarHost } from '@/newui/components/Minibar'
+import { PagingEnd } from '@/newui/components/PagingEnd'
 import { PagingStatus } from '@/newui/components/PagingStatus'
 import { PlTop } from '@/newui/components/PlTop'
+import { NEW_UI_PAGING_END_TEXT } from '@/newui/const/app'
 import { newUiPodArtSeed } from '@/newui/const/radio'
 import {
   NEW_UI_POD_DETAIL_LABELS,
@@ -64,11 +66,14 @@ export interface PodcastDetailScreenProps {
  * → 固定段 `.pl-head`（本屏装顶排 + `.pl-hero` + `.pl-actions` + `.ep-head`）→ 滚动段**就是 `.ep-list` 自己**」：
  * - 钉住段（`View{flex:none}`，含状态栏预留 `PL_LAYER.paddingTopReserve`，判例 `SonglistDetailScreen.tsx:608-612`）：
  *   顶排 `PlTop` + `PodcastHero` + 那颗「继续播放 / 播最新单集」+「单集」小标题；
- * - 轴（`FlatList{flex:1}`）：**只有 `.ep-row`**，`contentContainerStyle` 走 `#podcastLayer>.ep-list{padding:6px 16px 34px}`。
+ * - 轴（`FlatList{flex:1}`）：**只有 `.ep-row`** + 尾巴那一行收行（`PagingEnd`，见 `axisFooter`），
+ *   `contentContainerStyle` 走 `#podcastLayer>.ep-list{padding:6px 16px 34px}`。
  *
  * **单集列不分页、不触底、没有「加载更多」**（件头：接口给多少集就列多少集；③ 的 `entity` 不支持 offset，
  * 一批给回的就是全部）。但**仍然虚拟化**：一次 50 条带摘要的行足够压垮挂载数（用户整轮要求）。
  * 选型按对撞 7.5 的拍板走 `FlatList`（不引入 FlashList、不用 `PageListView`、不开 `removeClippedSubviews`）。
+ * 尾巴仍按原型收一行「没有更多了」（app.js L2246-L2251，todo-list 第 2 条补齐）：不分页不等于不收行，
+ * 滚到底要能确认「最近这些就是全部」。
  */
 export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenProps) => {
   const theme = useTheme()
@@ -300,6 +305,25 @@ export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenPr
     </View>
   )
 
+  /**
+   * 轴尾收行（原型 app.js L2246-L2251：`show.episodes.forEach(...)` 铺完之后
+   * `list.appendChild(plEndRow())` —— 逐字「这一批取回的单集一次铺完（不分页），但列表尾照样收一行
+   * 『没有更多了』：滚到底要能确认『最近这些就是全部』」）。
+   *
+   * **收行条件必须真实**（不许一进屏就写「没有更多了」）：这一屏没有分页、也没有「取完」的页码，
+   * 「就这些」这个事实只在**这一批真的取回来**之后才成立。所以三档一起判：
+   * - `episodes.length === 0` → 不摆（首屏取数中 / 取失败 / 真的一集都没有，三种都由轴内的
+   *   `axisEmpty` 说话；这时收行会变成「对着空气说就这些」）；
+   * - `detail.loading` → 不摆（重试会把 loading 抬起而 `episodes` 还留着上一批，此时收行是旧结论）；
+   * - `detail.failed` → 不摆（失败态归状态行，收行与它不许同屏争同一句话）。
+   * 三者都过了 = 接口这一批已经落在手里、且没有任何在途/失败，此时「没有更多了」才是真的。
+   * 与状态行互斥（可见性条件与 `axisEmpty` 完全不相交），所以屏上永远只有一行尾巴（todo-list 第 2 条）。
+   */
+  const axisFooter = useMemo(() => {
+    if (episodes.length === 0 || detail.loading || detail.failed) return null
+    return <PagingEnd text={NEW_UI_PAGING_END_TEXT} />
+  }, [detail.failed, detail.loading, episodes.length])
+
   return (
     <View
       nativeID="newui.podcast.content"
@@ -320,8 +344,9 @@ export const PodcastDetailScreen = ({ componentId, show }: PodcastDetailScreenPr
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListEmptyComponent={axisEmpty}
+        ListFooterComponent={axisFooter}
         // 虚拟化参数照 SonglistDetailScreen.tsx:717-740 那组现成判例（本列不分页，所以没有
-        // onEndReached / 没有 footer：一批给回的就是全部）
+        // onEndReached；尾巴只有一行「没有更多了」收行，见 axisFooter）
         initialNumToRender={10}
         maxToRenderPerBatch={14}
         windowSize={9}
