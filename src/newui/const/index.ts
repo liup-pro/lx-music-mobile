@@ -77,6 +77,7 @@ export {
   newUiPlayerApiSourceText,
   newUiPlayerLoopAria,
 } from './player'
+export { NEW_UI_MINIBAR_LABELS, NEW_UI_MINIBAR_TXT } from './minibar'
 export {
   NEW_UI_SHEET_COMMENT,
   NEW_UI_SHEET_TIMER,

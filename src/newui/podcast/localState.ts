@@ -221,6 +221,15 @@ export const savePodProgress = (id: string, idx: number, left: number): void => 
   notify()
 }
 
+/**
+ * 把进度表**再写一次并等它落地**（远控 Stop / 退出应用之前用）。
+ * `persistProgress()` 是发出去就不管的（写失败也不影响本次会话），但出口那条路径紧接着
+ * 就会 `destroyPlayer()` + 退出进程，不 await 就可能连写请求一起没掉——所以这里单独给一个可等的口。
+ */
+export const flushPodProgress = async(): Promise<void> => {
+  await AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)).catch(() => {})
+}
+
 /* ================= 三、搜过的词 newui.podSearchHistory ================= */
 
 /** 搜词快照（新词在前，最多 8 条） */

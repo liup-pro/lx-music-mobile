@@ -25,6 +25,7 @@ export const resolveScheme = (mode: ThemeMode): ThemeScheme =>
 
 /** 出厂缺省档 = ThemeProvider 的 useState('light')，快照初值与之对齐 */
 const DEFAULT_SCHEME: ThemeScheme = 'light'
+const DEFAULT_MODE: ThemeMode = 'light'
 
 let cachedScheme: ThemeScheme = DEFAULT_SCHEME
 
@@ -35,11 +36,30 @@ export const cacheNewUiScheme = (scheme: ThemeScheme) => {
 
 export const getCachedNewUiScheme = (): ThemeScheme => cachedScheme
 
+/**
+ * 冷启动持久化 mode 快照（D-12：消除首帧浅色→深色切换）。
+ * setNewUiRoot 在 setRoot 之前 await AsyncStorage 拿到用户真实选择后写入，
+ * ThemeProvider 的 useState 初始值同步读这里——这样第一帧 token 就落在正确主题。
+ * 初值 null 表示「冷启动尚未读过」，ThemeProvider 回退 DEFAULT_MODE 兜底。
+ */
+let persistedInitialMode: ThemeMode | null = null
+
+/** setNewUiRoot 读完 AsyncStorage 后同步存入；也由 ThemeProvider 的 useEffect 覆盖（同值不触发 re-render） */
+export const setPersistedInitialMode = (mode: ThemeMode) => {
+  persistedInitialMode = mode
+}
+
+/** ThemeProvider useState 同步读此值做初始 state */
+export const getPersistedInitialMode = (): ThemeMode | null => persistedInitialMode
+
 /** 冷启动读持久化模式并解析成 scheme；读失败/无存值回出厂缺省档（与 ThemeProvider 兜底一致） */
 export const readPersistedNewUiScheme = async (): Promise<ThemeScheme> => {
   try {
     const saved = await AsyncStorage.getItem(NEW_UI_THEME_STORAGE_KEY)
-    return isThemeMode(saved) ? resolveScheme(saved) : DEFAULT_SCHEME
+    const mode = isThemeMode(saved) ? saved : DEFAULT_MODE
+    // 同步存入模块级快照，供 ThemeProvider 同步 useState 初始值读取
+    persistedInitialMode = mode
+    return resolveScheme(mode)
   } catch {
     return DEFAULT_SCHEME
   }

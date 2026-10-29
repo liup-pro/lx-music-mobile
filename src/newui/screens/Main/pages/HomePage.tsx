@@ -53,6 +53,7 @@ import {
   useWideLayout,
 } from '@/newui/hooks'
 import { CARD_GRID, PLATFORM_TINTS, SONG_ROW, type PlatformTintKey } from '@/newui/theme'
+import { usePodEpisodeLive } from '@/newui/podcast'
 import { clearNewUiRecentPlays, getSingerMidOfSong, getToday, playQueue, showNewUiToast, toSongDisplay } from '@/newui/utils'
 
 /** 上屏上限（原型刻意设计值，集中在 const/home 的 NEW_UI_HOME_LIMITS，含各处原型行号） */
@@ -138,6 +139,22 @@ export const HomePage = ({
   const ranks = useHomeRanks()
   const nowPlaying = useNowPlaying()
   const assertApiSupport = useApiSupport()
+  // 播放位里此刻是一集播客吗（原型 `epLive()`）：只订阅「是 / 不是」这一个结论，
+  // 不跟着单集每秒的进度走——首页这么重，不能每秒重铺一遍（判据与订阅见 podcast/usePodEpisodeLive）
+  const podEpisodeLive = usePodEpisodeLive()
+
+  /**
+   * 「暂停中 · <歌名>」那张横幅（原型 bannerItems 里的 now-playing 一条，app.js L186）在**单集在播时整条收起**
+   * （2026-10-28 用户拍板）：单集的封面 / 集名 / 进度已经在迷你条上了，同一屏再摆一张「暂停中 · 那首歌」
+   * 只会让人以为歌还在播。**不给它做单集形态**——用户选的就是「隐藏」。
+   * 歌曲恢复（单集让出播放位）时那一张照旧出现，「音源公告」这条一直在。
+   */
+  const visibleBanners = useMemo(
+    () => (podEpisodeLive
+      ? banners.filter(item => item.key !== NEW_UI_HOME_BANNER_KEYS.nowPlaying)
+      : banners),
+    [banners, podEpisodeLive],
+  )
 
   const cardWidth = useGridItemWidth()
   // 宽屏档的列数与栅格间隙（与 cardWidth 同一档，见 useWideLayout）：行切块用列数，不用写死的 2；
@@ -349,7 +366,7 @@ export const HomePage = ({
   // 也是改造前就存在的同款嵌套（纵向 ScrollView > 横向 ScrollView），手势关系没变。
   const listHeader = (
     <View>
-      <Banner items={banners} onPress={handleBannerPress} />
+      <Banner items={visibleBanners} onPress={handleBannerPress} />
 
       <QuickRow items={NEW_UI_HOME_QUICK_ITEMS} onPress={handleQuickPress} />
 

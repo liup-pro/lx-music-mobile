@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react'
 import { useColorScheme } from 'react-native'
 
-import { cacheNewUiScheme, isThemeMode, NEW_UI_THEME_STORAGE_KEY } from './launchScheme'
+import { cacheNewUiScheme, getPersistedInitialMode, isThemeMode, NEW_UI_THEME_STORAGE_KEY } from './launchScheme'
 import { ThemeContext } from './context'
 import { PALETTES } from './tokens'
 import type { Theme, ThemeContextValue, ThemeMode, ThemeScheme } from './types'
@@ -16,7 +16,10 @@ import type { Theme, ThemeContextValue, ThemeMode, ThemeScheme } from './types'
  */
 export const ThemeProvider = ({ children }: PropsWithChildren) => {
   const systemScheme = useColorScheme()
-  const [mode, setModeState] = useState<ThemeMode>('light')
+  // D-12：冷启动时 useState 初始值读 launchScheme 已同步好的持久化 mode，
+  // 避免「先用浅/深默认值渲染第一帧 → useEffect 异步读 AsyncStorage 切换」的可见闪动。
+  // 模块级变量为 null 时（非正常入口 / 热重载）回退 'light' 兜底。
+  const [mode, setModeState] = useState<ThemeMode>(getPersistedInitialMode() ?? 'light')
   // 若用户在异步读取完成前手动切换过，以用户操作为准，避免被旧值覆盖
   const userChangedRef = useRef(false)
 

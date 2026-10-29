@@ -1,15 +1,12 @@
 /**
  * 电台单集的**真实播放**。
  *
- * 本轮用户拍板：「接上，能真听」——③ 给每条单集都带的音频直链 `episodeUrl` 不再只是透传字段，
- * 点单集要真出声，屏上的进度、播停、倍速、后退 15/前进 30 全部换成真音频驱动的状态。
- *
  * ## 一、只用既有能力（不新增依赖、不改播放核心）
  * - 引擎就是项目里已在用的 `react-native-track-player`（fork 版，`src/plugins/player` 包的那一层）。
  *   本机只有这一个能播外部 URL 的音频引擎，所以**不需要新增依赖**。
  * - 初始化走既有 `initial()`，入参与 `src/core/player/player.ts` 的 `handlePlay` 那五行设置一致；
  *   播停、跳转、时长与位置、倍速走既有 `setPlay / setPause / setCurrentTime / getPosition / getDuration / setPlaybackRate`。
- * - `TrackPlayer` 只直接调用队列级的 `reset / add / getState / getCurrentTrack / getTrack / updateNowPlayingMetadata`
+ * - `TrackPlayer` 只直接调用队列级的 `reset / add / getQueue / getState / getCurrentTrack / getTrack / updateNowPlayingMetadata`
  *   ——既有导出里没有等价封装。这些都是**往既有能力里新增一次调用**：`src/core/`、`src/plugins/`、`src/store/`
  *   里既有函数的签名、行为、内部逻辑一律未改动，`@/store/setting/state` 只读。
  *
@@ -26,49 +23,72 @@
  *    于是 `playerState.isPlay`、`playProgress` 的每秒轮询与 `savePlayInfo` 都不会被单集带着跑——
  *    不这么做的话，单集的秒数会被当成歌曲进度写进磁盘（正是用户点名的「混污」）。
  *    `''` 是 `src/config/globalData.ts` 给这个字段的初值，不是我们发明的中间态。
- * 4. **谁占着队列谁说话，电台只借不用**：单集只在 `EpisodeScreen` 挂载期间占队列（原型
- *    `closeEpisodeLayer` 就是关层即停），离场 `reset()` 清空队列。歌曲那侧随后 `add/skip` 会自我对齐
- *    （`src/plugins/player/playList.ts` 的 `list` 与原生队列的长度差在下一次点歌时自愈，已逐行推演）。
- *    若歌曲那侧抢在单集之前改了队列，我们的 `playback-track-changed` 监听会立刻认出「当前轨不是我们的」并让位。
- * 5. **通知栏/锁屏的远程控制本轮不归电台管（已知限制，非待办）**：既有 `src/plugins/player/service.ts`
- *    把远控按键一律接到**歌曲**那套逻辑上，本轮不许改它，电台这侧也不去截这些事件。用户点名的三条逐条记明
- *    （行号以 `service.ts` 现状为准），用户 **2026-10-19 拍板：记为已知限制，待真机验收**
- *    ——不是待办、不是待决策；同一条另记在 `PROTOTYPE_INVENTORY.md` 第七节 7.9：
- *    - **RemotePlay / RemotePause**（`service.ts:31-34` / `:36-39` → 歌曲的 `play() / pause()`）：单集播着时
- *      按锁屏播放，最坏结果是歌曲重新取流并接管队列，电台这侧由 `reclaimOwnership()` 立刻认出
- *      「当前轨不是我们的」并让位，不会出现两边抢队列。
- *    - **RemoteStop（通知栏/锁屏那颗「停止」）= 退出应用，不是停单集**：`service.ts:51-54` 把它接到
- *      `handleExitApp('Remote Stop')`（本体在 `service.ts:21`，收掉整个应用）。单集播着时按它，
- *      应用直接被收走——**它不会只把这一集停下来**，电台那条队列连同「关层时落剩余」那一步都跟着没了
- *      （落盘只挂在单集屏卸载那条路径上，被 `handleExitApp` 收掉时不保证走到）。
- *    - **RemoteNext / RemotePrevious（通知栏「上一首 / 下一首」）打到歌曲那套 `playNext / playPrev`**
- *      （`service.ts:41-44` / `:46-49`）：单集在队列里只有一条，这两下推进的是**歌曲**那侧的播放列表
- *      （`src/core/player/player.ts`），最坏结果是歌曲取流并接管队列、单集让位；**不是**「上一集 / 下一集」。
- *    - （顺带记一句，不在用户点名的三条里，但同在 `service.ts` 的远控表）通知栏进度条拖动
- *      **RemoteSeek**（`service.ts:75-77`）会被喂给歌曲那侧的 `app_event.setProgress`，
- *      也就是拿单集的位置去写歌曲进度——与下面那条指针污染同族，一并待真机看。
- *    - **指针污染那一小于一条的窗口**：起播序列里 `add([单集])` 与我们的 `neutralizeSongPointer()` 之间
- *      只让一拍（`ONE_TICK_MS = 0`），若 `service.ts` 的 `PlaybackTrackChanged` 恰好在这段间隙续跑，
- *      `global.lx.playerTrackId` 会被写成我们那条 `podcast#…` id；随后每秒取样里的 `reclaimOwnership()`
- *      会再按回 `''` 兜住。窗口宽度 = 一条 track 的在飞时间（亚秒级），真机是否真被踩到属本轮不可证的一档。
- * 6. **定时停止播放生效中，电台不起播**（用户 2026-10-19 拍板「加一道闸，armed 时不起播」）：
- *    起播原语 `startPodEpisode` / `resumePodEpisode` 在最前面读一次 `global.lx.isPlayedStop`
- *    （歌曲那侧「定时停止播放」的账本，`src/core/player/timeoutExit.ts` 写），为 true 就不进队列、不出声，
- *    只给人话提示。闸落在**原语**这一层而非只落在屏上那颗钮，所以任何调用点（单集屏那颗、以后新增的哪颗）
- *    都必然过；详情屏那颗「继续播放 / 播最新单集」只做导航、本身不发音，终点还是单集屏这一下。
- *    为什么这一条要紧：`service.ts:108 / :117` 有 `if (global.lx.isPlayedStop) return handleExitApp('Timeout Exit')`
- *    ——armed 时真把单集推起来，播放器状态一变就可能把整个应用退出。本闸不去改那两处既有行为，只是不去踩它。
- *    `isPlayedStop` 电台这侧**只读不写**（写它等于替用户取消定时关闭）。
+ * 4. **跨屏占着队列（2026-10-23 用户拍板「真统一」）**：单集不再跟着单集屏的生死走——
+ *    离开单集屏**不 reset、不出声停**，队列一直归这一集，重进同一集接着放。
+ *    只在四个出口让出队列：**退出应用 / 起歌（切歌）/ 定时关闭到点 / 用户明确停止**（`detachQueue()` 是唯一收口）。
+ * 5. **起歌时怎么让得干净**（这是本轮最要紧的一处，逐条对着既有实现推过）：
+ *    歌曲那侧起播一条歌必然是 `add([url轨, default轨]) → skip(新轨) → remove(除末两条外的旧轨)`，
+ *    而 `src/plugins/player/playList.ts` 的 `getCurrentTrackId()` 用 `list[原生下标]` 取 id，
+ *    `list` 里**没有我们这条单集轨**（我们从不往歌曲账本 push）。于是我们那条轨只要还躺在队列里，
+ *    两边就错位一格：`list[下标]` 会读到下一格（往往是 `//default` 那条），
+ *    `service.ts` 的 `if (isEmpty())` 便会误判成「临时暂停」→ `pause()` + `playerEnded` → `playNext(true)`
+ *    （核心 `core/init/player/player.ts` 的 handleEnded）。所以**必须在歌曲 add 之前把队列让空**，
+ *    让歌曲那侧走它自己最熟的那条「当前轨为空 → add → skip → play」的老路。两条让位触发点：
+ *    - **`setStop()`**：`handlePlay` 起歌第一步就是 `setStop()`（`TrackPlayer.stop()`），
+ *      我们会收到 `PlaybackState=Stopped`（事件驱动，无延迟），此刻歌曲那侧的取流还被
+ *      `debounceBackgroundTimer(…, 200)` 挡着 200ms，足够我们把队列清干净；
+ *    - **`global.lx.gettingUrlId`**：`setMusicUrl` 一进去就同步写它（歌曲那侧取流的唯一同步信号），
+ *      我们用一个 250ms 的轻量看门（只读全局，不打原生）盯它的变化，兜住「不先 stop 就直接取流」那条路
+ *      （旧 UI 迷你条那颗 play 走的就是 `play() → isEmpty() → setMusicUrl`，没有 setStop）。
+ *    让位时**只在队列里还没别人的轨时才 `reset()`**：反过来的情形（歌曲轨已经 add 进来）绝不能清，
+ *    那会把歌曲刚挂上的轨一起摘掉——那时只把自己的状态收回 idle，我们那条旧轨由歌曲那侧自己的
+ *    `remove(除末两条外的旧轨)` 顺手带走。
+ * 6. **队列时序**（每一步都对着既有实现挑过）：
+ *    `setPause()`（停歌）→ `reset()` → `add([单集])` → 让一拍 → 写回 `playerTrackId = ''`
+ *    → `setCurrentTime(起点)` → `setPlaybackRate(倍速)` → `setPlay()` → `updateNowPlayingMetadata()`。
+ *    `reset()` 在原生侧（`ExoPlayback.reset()`）会**先把 `lastKnownWindow` 置为 `INDEX_UNSET`**，
+ *    所以紧接着的那次 `onMediaItemTransition` 里 `prevIndex == null`，`MusicManager.onTrackUpdate`
+ *    便不会往事件里放 `track`；`service.ts` 的 `if (info.track == null) return` 因此早退，
+ *    不会对单集做它专门的「临时暂停」。加完 track 后再让一拍才写指针，是为了压过
+ *    `service.ts` 那句 `global.lx.playerTrackId = await getCurrentTrackId()` 的异步续跑；
+ *    之后每秒的轮询里再按回一次，兜住任何晚到的重写。
+ * 7. **通知栏/锁屏元数据跟着真正在播的一方走**：起播/续播单集时由我们 `updateNowPlayingMetadata`
+ *    喂单集的标题/节目名/封面；歌曲接管时不需要我们出手——歌曲那侧的 `core/init/player/playStatus.ts`
+ *    会在它自己的 `play` 事件里 `updateMetaData()` 把标题刷回歌曲（我们让位时一个字段都不写，
+ *    正是为了让那条既有链路照常跑）。
  *
- * ## 三、队列时序（每一步都对着既有实现挑过）
- * `setPause()`（停歌）→ `reset()` → `add([单集])` → 让一拍 → 写回 `playerTrackId = ''`
- * → `setCurrentTime(起点)` → `setPlaybackRate(倍速)` → `setPlay()` → `updateNowPlayingMetadata()`。
- * `reset()` 在原生侧（`ExoPlayback.reset()`）会**先把 `lastKnownWindow` 置为 `INDEX_UNSET`**，
- * 所以紧接着的那次 `onMediaItemTransition` 里 `prevIndex == null`，`MusicManager.onTrackUpdate`
- * 便不会往事件里放 `track`；`service.ts` 的 `if (info.track == null) return` 因此早退，
- * 不会对单集做它专门的「临时暂停」。加完 track 后再让一拍才写指针，是为了压过
- * `service.ts` 那句 `global.lx.playerTrackId = await getCurrentTrackId()` 的异步续跑；
- * 之后每秒的轮询里再按回一次，兜住任何晚到的重写。
+ * ## 三、远控路由（2026-10-23 用户拍板解除旧限制）
+ * `src/plugins/player/service.ts` 的远控表在分派处加一层判断：**单集占着队列且歌曲没在放**时，
+ * Play/Pause/Seek 作用于单集，Next/Prev 直接忽略（单集没有「下一集」这回事，也不许因此推进歌曲），
+ * Stop 保持「退出应用」的既有语义但先把单集进度落盘。歌曲在播或两边都停时，行为与原来一字不差。
+ * 分派只认一个极薄的中转表 `./remoteRoute`（零依赖，服务进程侧不拉电台数据层/提示总线），
+ * 本模块在加载时把实现注册进去；表里没人 = 电台 UI 从没加载过 = 一律走歌曲那套。
+ *
+ * ## 四、进度落盘（为什么不只挂在单集屏卸载那一处）
+ * 单集现在跨屏存在，卸载不再是唯一出口，所以落盘收在本模块：**暂停 / 自然播完 / 让位 / 交还 /
+ * 远控 Stop 前**各落一次，另外播放期间**每 10 秒**落一次（`PERIODIC_SAVE_MS`）——定时关闭到点会
+ * 直接退出应用（见第五节），周期落盘让那次退出最多只丢 10 秒。门（`left <= 20 秒不写`、同节目只留
+ * 最近一条、整表 8 条）全在 `localState.savePodProgress` 内部，这里不再判一遍。
+ *
+ * ## 五、定时停止播放
+ * 起播原语 `startPodEpisode` / `resumePodEpisode` 最前面读一次 `global.lx.isPlayedStop`
+ * （歌曲那侧「定时停止播放」的账本，`src/core/player/timeoutExit.ts` 写），为 true 就**不起播**。
+ * 闸落在**原语**这一层而非只落在屏上那颗钮，所以任何调用点（单集屏那颗、远控那颗、以后新增的哪颗）
+ * 都必然过。
+ *
+ * 定时**到点那一刻**的收敛点在 `timeoutTools.exit()`：`player.timeoutExitPlayed && playerState.isPlay`
+ * 时只置 `isPlayedStop = true` 等歌曲自己放完，否则直接 `exitApp('Timeout Exit')`。而单集播放期间
+ * `playerState.isPlay` **恒为 false**（第二节第 3 条：单集的状态事件被 `isTempId()` 挡掉了），
+ * 所以到点一定走「退出应用」那一支——`exitApp` 里 `destroyPlayer()` 会停掉音频，单集随之停住，
+ * 进度由第四节那句周期落盘兜住。要让它走「只暂停不退出」得改 `timeoutTools.exit()` 的判定条件
+ * （`src/core/`），本轮按边界要求**没有动**，已在交付报告里单列。
+ * 本模块这一侧只做两件不改既有行为的事：`isPlayedStop` **只读不写**（写它等于替用户取消定时关闭）；
+ * 轮询里发现它已 armed（等待歌曲放完那一支）就把正在播的这一集停在原地，别让「定时生效了却还在出声」。
+ *
+ * ## 六、不造歌曲字段、不碰歌曲账本
+ * 单集 track 只带 `url / title / artist / artwork / duration`，id 前缀 `podcast#`；`playList`、
+ * 播放历史、收藏、「我喜欢」一概不收它。指针 `playerTrackId` 沿用第三节第 3 条的口径（写回 `''`），
+ * 于是歌曲侧来取流时 `isEmpty()` 为真，它自己的 `play()` 会重新取一次 URL 接管——这是既有自愈路径。
  */
 import type { EmitterSubscription } from 'react-native'
 
@@ -89,6 +109,9 @@ import {
 } from '@/plugins/player'
 import settingState from '@/store/setting/state'
 
+import { flushPodProgress, savePodProgress } from './localState'
+import { registerPodRemoteHandlers } from './remoteRoute'
+
 /**
  * 播放阶段。`loading` = 想出声但还在连/缓冲；`ended` = 自然播到尽头（原型 `epTick` 到点钳住那一支）；
  * `failed` = 播放器报错（直链失效这类），屏上不为此加新视觉，玩家钮回到「播放」让用户自己重试。
@@ -101,6 +124,8 @@ export interface PodEpisodeSource {
   episodeId: string
   /** 节目 id：本机进度的登记键（口径本轮不动） */
   showId: string
+  /** 这一集在节目单集数组里的下标：进度落盘要的 `idx`（本模块跨屏落盘时用） */
+  episodeIndex: number
   /** 集名 → 通知栏标题 */
   title: string
   /** 节目名 → 通知栏副标题（Apple 的播放器位不写类别词） */
@@ -111,6 +136,12 @@ export interface PodEpisodeSource {
   url: string
   /** ③ 的 `trackTimeMillis` 换算秒数；播放器还没给出时长前，屏上「总时长」用它 */
   durationHintSec: number
+  /** 「10 月 15 日」（已过 `podDateText`）：重开单集屏时原样带回去 */
+  dateText: string
+  /** 「18 分钟」（已过 `podDurationText`）：重开单集屏时原样带回去 */
+  durationText: string
+  /** 一集简介：可缺席（缺则那一屏整块不渲染） */
+  intro?: string
 }
 
 /** 屏上真正要看的那几个数（模块级快照，与 `localState.ts` 同一套「快照 + 订阅集合 + notify」姿势） */
@@ -118,6 +149,12 @@ export interface PodPlayerSnapshot {
   /** 当前占着播放器的那一集；没有则空串 */
   episodeId: string
   showId: string
+  /** 集名（迷你条将来要显示的那一栏；跨屏播放期间屏不在也得能读到） */
+  title: string
+  /** 节目名（同上） */
+  showName: string
+  /** 封面原始 URI（同上） */
+  artworkUrl: string
   phase: PodPlayerPhase
   /** 已播到第几秒（真音频位置，取整） */
   position: number
@@ -129,9 +166,33 @@ export interface PodPlayerSnapshot {
   hasUrl: boolean
 }
 
+/**
+ * 「回到当前这一集的单集屏」所需的 passProps（与 `NewUiEpisodePassProps` 结构一致，
+ * 但这里不 import 屏的类型：数据层不该反向依赖屏）。迷你条将来直接
+ * `pushNewUiEpisode(componentId, target)`，或在桶文件里用 `openPodEpisodeScreen(componentId)`。
+ */
+export interface PodEpisodeTarget {
+  showId: string
+  showName: string
+  artworkUrl: string
+  episodeIndex: number
+  episode: {
+    id: string
+    title: string
+    sec: number
+    dateText: string
+    durationText: string
+    intro?: string
+    episodeUrl: string
+  }
+}
+
 const IDLE_SNAPSHOT: PodPlayerSnapshot = {
   episodeId: '',
   showId: '',
+  title: '',
+  showName: '',
+  artworkUrl: '',
   phase: 'idle',
   position: 0,
   duration: 0,
@@ -142,12 +203,24 @@ const IDLE_SNAPSHOT: PodPlayerSnapshot = {
 /** 每秒取样一次（原型 `setInterval(epTick, 1000)` 的同构位置）；只在数值真的变了才 notify */
 const POLL_INTERVAL_MS = 1000
 /**
+ * 歌曲取流看门的间隔。只读 `global.lx.gettingUrlId`（不碰原生），所以可以比轮询密一个量级：
+ * 它要在歌曲那侧 `add` 之前抢到让位，窗口是「一次取流耗时」，越密越稳。
+ */
+const SONG_WATCH_MS = 250
+/**
+ * 播放期间每多少毫秒落一次进度。定时关闭到点会直接退出应用（文件头第五节），
+ * 这一句决定那次退出最多丢多少秒。
+ */
+const PERIODIC_SAVE_MS = 10_000
+/**
  * 加完 track 后让一拍，好把 `service.ts` 那句 `await getCurrentTrackId()` 的异步续跑压在过去。
  * 一拍（macrotask）就够，不是等待时长——原生事件本身已经在 `add` 之前落定了。
  */
 const ONE_TICK_MS = 0
 /** 连续取不到播放器数值到这个次数，就认这一集放不出来（直链 404 时 Exo 会停在 None/Ready） */
 const POLL_FAIL_LIMIT = 3
+/** 我们自己挂进队列的 track id 前缀（判「队列里还有没有别人的轨」用） */
+const POD_TRACK_ID_PREFIX = 'podcast#'
 
 type Listener = () => void
 
@@ -164,6 +237,9 @@ const commit = (patch: Partial<PodPlayerSnapshot>): void => {
   if (
     next.episodeId === snapshot.episodeId &&
     next.showId === snapshot.showId &&
+    next.title === snapshot.title &&
+    next.showName === snapshot.showName &&
+    next.artworkUrl === snapshot.artworkUrl &&
     next.phase === snapshot.phase &&
     next.position === snapshot.position &&
     next.duration === snapshot.duration &&
@@ -180,16 +256,25 @@ const commit = (patch: Partial<PodPlayerSnapshot>): void => {
 let startToken = 0
 /** 我们塞进队列的那条 track 的 id；不是它 = 队列已被歌曲那侧拿走 */
 let activeTrackId: string | null = null
+/** 当前占着播放器的那一集的全部输入（进度落盘与「回到单集屏」都要它）；让位即清空 */
+let activeSource: PodEpisodeSource | null = null
 /** 用户的意图：true = 该出声（用来区分「缓冲中」与「用户暂停」） */
 let desiredPlaying = false
 /** 已自然播到尽头 */
 let reachedEnd = false
 /** 上一集用过的倍速（原型 `epState.rate` 跨集留存，只有 `t/playing/idx` 每次重置） */
 let lastRate = 1
+/** 上一次落盘的时刻（周期落盘用） */
+let lastSavedAt = 0
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let pollFailures = 0
 let trackSeq = 0
 const subscriptions: EmitterSubscription[] = []
+
+/** 歌曲取流看门（文件头第二节第 5 条第二条触发点） */
+let songWatchTimer: ReturnType<typeof setInterval> | null = null
+/** 看门记的 `gettingUrlId`：只认「变化成非空」这一下，免得开局就带着一个陈旧值把单集误杀 */
+let lastSeenGettingUrlId = ''
 
 const stopPoll = (): void => {
   if (pollTimer == null) return
@@ -215,9 +300,69 @@ const neutralizeSongPointer = (): void => {
 }
 
 /**
+ * 把「当前这一集播到哪」写进本机进度表。
+ * 时长还没量出来（0）时不写：那时 `duration - position` 是负的，写进去等于把进度清零。
+ */
+const saveProgressNow = (): void => {
+  const source = activeSource
+  if (source == null) return
+  const duration = snapshot.duration
+  if (duration <= 0) return
+  savePodProgress(source.showId, source.episodeIndex, Math.round(duration - snapshot.position))
+}
+
+/**
+ * 队列里除我们那条之外，还有别人的轨吗（= 歌曲那侧已经 add 进来了）。
+ * 取不到队列时**当作有**：宁可不清，也不要把歌曲刚挂上的轨一起摘掉。
+ */
+const queueHasForeignTrack = async(ours: string): Promise<boolean> => {
+  try {
+    const queue = await TrackPlayer.getQueue()
+    return queue.some(track => {
+      const id = String(track?.id ?? '')
+      return id !== ours && !id.startsWith(POD_TRACK_ID_PREFIX)
+    })
+  } catch {
+    return true
+  }
+}
+
+/**
+ * 让出播放器（文件头第二节第 4 条的四个出口都走这里）：
+ * 落盘 → 快照回 idle → 队列里还没有别人的轨时才清空 → 倍速按回歌曲设置。
+ * 状态先同步收干净（`activeTrackId = null`、`activeSource = null` 都在第一个 await 之前），
+ * 所以并发的第二次调用会当场早退，不会重复清队列。
+ */
+const detachQueue = async(): Promise<void> => {
+  if (activeTrackId == null && snapshot.episodeId.length === 0) return
+  const ours = activeTrackId
+  saveProgressNow()
+  ++startToken
+  stopPoll()
+  stopSongWatch()
+  activeTrackId = null
+  activeSource = null
+  desiredPlaying = false
+  reachedEnd = false
+  commit({ ...IDLE_SNAPSHOT, rate: lastRate })
+  if (ours == null) return
+  // 歌曲轨已经进队列了：不许清（清了会连它一起摘掉），我们那条旧轨由歌曲那侧自己的 remove 带走
+  if (await queueHasForeignTrack(ours)) return
+  try {
+    await TrackPlayer.reset()
+  } catch {
+    // 队列已经不在我们手里，不必再补刀
+  }
+  await sleep(ONE_TICK_MS)
+  // 倍速是播放器级参数，交还时把歌曲那侧的值放回去
+  await setPlaybackRate(settingState.setting['player.playbackRate']).catch(() => {})
+  neutralizeSongPointer()
+}
+
+/**
  * 认域：当前轨还是我们那条吗？
  * 是 → 顺手把 `playerTrackId` 按回初值（可能刚被 `service.ts` 读成陈旧歌曲 id）；
- * 不是（或被清空）→ 单集让位，本机不再主张队列。
+ * 不是（或被清空）→ 单集让位（被动让位：队列已经被别人占了，这里一个队列操作都不做）。
  */
 const reclaimOwnership = async(): Promise<void> => {
   if (activeTrackId == null) return
@@ -232,13 +377,35 @@ const reclaimOwnership = async(): Promise<void> => {
     // 取不到就当没被拿走，交给下一次轮询判断
     return
   }
-  if (activeTrackId != null) {
-    stopPoll()
-    activeTrackId = null
-    desiredPlaying = false
-    reachedEnd = false
-    commit({ ...IDLE_SNAPSHOT, rate: lastRate })
-  }
+  if (activeTrackId != null) await detachQueue()
+}
+
+/* ================= 歌曲接管看门（文件头第二节第 5 条） ================= */
+
+const checkSongTakeover = (): void => {
+  if (activeTrackId == null) return
+  const gettingUrlId = global.lx.gettingUrlId
+  if (gettingUrlId === lastSeenGettingUrlId) return
+  lastSeenGettingUrlId = gettingUrlId
+  // 变成空串只是歌曲那侧一次取流收尾，不代表有人要接管
+  if (gettingUrlId.length === 0) return
+  void detachQueue()
+}
+
+const stopSongWatch = (): void => {
+  if (songWatchTimer == null) return
+  clearInterval(songWatchTimer)
+  songWatchTimer = null
+}
+
+/**
+ * 看门起步时先把当下的 `gettingUrlId` 记下来当基线：陈旧的非空值（上一次取流被切歌打断、
+ * `.finally` 里没清掉）不会被误当成「刚开始取流」，只有真的一次新取流（值变化）才触发让位。
+ */
+const startSongWatch = (): void => {
+  lastSeenGettingUrlId = global.lx.gettingUrlId
+  if (songWatchTimer != null) return
+  songWatchTimer = setInterval(checkSongTakeover, SONG_WATCH_MS)
 }
 
 /* ================= 播放器取样 ================= */
@@ -258,6 +425,25 @@ const phaseFromState = (state: State): PodPlayerPhase => {
     default:
       return desiredPlaying ? 'loading' : 'paused'
   }
+}
+
+/** 定时停止播放已 armed（等待歌曲放完那一支）时，正在播的这一集也得停：不能「定时生效了却还在出声」 */
+const pauseForSleepTimer = (): void => {
+  if (!global.lx.isPlayedStop) return
+  if (snapshot.phase !== 'playing' && snapshot.phase !== 'loading') return
+  desiredPlaying = false
+  void setPause().catch(() => {})
+  saveProgressNow()
+  commit({ phase: reachedEnd ? 'ended' : 'paused' })
+}
+
+/** 播放期间周期性落盘（文件头第四节） */
+const maybeSavePeriodically = (): void => {
+  if (snapshot.phase !== 'playing') return
+  const now = Date.now()
+  if (now - lastSavedAt < PERIODIC_SAVE_MS) return
+  lastSavedAt = now
+  saveProgressNow()
 }
 
 const tick = async(): Promise<void> => {
@@ -280,17 +466,21 @@ const tick = async(): Promise<void> => {
     if (!reachedEnd && realDuration > 0 && realPosition >= realDuration - 1 && state !== State.Playing) {
       reachedEnd = true
       desiredPlaying = false
+      saveProgressNow()
     }
     commit({
       position: reachedEnd ? (realDuration > 0 ? realDuration : snapshot.duration) : realPosition,
       duration: realDuration > 0 ? realDuration : snapshot.duration,
       phase: phaseFromState(state),
     })
+    pauseForSleepTimer()
+    maybeSavePeriodically()
   } catch {
     if (activeTrackId == null) return
     if (++pollFailures >= POLL_FAIL_LIMIT) {
       desiredPlaying = false
       stopPoll()
+      stopSongWatch()
       activeTrackId = null
       commit({ phase: 'failed' })
     }
@@ -299,25 +489,59 @@ const tick = async(): Promise<void> => {
 
 /* ================= 事件监听（只在本模块主张队列时才有意义，常驻即可） ================= */
 
+/**
+ * 原生侧被「非本模块」停住了（`Stopped`）：
+ * 歌曲那侧起播第一步就是 `setStop()`（`TrackPlayer.stop()`），这是最靠前、最可靠的让位信号。
+ * 只认 `Stopped`、不认 `None`：`None` 在 `reset()`／播放器重建／离屏销毁这些我们自己的动作里也会出现，
+ * 认它等于给自己挖坑。自己播到头也会报 `Stopped`，所以先排掉「位置已到尽头」那一种；
+ * 队列重建途中的事件也不会误判（那时 `activeTrackId` 已经被清空）。
+ */
+const handleExternalStop = async(): Promise<void> => {
+  const ours = activeTrackId
+  if (ours == null) return
+  try {
+    const [state, position, duration] = await Promise.all([
+      TrackPlayer.getState(),
+      getPosition(),
+      getDuration(),
+    ])
+    if (activeTrackId !== ours) return
+    if (state === State.Playing || state === State.Buffering || state === State.Connecting) return
+    if (reachedEnd) return
+    if (duration > 0 && position >= duration - 1) return
+  } catch {
+    return
+  }
+  await detachQueue()
+}
+
 const ensureEventListeners = (): void => {
   if (subscriptions.length > 0) return
   subscriptions.push(TrackPlayer.addEventListener(Event.PlaybackTrackChanged, () => { void reclaimOwnership() }))
+  subscriptions.push(TrackPlayer.addEventListener(Event.PlaybackState, info => {
+    // 只认 Stopped（理由见上面 handleExternalStop）：None 在我们自己的 reset/destroy 里也会出现
+    if (info.state !== State.Stopped) return
+    void handleExternalStop()
+  }))
   subscriptions.push(TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async() => {
     if (activeTrackId == null) return
     reachedEnd = true
     desiredPlaying = false
     const duration = await getDuration().catch(() => 0)
     commit({ phase: 'ended', position: Math.round(duration) || snapshot.duration })
+    saveProgressNow()
   }))
   subscriptions.push(TrackPlayer.addEventListener(Event.PlaybackError, () => {
     if (activeTrackId == null) return
     desiredPlaying = false
     stopPoll()
+    stopSongWatch()
+    saveProgressNow()
     commit({ phase: 'failed' })
   }))
 }
 
-/* ================= 定时停止播放闸门（文件头第二节第 6 条） ================= */
+/* ================= 定时停止播放闸门（文件头第五节） ================= */
 
 /**
  * 「定时停止播放」是不是正生效中（歌曲那侧的账本 `global.lx.isPlayedStop`，电台这侧**只读不写**：
@@ -353,6 +577,41 @@ export const subscribePodPlayer = (listener: Listener): (() => void) => {
 }
 
 /**
+ * 「回到当前这一集的单集屏」要带的那份视图模型；没有在播（或刚让位）的一集时是 null。
+ * 单集跨屏存在之后，迷你条将来就靠它把用户送回这一屏（本模块不出 UI）。
+ */
+export const getPodEpisodeTarget = (): PodEpisodeTarget | null => {
+  const source = activeSource
+  if (source == null) return null
+  return {
+    showId: source.showId,
+    showName: source.showName,
+    artworkUrl: source.artworkUrl,
+    episodeIndex: source.episodeIndex,
+    episode: {
+      id: source.episodeId,
+      title: source.title,
+      sec: source.durationHintSec,
+      dateText: source.dateText,
+      durationText: source.durationText,
+      ...(source.intro != null ? { intro: source.intro } : {}),
+      episodeUrl: source.url,
+    },
+  }
+}
+
+/**
+ * 把当前进度落盘并等它真的写进存储（远控 Stop / 退出应用前用）。
+ * 顺手让这一集停住：出口就那几个，声音不该比进程多活一段。
+ */
+export const flushPodEpisodeProgress = async(): Promise<void> => {
+  saveProgressNow()
+  desiredPlaying = false
+  await setPause().catch(() => {})
+  await flushPodProgress()
+}
+
+/**
  * 起播一集：占队列 → 出声。
  * `startSec` 是「本机记的还差多少」换算出来的起点（原型 `openEpisode` 的那一句），0 = 从头。
  * **第一行就是定时停止播放那道闸**（见上面 `blockedBySleepTimer`）：被拦下时连 `++startToken` 都不做，
@@ -369,11 +628,19 @@ export const startPodEpisode = async(
 
   lastRate = rate
   stopPoll()
+  stopSongWatch()
+  // 从这一句起队列归我们重建：先把归属清掉，好让「外部停止」与让位判断在重建途中保持沉默
+  activeTrackId = null
   reachedEnd = false
   desiredPlaying = true
+  activeSource = source
+  lastSavedAt = Date.now()
   commit({
     episodeId: source.episodeId,
     showId: source.showId,
+    title: source.title,
+    showName: source.showName,
+    artworkUrl: source.artworkUrl,
     phase: 'loading',
     position: startSec,
     duration: Math.max(0, Math.round(source.durationHintSec)),
@@ -419,12 +686,14 @@ export const startPodEpisode = async(
       duration: source.durationHintSec > 0 ? Math.round(source.durationHintSec) : undefined,
     }])
     if (token !== startToken) {
-      // 途中有人接手了（多半是离场把播放器交还了）。只有队列已经不再归任何一集时，才由我们补一次清理，
+      // 途中有人接手了（多半是让位给了歌曲）。只有队列已经不再归任何一集时，才由我们补一次清理，
       // 免得把接手那一位刚挂上的 track 一起摘掉。
       if (snapshot.episodeId.length === 0) void TrackPlayer.reset().catch(() => {})
       return
     }
     activeTrackId = trackId
+    // 队列归我们之后才起步两个看门：认域（轮询/事件里）与歌曲取流
+    startSongWatch()
 
     // 让一拍压过 service 那句异步读指针，再把指针按回初值（第二节第 3 条）
     await sleep(ONE_TICK_MS)
@@ -460,6 +729,7 @@ export const startPodEpisode = async(
     desiredPlaying = false
     activeTrackId = null
     stopPoll()
+    stopSongWatch()
     commit({ phase: 'failed' })
   }
 }
@@ -474,6 +744,7 @@ export const pausePodEpisode = async(): Promise<void> => {
   }
   await setPause().catch(() => {})
   commit({ phase: reachedEnd ? 'ended' : 'paused' })
+  saveProgressNow()
 }
 
 /**
@@ -521,29 +792,26 @@ export const setPodEpisodeRate = async(rate: number): Promise<void> => {
 }
 
 /**
- * 交还播放器（离场、让位）：只有还归这一集时才动手。
- * `reset()` 清空队列 + 把倍速按回既有歌曲设置，指针按回初值，快照回 idle。
+ * 交还播放器（用户明确停止 / 退出这类出口）：只有还归这一集时才动手。
+ * 落盘 + `reset()` 清空队列 + 把倍速按回既有歌曲设置 + 指针按回初值，快照回 idle。
+ *
+ * **离场不再走这里**（2026-10-23 跨屏续播）：单集屏卸载只落盘，不交还队列。
  */
 export const releasePodEpisode = async(episodeId: string): Promise<void> => {
-  if (snapshot.episodeId !== episodeId || snapshot.phase === 'idle') return
-  ++startToken
-  stopPoll()
-  const wasOurs = activeTrackId != null
-  activeTrackId = null
-  desiredPlaying = false
-  reachedEnd = false
-  commit({ ...IDLE_SNAPSHOT, rate: lastRate })
-  if (!wasOurs) return
-  try {
-    await TrackPlayer.reset()
-  } catch {
-    // 队列已经不在我们手里，不必再补刀
-  }
-  await sleep(ONE_TICK_MS)
-  // 倍速是播放器级参数，交还时把歌曲那侧的值放回去
-  await setPlaybackRate(settingState.setting['player.playbackRate']).catch(() => {})
-  neutralizeSongPointer()
+  if (snapshot.episodeId !== episodeId) return
+  await detachQueue()
 }
 
 /** 电台这侧此刻是不是正占着播放器（供调用点自查，不参与渲染） */
 export const isPodEpisodeActive = (): boolean => activeTrackId != null && snapshot.phase !== 'idle'
+
+/* ================= 远控分派（文件头第三节） ================= */
+
+registerPodRemoteHandlers({
+  // 队列归我们、且不是「放不出来」那一档：远控 Play/Pause/Seek 就该作用在这一集上
+  isActive: () => activeTrackId != null && snapshot.phase !== 'idle' && snapshot.phase !== 'failed',
+  play: () => { void resumePodEpisode() },
+  pause: () => { void pausePodEpisode() },
+  seek: position => { void seekPodEpisode(position) },
+  flush: flushPodEpisodeProgress,
+})

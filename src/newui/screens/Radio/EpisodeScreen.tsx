@@ -27,7 +27,6 @@ import {
   getPodPlayerSnapshot,
   isPodEpisodeActive,
   pausePodEpisode,
-  releasePodEpisode,
   resumePodEpisode,
   seekPodEpisode,
   setPodEpisodeRate,
@@ -106,10 +105,11 @@ export interface EpisodeScreenProps extends NewUiEpisodePassProps {
  * 这一屏仍然**不占迷你条、不进播放列表面板、不进任何歌曲账本**：单集不是歌曲。
  * `.wip-tag` 屏上一枚实例都没有（件头 + index.html L761），所以这里**不挂任何角标、也不用文案解释「这是演示」**。
  *
- * **离场即落盘并交还播放器**：原型 `closeEpisodeLayer`（L2234-L2238）是关层的唯一出口（先 `epStop()` 再落盘），
- * RN 侧的等价物是「所有离场路径」——屏内返回钮、Android 硬件返回、组件卸载（父层 pop / 路由被回收）
- * 三条路最后都会走到卸载，所以落盘与交还都挂在卸载这一处；`left <= 20 秒不写` 那道门在数据层 `save` 内部，
- * 本屏不再判一遍；交还由 `releasePodEpisode` 自带的归属判断兜住（队列若已被歌曲那侧拿走就不动它）。
+ * **离场只落盘，不停声**（2026-10-23 用户拍板「跨屏续播」）：原型 `closeEpisodeLayer`（L2234-L2238）
+ * 是「先 `epStop()` 再落盘」，RN 侧本轮改成只留后半句——离场记下「还剩多少」，声音继续走，重进同一集接着放。
+ * 出声与让位归 `src/newui/podcast/podPlayer.ts` 管：队列只在「退出应用 / 起歌 / 定时关闭到点 /
+ * 用户明确停止」四个出口让出。离层的三条路径（屏内返回钮、Android 硬件返回、组件卸载）都落在同一个
+ * 落盘点（`flushProgress`，`left <= 20 秒不写` 那道门在数据层 `save` 内部，本屏不再判一遍）。
  */
 export const EpisodeScreen = ({
   componentId,
@@ -135,12 +135,17 @@ export const EpisodeScreen = ({
   const source = useMemo<PodEpisodeSource>(() => ({
     episodeId: episode.id,
     showId,
+    // 进度落盘与「回到这一集」都要下标与这几栏展示文本：单集跨屏存在之后，交出去的是整份视图模型
+    episodeIndex,
     title: episode.title,
     showName,
     artworkUrl: artworkUrl ?? '',
     url: episode.episodeUrl,
     durationHintSec: sec,
-  }), [artworkUrl, episode.episodeUrl, episode.id, episode.title, sec, showId, showName])
+    dateText: episode.dateText,
+    durationText: episode.durationText,
+    ...(episode.intro != null ? { intro: episode.intro } : {}),
+  }), [artworkUrl, episode.dateText, episode.durationText, episode.episodeUrl, episode.id, episode.intro, episode.title, episodeIndex, sec, showId, showName])
 
   /**
    * 队列此刻归不归这一集（归 → 屏上的数全读播放器；不归 → 读屏上这一格记的待播起点）。
@@ -197,6 +202,11 @@ export const EpisodeScreen = ({
    * 为什么不在详情屏先起播再推屏：起播原语的闸（定时停止播放开着就不起播）会把提示投给「当前屏」的
    * toast 宿主，详情屏没挂那一台，提示会落在被盖住的主屏上＝无声失败；起播放在本屏，提示就落在本屏头上。
    *
+   * **单集跨屏存在之后要认「是不是已经在放这一集」**：详情屏那颗钮永远带 `autoPlay`，
+   * 若这一集本来就占着播放器（用户从迷你条回来、或反复点同一颗钮），再走一次起播会把
+   * 「播到一半」的位置按屏上那格旧起点重来一遍。所以这里先看一眼快照：同一集且已占着队列时
+   * 不再重起，只在这一集处于暂停/播完时把它续上（暂停了还叫「继续播放」，那颗钮的语义才不落空）。
+   *
    * 只消费一次：ref 落地即置 false，之后的重渲染（进度异步补位、播放态每秒刷新）都不再起播；
    * 每次进屏都是新实例（RNN push），而 `startPodEpisode` 自己就是「先清队列再挂这一集」，
    * 所以从详情屏反复点进来也不会叠出第二条音轨。
@@ -205,13 +215,18 @@ export const EpisodeScreen = ({
   useEffect(() => {
     if (!autoPlayRef.current) return
     autoPlayRef.current = false
+    const snapshot = getPodPlayerSnapshot()
+    if (snapshot.episodeId === episode.id && snapshot.phase !== 'idle' && snapshot.phase !== 'failed' && isPodEpisodeActive()) {
+      if (snapshot.phase !== 'playing' && snapshot.phase !== 'loading') void resumePodEpisode()
+      return
+    }
     // 接口没给直链：与播放钮同一句提示（原型没有这一态，口径见 const/radioDetail.ts）
     if (episode.episodeUrl.length === 0) {
       showNewUiToast(NEW_UI_POD_EP_TOAST.noSource)
       return
     }
     void startPodEpisode(source, { startSec: offset, rate: getPodPlayerSnapshot().rate })
-  }, [episode.episodeUrl, offset, source])
+  }, [episode.episodeUrl, episode.id, offset, source])
 
   // 走位与落盘都要读最新值，而卸载回调的闭包是旧的 → ref 兜住
   // （判例 SeekControl 的 commitRef：值在 effect 里同步进 ref，不在渲染期写）
@@ -235,8 +250,6 @@ export const EpisodeScreen = ({
    */
   const latestRef = useRef({ showId, episodeIndex, totalSec, t, save: progress.save })
   useEffect(() => { latestRef.current = { showId, episodeIndex, totalSec, t, save: progress.save } })
-  const episodeIdRef = useRef(episode.id)
-  useEffect(() => { episodeIdRef.current = episode.id })
   const flushedRef = useRef(false)
   const flushProgress = useCallback(() => {
     if (flushedRef.current) return
@@ -247,10 +260,12 @@ export const EpisodeScreen = ({
   }, [])
 
   // 卸载兜底：系统返回由 BackHandler 接，父层/路由侧的 pop 只有这里看得见。
-  // 交还播放器也只在这一处：离层的三条路径最终都会走到卸载。
+  // **只落盘、不交还播放器**（2026-10-23 用户拍板「跨屏续播」）：
+  // 原型 `closeEpisodeLayer` = 关层即停是原型阶段的口径；RN 侧现在要的是「离开这一屏继续出声」，
+  // 所以队列归播放模块自己管，只在退出应用 / 起歌 / 定时到点 / 明确停止这四个出口让出（见 `podcast/podPlayer.ts`）。
+  // 落盘仍在这一处（离场即记下「还剩多少」），播放模块另有周期落盘兜住跨屏那一段。
   useEffect(() => () => {
     flushProgress()
-    void releasePodEpisode(episodeIdRef.current)
   }, [flushProgress])
 
   const goBack = useCallback(() => {
@@ -434,8 +449,12 @@ export const EpisodeScreen = ({
       </ScrollView>
 
       {/* 常驻迷你播放条：本层默认磁吸圆点（原型 miniPageSnapped：不在首页就是圆点）。
-          排在提示胶囊之前——圆点浮在整层内容之上，胶囊仍盖过它 */}
-      <MinibarHost componentId={componentId} bottomInset={bottom} defaultSnapped />
+          排在提示胶囊之前——圆点浮在整层内容之上，胶囊仍盖过它。
+          **在放本屏这一集时整只让位**（原型 `miniAwayNow()` 的后半句，app.js L2899-2902：
+          `epLive() && epLayer.show` → `.is-away`）：这一屏本身就是这一集的播放器，
+          再浮一颗条就多出第二个「正在播放」。判据就是本屏的 `ownsQueue`（同一集、且队列归它），
+          所以换成歌在放时这条照旧在（它画的是那首歌，不是这一集）。 */}
+      <MinibarHost componentId={componentId} bottomInset={bottom} defaultSnapped away={ownsQueue} />
       {/*
         提示胶囊的承接位（共通件，主屏 / 播放页 / 详情层 / 搜索层各挂一台的同一口径）。
         本屏必须有这一台：投递方在本屏之下——`podcast/podPlayer.ts` 那道「定时停止播放开着就不起播」的闸

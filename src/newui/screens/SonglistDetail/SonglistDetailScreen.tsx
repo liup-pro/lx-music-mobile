@@ -12,7 +12,7 @@ import {
 import { Navigation } from 'react-native-navigation'
 
 import { LIST_IDS } from '@/config/constant'
-import { clearListDetail, getListDetail, setListDetail, setListDetailInfo } from '@/core/songlist'
+import { clearListDetail, getListDetail, LIST_LOAD_LIMIT, setListDetail, setListDetailInfo } from '@/core/songlist'
 // rank 形态数据分支：core/leaderboard 是另一套取数 API（leaderboard.getList，id={source}__{bangId}），
 // 分页 store 也独立（store/leaderboard），别名单引避免与 songlist 同名函数交叉污染
 import {
@@ -358,10 +358,11 @@ export const SonglistDetailScreen = ({
     // 「本页成功落定」时推进，所以这里要么重取那一页还没到手的（首屏失败过一次 → 仍是 0 → 重打第 1 页），
     // 要么续下一页；不会越过第 1 页去要第 2 页（core 的页缓存按「上一页」推源页，跳页会整页漏歌）
     const page = pageRef.current + 1
-    // 判到「没有下一页」显式收尾 end（第 3 条：任何 return 都不许静默）——
-    // 让用户看到「没有更多了」那一行，而不是对着列表尾什么都不发生。
-    // maxPageRef 只在成功时写，为 0 说明本屏还没落过页，不参与判定
-    if (maxPageRef.current > 0 && maxPageRef.current <= page) {
+    // 判到「没有下一页」显式收尾 end——让用户看到「没有更多了」那一行，而不是对着列表尾什么都不发生。
+    // maxPageRef 只在成功时写，为 0 说明本屏还没落过页，不参与判定。
+    // 注意：page 是「下一页要取的页码」，等于 maxPage 时仍需发请求（那是最后一页），
+    // 只有 **超过** maxPage 才真正没有了。
+    if (maxPageRef.current > 0 && maxPageRef.current < page) {
       setStatus('end')
       return
     }
@@ -834,7 +835,10 @@ export const SonglistDetailScreen = ({
         onLayout={handleListLayout}
         onScrollEndDrag={handleScrollSettle}
         onMomentumScrollEnd={handleScrollSettle}
-        initialNumToRender={10}
+        // LIST_LOAD_LIMIT（core/songlist / core/leaderboard 同为 30）= 平台单 / 榜单单一批的最大条数。
+        // 与 minibar 触发重渲染后虚拟化窗口才"展开"那一类视觉错觉（2026-10-29 互逆复现路径）对症。
+        // local 形态整单在手、条数也不会比平台一批大，同一值通用。
+        initialNumToRender={LIST_LOAD_LIMIT}
         maxToRenderPerBatch={14}
         windowSize={9}
         showsVerticalScrollIndicator={false}

@@ -54,8 +54,11 @@ export {
 } from './hooks'
 export {
   type PodEpisodeSource,
+  type PodEpisodeTarget,
   type PodPlayerPhase,
   type PodPlayerSnapshot,
+  flushPodEpisodeProgress,
+  getPodEpisodeTarget,
   getPodPlayerSnapshot,
   isPodEpisodeActive,
   pausePodEpisode,
@@ -66,7 +69,10 @@ export {
   startPodEpisode,
   subscribePodPlayer,
 } from './podPlayer'
+export { openPodEpisodeScreen } from './episodeRoute'
 export { usePodPlayer } from './usePodPlayer'
+/** 「播放位里是不是一集播客」的判据与订阅版（原型 `epLive()`）：迷你条画谁、首页横幅让不让位都读它 */
+export { isPodEpisodeLive, usePodEpisodeLive } from './usePodEpisodeLive'
 export type {
   AppleTopChartItem,
   AppleTopChartResponse,

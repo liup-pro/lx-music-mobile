@@ -16,7 +16,16 @@ import { usePlayMusicInfo, useProgress } from '@/store/player/hook'
 import { useSettingValue } from '@/store/setting/hook'
 
 import { QUALITY_LABEL, getPlatformMeta } from '@/newui/const'
+import { newUiPodArtSeed } from '@/newui/const/radio'
 import { useNowPlaying, useWideLayout } from '@/newui/hooks'
+import {
+  getPodPlayerSnapshot,
+  isPodEpisodeLive,
+  openPodEpisodeScreen,
+  pausePodEpisode,
+  resumePodEpisode,
+  usePodPlayer,
+} from '@/newui/podcast'
 import { MINIBAR, MOTION, PLATFORM_TINTS, TAB_BAR, Z_LAYER, type PlatformTintKey } from '@/newui/theme'
 import {
   getNewUiMiniSide,
@@ -97,10 +106,18 @@ export interface MinibarHostProps {
    * 两者都收敛到 defaultSnapped 这一个值，别在别处再记一份「刚才展开过」。
    */
   resetKey?: string
+  /**
+   * 本屏是不是「那一集自己的播放器」（原型 `miniAwayNow()` 的后半句，app.js L2899-2902 / `.is-away` L740）：
+   * 单集屏在放**它自己那一集**时整只让位——同一屏再浮一颗条就多出第二个「正在播放」。
+   * 单集屏开着但在放别的东西（比如一首歌）时照旧有圆点：它画的是那首歌。
+   * 判据由屏自己给（单集屏那颗就是它的 `ownsQueue`），挂点不猜。
+   */
+  away?: boolean
 }
 
-/** 进退场要沿用的展示数据（回调不进来：那几颗钮只在条可见时才有意义） */
-interface MinibarView {
+/** 歌曲态的展示数据（回调不进来：那几颗钮只在条可见时才有意义） */
+interface MinibarSongView {
+  kind: 'song'
   artSeed: string
   artUri?: string
   title: string
@@ -111,6 +128,23 @@ interface MinibarView {
   playing: boolean
   ratio: number
 }
+
+/**
+ * 单集态的展示数据（原型 `paintMiniBar` 的 pod 分支）：只有封面 / 集名 / 节目名 / 播停 / 进度，
+ * 没有音源、音质、歌手、收藏、下一曲——单集不是歌。
+ */
+interface MinibarPodView {
+  kind: 'pod'
+  artSeed: string
+  artUri?: string
+  title: string
+  showName: string
+  playing: boolean
+  ratio: number
+}
+
+/** 播放位里这会儿是谁：两种形态共用同一只条、同一组几何（原型 paintMiniBar 的两个分支） */
+type MinibarView = MinibarSongView | MinibarPodView
 
 /**
  * 迷你播放条的**挂点**（全站常驻那一颗播放条的数据 / 动画 / 手势都在这里；对应原型 .minibar，
@@ -129,17 +163,24 @@ interface MinibarView {
  * 手势（原型 app.js `MINI` L2589-2695）：<8px 算点击；8–24px 弹回、什么都不做；≥24px 吸附。
  * 完整条拖向哪侧就吸哪侧；圆点过内容区中线换边。拖拽那一下不补发点击——手势一旦成立，
  * 内层 `Pressable` 会被 responder 打断，点击自然不成立（原型靠 endAt 时间戳挡的那件事）。
+ *
+ * **播放位里是谁（2026-10-28）**：本条既画歌也画播客单集（原型 `paintMiniBar` 的两个分支）。
+ * 判据只有一个——`isPodEpisodeLive()`（= 原型 `epLive()`）且歌曲没在放：是单集就画单集，否则画那首歌。
+ * 两态共用同一只条、同一组几何，差别只有封面 / 第二行文案 / 哪几颗动作钮在场；点条体也随形态分岔
+ * （单集 → 回单集屏，歌曲 → 播放页）。单集屏在放它自己那一集时本挂点整只让位（`away`，原型 `.is-away`）。
  */
 export const MinibarHost = ({
   componentId,
   bottomInset,
   defaultSnapped,
   resetKey,
+  away: awayProp = false,
 }: MinibarHostProps) => {
   const nowPlaying = useNowPlaying()
   const playMusicInfo = usePlayMusicInfo()
   const { nowPlayTime, maxPlayTime } = useProgress()
   const playQuality = useSettingValue('player.playQuality')
+  const podSnapshot = usePodPlayer()
   const { wide } = useWideLayout()
   const { width: windowWidth } = useWindowDimensions()
 
@@ -162,15 +203,27 @@ export const MinibarHost = ({
   const sourceKey = currentMusic && 'source' in currentMusic ? currentMusic.source : undefined
   const hasSong = nowPlaying.hasSong && sourceKey != null
 
+  const { album, picUrl, playing: isPlaying, singer, title } = nowPlaying
+
+  /**
+   * 播放位里这会儿是谁（原型 `epLive()`，app.js L2387 / paintMiniBar L2750-2753）：
+   * **单集占着播放器、而且歌曲没在放**时画单集，否则画那首歌。两件都要判——
+   * 单集与歌曲互斥（起播单集前 `podPlayer` 会先 `setPause()` 停歌），
+   * 交还的那一两百毫秒里两边可能都还在，这时按「谁真在出声」那条走：歌曲在放 = 画歌。
+   * `idle` / `failed` 不算占着播放位（判据在 `podcast/usePodEpisodeLive.ts`，与单集屏的 `ownsQueue` 同口径）。
+   */
+  const podLive = isPodEpisodeLive(podSnapshot) && !isPlaying
+
   /**
    * 退场那 420ms 里 store 可能已经把曲目清空，正在下滑的条不能先空掉 ——
-   * 所以在有歌时攒一份展示用视图模型，无歌那一段沿用它（不额外订阅、不复制播放逻辑）。
+   * 所以在有歌 / 有单集时攒一份展示用视图模型，没有那一段沿用它（不额外订阅、不复制播放逻辑）。
    */
   const lastViewRef = useRef<MinibarView | null>(null)
-  const { album, picUrl, playing: isPlaying, singer, title } = nowPlaying
-  const view = useMemo<MinibarView | null>(() => {
-    if (!hasSong || currentMusic == null || sourceKey == null) return lastViewRef.current
+  /** 歌曲那一态（原型 paintMiniBar 的 song 分支） */
+  const songView = useMemo<MinibarSongView | null>(() => {
+    if (!hasSong || currentMusic == null || sourceKey == null) return null
     return {
+      kind: 'song',
       artSeed: `album:${album || title}`,
       artUri: picUrl ?? undefined,
       title,
@@ -187,9 +240,47 @@ export const MinibarHost = ({
       ratio: maxPlayTime > 0 ? Math.min(nowPlayTime / maxPlayTime, 1) : 0,
     }
   }, [album, currentMusic, hasSong, isPlaying, maxPlayTime, nowPlayTime, picUrl, playQuality, singer, sourceKey, title])
+
+  /**
+   * 单集那一态（原型 paintMiniBar 的 pod 分支）：封面用**节目**那张（接口只在节目上挂 artwork），
+   * 标题是集名，第二行是「播客标记 + 节目名」。进度与外圈那一弧读同一份单集进度——
+   * 原型 `paintMiniProgress()` 也是「播放位里是谁就画谁的进度」，两条链路都汇到那一处。
+   */
+  const podView = useMemo<MinibarPodView | null>(() => {
+    if (!podLive) return null
+    return {
+      kind: 'pod',
+      artSeed: newUiPodArtSeed(podSnapshot.showId),
+      artUri: podSnapshot.artworkUrl.length > 0 ? podSnapshot.artworkUrl : undefined,
+      title: podSnapshot.title,
+      showName: podSnapshot.showName,
+      // 出声 / 缓冲中都算「在播」：`loading` 已经是「用户要出声」那一档，与单集屏那颗钮同一口径
+      playing: podSnapshot.phase === 'playing' || podSnapshot.phase === 'loading',
+      ratio: podSnapshot.duration > 0 ? Math.min(podSnapshot.position / podSnapshot.duration, 1) : 0,
+    }
+  }, [
+    podLive,
+    podSnapshot.artworkUrl,
+    podSnapshot.duration,
+    podSnapshot.phase,
+    podSnapshot.position,
+    podSnapshot.showId,
+    podSnapshot.showName,
+    podSnapshot.title,
+  ])
+
+  const view = useMemo<MinibarView | null>(
+    // 单集优先（原型 epLive() 先问），否则那首歌；都没有时沿用上一份好让退场动画里不空掉
+    () => podView ?? songView ?? lastViewRef.current,
+    [podView, songView],
+  )
   useEffect(() => {
     if (view != null) lastViewRef.current = view
   }, [view])
+
+  // 条在不在场（原型 `.minibar.show`）：有歌**或**有一集占着播放位。
+  // 换曲不触发进退场；单集 ↔ 歌曲互换也不触发（两态共用同一只条，只是换内容）
+  const hasBar = hasSong || podView != null
 
   /* ---- 形态与侧边（原型 MINI.snapped / MINI.side） ---- */
   // morph：1 = 完整条，0 = 磁吸圆点（原型那条 left/width/height/border-radius 联动）
@@ -298,9 +389,9 @@ export const MinibarHost = ({
 
   /**
    * 进退场（原型 `.minibar` / `.minibar.show` 的 transform/opacity 两段 transition）：
-   * 无歌 → 下移 + 淡出，**跑完才卸载**；重新有歌 → 上滑 + 淡入。
-   * 首次挂载本来就有歌时初值直接是「已进场」，不播入场动画（否则启动会先滑一下）。
-   * 换曲不触发：整段只认 `hasSong` 这一个开关。
+   * 没有在播（既没歌、也没有一集占着播放位）→ 下移 + 淡出，**跑完才卸载**；重新有 → 上滑 + 淡入。
+   * 首次挂载本来就有内容时初值直接是「已进场」，不播入场动画（否则启动会先滑一下）。
+   * 换曲、以及「单集 ↔ 歌曲」互换都不触发：整段只认 `hasBar` 这一个开关。
    */
   const [contentShown, setContentShown] = useState(view != null)
   // 本屏是否在最前（RNN 被盖住的屏不卸载）：圆点碟面只在「贴边 + 本屏可见」时转
@@ -309,7 +400,7 @@ export const MinibarHost = ({
   const [fade] = useState(() => new Animated.Value(view != null ? 1 : 0))
 
   useEffect(() => {
-    if (hasSong) {
+    if (hasBar) {
       setContentShown(true)
       Animated.parallel([
         Animated.timing(slide, { toValue: 1, duration: SLIDE_MS, easing: EASE, useNativeDriver: true }),
@@ -322,12 +413,32 @@ export const MinibarHost = ({
       Animated.timing(slide, { toValue: 0, duration: SLIDE_MS, easing: EASE, useNativeDriver: true }),
       Animated.timing(fade, { toValue: 0, duration: FADE_MS, easing: EASE, useNativeDriver: true }),
     ]).start(({ finished }) => { if (finished) setContentShown(false) })
-  }, [fade, hasSong, slide])
+  }, [fade, hasBar, slide])
+
+  /**
+   * 本屏让位（原型 `.minibar.is-away`，styles.css L740）：`opacity:0` + `pointer-events:none`，
+   * 180ms 淡出后就当它不在——`visibility:hidden` 那半句等价于「不再吃命中测试与读屏」，
+   * RN 侧由 `pointerEvents='none'` + 不渲染可点内容承担（元素仍挂载，所以回来时会淡入而不是重新滑入）。
+   * 时长取 `MINIBAR.morphMs`：原型这条过渡写的就是 `.18s`，与两态互相变形那一档同值。
+   */
+  const awayFade = useRef(new Animated.Value(awayProp ? 0 : 1)).current
+  useEffect(() => {
+    Animated.timing(awayFade, {
+      toValue: awayProp ? 0 : 1,
+      duration: MINIBAR.morphMs,
+      easing: EASE,
+      useNativeDriver: true,
+    }).start()
+  }, [awayFade, awayProp])
+
+  // 整条的不透明度 = 进退场 × 让位（两条各管一段，互不覆盖）
+  const rootOpacity = useMemo(() => Animated.multiply(fade, awayFade), [awayFade, fade])
 
   useEffect(() => () => {
     slide.stopAnimation()
     fade.stopAnimation()
-  }, [fade, slide])
+    awayFade.stopAnimation()
+  }, [awayFade, fade, slide])
 
   /* ---- 手势（原型 bindMiniDock L2642-2698 / miniPullPx / release 那一支） ---- */
   // 手势回调里要读「此刻」的形态 / 侧边 / 宽度，但 responder 不该因此重建：收在一条 ref 里
@@ -443,11 +554,36 @@ export const MinibarHost = ({
   const dragDim = dragging ? MINIBAR.dragOpacity : 1
 
   /**
-   * 点击分岔（原型 miniBarClick L2634-2640）：
-   * - 圆点 → 展开回完整条，**不**进播放页；
-   * - 完整条 → 打开现有全屏播放器（行为不变）。
+   * 点击分岔（原型 miniBarClick L2634-2640 / L2929-2934）：
+   * - 圆点 → 展开回完整条，**不**进播放页（见 handleSnappedPress）；
+   * - 完整条 + 单集态 → 回单集屏（那一屏才是这一集的播放器，播放页只画歌，里面没有它的位置）；
+   * - 完整条 + 歌曲态 → 打开现有全屏播放器（行为不变）。
    */
-  const handleFullPress = () => { pushNewUiPlayer(componentId) }
+  const handleFullPress = useCallback(() => {
+    if (podLive) {
+      openPodEpisodeScreen(componentId)
+      return
+    }
+    void pushNewUiPlayer(componentId)
+  }, [componentId, podLive])
+
+  /**
+   * 播停（原型 `epToggle` 在迷你条上的那一支，styles.css「mini-act.primary 那颗不动」）：
+   * 单集态作用在这一集上——出声 / 缓冲中 → 真暂停；其余（暂停 / 播完）→ 续播，
+   * 「播到头从零起」那一支在播放模块里（`resumePodEpisode`），本层不判。
+   * 歌曲态走既有的 `togglePlay`，一行不动。
+   * 定时停止播放那道闸不在本层：它落在 `startPodEpisode` / `resumePodEpisode` 第一行。
+   */
+  const handleTogglePlay = useCallback(() => {
+    if (!podLive) {
+      togglePlay()
+      return
+    }
+    const { phase } = getPodPlayerSnapshot()
+    if (phase === 'playing' || phase === 'loading') void pausePodEpisode()
+    else void resumePodEpisode()
+  }, [podLive])
+
   // 用户自己点圆点展开：同样没有整页重铺，照旧走 morphMs 的动画
   const handleSnappedPress = () => { applySnap(false, false) }
 
@@ -455,11 +591,12 @@ export const MinibarHost = ({
 
   return (
     <Animated.View
-      // 退场期间整条不吃触摸：用户点不到一条正在消失的条；空档处一律放行给页面
-      pointerEvents={hasSong ? 'box-none' : 'none'}
+      // 退场期间整条不吃触摸：用户点不到一条正在消失的条；空档处一律放行给页面。
+      // 让位（.is-away）同样整条不吃触摸——原型那句 pointer-events:none 就是这件事
+      pointerEvents={hasBar && !awayProp ? 'box-none' : 'none'}
       style={[
         styles.root,
-        { bottom, height: layerHeight, opacity: fade, transform: [{ translateY }] },
+        { bottom, height: layerHeight, opacity: rootOpacity, transform: [{ translateY }] },
       ]}
     >
       {/* 拖拽位移单独一层：与进场的 translateY 分开，两个驱动源互不串 */}
@@ -477,15 +614,19 @@ export const MinibarHost = ({
               artSeed={view.artSeed}
               artUri={view.artUri}
               title={view.title}
-              artist={view.artist}
-              sourceLabel={view.sourceLabel}
-              sourceTint={view.sourceTint}
-              qualityLabel={view.qualityLabel}
+              // 单集态第二行只留「播客标记 + 节目名」，歌曲那三位（音源 / 音质 / 歌手）一个都不出现：
+              // 空串传下去即可，Minibar 在单集态不读这三栏（见它 props 头注）
+              artist={view.kind === 'song' ? view.artist : ''}
+              sourceLabel={view.kind === 'song' ? view.sourceLabel : ''}
+              sourceTint={view.kind === 'song' ? view.sourceTint : undefined}
+              qualityLabel={view.kind === 'song' ? view.qualityLabel : ''}
+              podcast={view.kind === 'pod'}
+              showName={view.kind === 'pod' ? view.showName : undefined}
               playing={view.playing}
               ratio={view.ratio}
               barHeight={barHeight}
               onPress={handleFullPress}
-              onTogglePlay={togglePlay}
+              onTogglePlay={handleTogglePlay}
               // playNext 首参是 isAutoToggle（布尔），不能直接接 onPress（会收到事件对象），
               // 必须无参转接——同播放页口径（screens/Player/index.tsx L258）
               onPlayNext={() => { void playNext() }}
@@ -505,13 +646,16 @@ export const MinibarHost = ({
           {...responder.panHandlers}
         >
           <View style={{ opacity: dragDim }}>
+            {/* 碟面换成节目封面、外圈那一弧读单集进度：都只是 props（artSeed / artUri / ratio / playing）；
+                自转 12s / 暂停冻结 / 减少动态效果停转三条规则原样不动 */}
             <MinibarSnapped
               artSeed={view.artSeed}
               artUri={view.artUri}
               playing={view.playing}
-              active={snapped && screenVisible}
+              active={snapped && screenVisible && !awayProp}
               ratio={view.ratio}
               size={dotSize}
+              podcast={view.kind === 'pod'}
               onPress={handleSnappedPress}
             />
           </View>

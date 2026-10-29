@@ -12,6 +12,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient'
 import Svg, { Circle } from 'react-native-svg'
 
+import { NEW_UI_MINIBAR_LABELS } from '@/newui/const'
 import { ART_INK, GLASS, MINIBAR, useTheme } from '@/newui/theme'
 import { withAlpha } from '@/newui/utils'
 
@@ -32,6 +33,12 @@ export interface MinibarSnappedProps {
   ratio: number
   /** 圆点直径：竖屏 56 / 横屏 52（原型 --mini-dot，宽屏档收一档） */
   size: number
+  /**
+   * 单集态（原型 `paintMiniDock` 里按 `epLive()` 分叉的那两句读屏文案）：碟面换成节目封面、
+   * 外圈那一弧读单集进度——这两件事都由挂点从 props 喂进来（`artSeed` / `artUri` / `ratio` / `playing`），
+   * 本组件只多认一个「这一集在播」用来换无障碍名，转速 / 暂停冻结 / 减少动态效果三条规则一字不动。
+   */
+  podcast?: boolean
   /** 点一下 = 展开回完整条（原型 miniBarClick 里 snapped 那一支：不直接进播放页） */
   onPress: () => void
   style?: StyleProp<ViewStyle>
@@ -72,6 +79,7 @@ export const MinibarSnapped = memo(
     active = true,
     ratio,
     size,
+    podcast = false,
     onPress,
     style,
   }: MinibarSnappedProps) => {
@@ -169,7 +177,7 @@ export const MinibarSnapped = memo(
     return (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="播放条 · 贴在屏幕边缘的 CD，点一下展开"
+        accessibilityLabel={podcast ? NEW_UI_MINIBAR_LABELS.dockPod : NEW_UI_MINIBAR_LABELS.dock}
         onPress={onPress}
         style={[
           styles.root,
