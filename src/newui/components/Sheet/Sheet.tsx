@@ -56,6 +56,21 @@ export interface SheetListProps<T> {
   pinnedComponent?: ReactElement | null
   /** 列表尾 cell（如分页状态行）；随滚动进出 */
   footerComponent?: ReactElement | null
+  // —— 虚拟化精细化参数（覆盖 token 默认值；不传则吃 SHEET.list* 默认） ——
+  /** 固定高度列表（如 QueueSheet）可提供精确 offset 计算，根除"最后一行只剩半截" */
+  getItemLayout?: (data: ArrayLike<T> | null | undefined, index: number) => {
+    length: number
+    offset: number
+    index: number
+  }
+  /** 首批初始渲染数量（如 CommentSheet 每页 15 条，首批全渲染） */
+  initialNumToRender?: number
+  /** 动态高度列表滚到某位置时 VirtualizedList 可能算不准 offset，让它自己回调重试 */
+  onScrollToIndexFailed?: (info: {
+    index: number
+    highestMeasuredFrameIndex: number
+    averageItemLength: number
+  }) => void
 }
 
 export interface SheetProps<T = unknown> {
@@ -275,14 +290,18 @@ export function Sheet<T = unknown>({
                 style={styles.scroll}
                 contentContainerStyle={[
                   list.pinnedComponent != null ? styles.pinnedScrollContent : styles.scrollContent,
-                  { paddingBottom: SHEET.paddingBottom + bottomInset },
+                  // 底部补偿：让最后一个 item 的 bottom edge 不被 Sheet body 的 overflow:hidden 裁半截
+                  // 两场景通用（Queue/Comment 都受益），保守取一行 SongRow + 一行评论高度的上界
+                  { paddingBottom: SHEET.paddingBottom + bottomInset + SHEET.listBottomCompensation },
                 ]}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 scrollEventThrottle={MOTION.scrollThrottle}
-                initialNumToRender={SHEET.listInitialNumToRender}
+                getItemLayout={list.getItemLayout}
+                initialNumToRender={list.initialNumToRender ?? SHEET.listInitialNumToRender}
                 maxToRenderPerBatch={SHEET.listMaxToRenderPerBatch}
                 windowSize={SHEET.listWindowSize}
+                onScrollToIndexFailed={list.onScrollToIndexFailed}
                 onEndReached={onEndReached ? handleListEndReached : undefined}
                 onEndReachedThreshold={listEndReachedThreshold}
               />

@@ -1758,6 +1758,11 @@ export const SHEET = {
   listInitialNumToRender: 8,
   listMaxToRenderPerBatch: 6,
   listWindowSize: 7,
+  /** 虚拟化主体（FlatList/VirtualizedList）底部额外补偿 padding：
+   *  Sheet body 有 overflow:hidden，若最后一个 item 的 bottom edge 刚好贴到容器底、
+   *  又没 getItemLayout 精确算 offset（或 VirtualizedList 窗口边界），就会被裁半截。
+   *  保守取一行 SongRow（≈50px）和一行评论（≈160px）的折中，两场景都够。 */
+  listBottomCompensation: 100,
 } as const
 
 /* ================= 二次确认浮层（QA D-09，#confirmSheet，index.html L498-509；
@@ -1823,6 +1828,8 @@ export const COMMENT = {
   lineGap: 8,
   likeGap: 4,
   likeIcon: 13,
+  /** meta 行（用户名 · 时间 · 点赞）内元素间距——比旧 lineGap 略紧，meta 是一簇视觉 */
+  metaGap: 6,
   /** .cmt-text margin-top:4 / line-height 1.55（13 × 1.55 ≈ 20） */
   textMarginTop: 4,
   textLineHeight: 20,

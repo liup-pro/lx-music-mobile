@@ -62,7 +62,7 @@ const CommentNodeBase = ({ comment, depth, parentName, first, liked, onToggleLik
     </View>
   ) : null
 
-  // ---- 根级（depth 0）：完整评论块，保持分页修复后的既有外观 ----
+  // ---- 根级（depth 0）：完整评论块 ----
   if (depth === 0) {
     const likeCount = (comment.likedCount ?? 0) + (liked ? 1 : 0)
     return (
@@ -78,11 +78,25 @@ const CommentNodeBase = ({ comment, depth, parentName, first, liked, onToggleLik
           iconSize={16}
         />
         <View style={styles.body}>
-          <View style={styles.line}>
-            <Text numberOfLines={1} style={[styles.name, { color: theme.colors.text3 }]}>
-              {comment.userName}
-            </Text>
-            {/* .cmt-like：本地会话点赞态，实心/空心切换 */}
+          {/* —— meta 行两端布局（2026-10-29 收敛同一行）——
+              左簇：用户名 · 时间；右簇：♥N 贴右。
+              旧版只有 name + like 两项 space-between，时间没放进来；
+              现在把时间补上、名字色用 text2 突出（是主信息），like 独立 flex:none 钉右。 */}
+          <View style={styles.metaRow}>
+            <View style={styles.metaLeft}>
+              <Text numberOfLines={1} style={[styles.name, { color: theme.colors.text2 }]}>
+                {comment.userName}
+              </Text>
+              {comment.timeStr && (
+                <>
+                  <Text style={[styles.metaDot, { color: theme.colors.text3 }]}>·</Text>
+                  <Text numberOfLines={1} style={[styles.time, { color: theme.colors.text3 }]}>
+                    {comment.timeStr}
+                  </Text>
+                </>
+              )}
+            </View>
+            {/* .cmt-like：本地会话点赞态，实心/空心切换；flex:none 钉在 meta 行右端 */}
             <Pressable
               hitSlop={8}
               onPress={() => {
@@ -155,18 +169,35 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  /** .cmt-line 基线对齐、两端展开，gap:8 */
-  line: {
+  /** meta 行两端布局（2026-10-29 收敛同一行）：左簇名字·时间，右簇 ♥N 贴右。 */
+  metaRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: COMMENT.lineGap,
   },
-  /** .cmt-name 11.5 / 700 / text-3 */
+  /** 左簇：名字 · 时间 自然堆叠，flex:1 让右簇钉右；minWidth:0 防长名字撑破 */
+  metaLeft: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: COMMENT.metaGap,
+    marginRight: COMMENT.lineGap,
+  },
+  /** 用户名：text2（比旧版 text3 深，是主信息） */
   name: {
     flexShrink: 1,
     fontSize: FONT_SIZE.captionLg,
     fontWeight: FONT_WEIGHT.bold,
+  },
+  /** meta 行内分隔点（·） */
+  metaDot: {
+    fontSize: FONT_SIZE.captionLg,
+  },
+  /** 时间：text3 灰、比名字小一档、tabular */
+  time: {
+    fontSize: FONT_SIZE.tiny,
+    fontVariant: ['tabular-nums'],
   },
   /** .cmt-like 10.5 / gap:4 / flex:none */
   like: {

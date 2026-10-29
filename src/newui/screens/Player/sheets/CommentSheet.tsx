@@ -129,6 +129,19 @@ export const CommentSheet = ({ visible, musicInfo, onClose, bottomInset }: Comme
   }, [])
 
   /**
+   * 动态高度 VirtualizedList 滚到底部时可能算不准某位置 offset（评论卡含回复线程，高度飘）。
+   * 官方兜底：滚到 index 失败时回调，这里不做额外处理——让用户再滚一次就通了；
+   * 真正根因已靠 initialNumToRender=15（首批全渲染，窗口不跨 item 边界）+ Sheet 底部补偿解决大部分场景。
+   */
+  const handleScrollToIndexFailed = useCallback((_info: {
+    index: number
+    highestMeasuredFrameIndex: number
+    averageItemLength: number
+  }) => {
+    // no-op：让 VirtualizedList 自己恢复
+  }, [])
+
+  /**
    * 虚拟化行模型（2026-10-16 评论浮层 OOM 修复轮）：**一条根评论（含其整条回复线程）= 一行**。
    * 回复递归展开仍是 CommentNode 内部的事（bug-fix「评论浮窗」第 2 条的层级/缩进/竖线零变化）；
    * 五平台真实数据最深只有 2 级（根 + 一层回复数组），单行体量有界，
@@ -236,6 +249,11 @@ export const CommentSheet = ({ visible, musicInfo, onClose, bottomInset }: Comme
         headerComponent: listHeader,
         pinnedComponent: pinnedTotal,
         footerComponent: listFooter,
+        // —— 虚拟化精细化参数（2026-10-29 末行半截修复）——
+        // 每页 COMMENT_LIMIT=15 条，首批全渲染后一屏不会再出现"窗口边界上的半截"；
+        // 动态高度列表（评论卡含回复线程）不适合 getItemLayout，靠 Sheet 底部补偿 + 这个兜底
+        initialNumToRender: COMMENT_LIMIT,
+        onScrollToIndexFailed: handleScrollToIndexFailed,
       }}
     />
   )

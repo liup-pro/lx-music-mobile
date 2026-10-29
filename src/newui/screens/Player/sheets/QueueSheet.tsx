@@ -240,6 +240,11 @@ export const QueueSheet = ({ visible, onClose, bottomInset }: QueueSheetProps) =
           keyExtractor,
           headerComponent: listHeader,
           pinnedComponent: pinnedMeta,
+          // —— 虚拟化精细化参数（2026-10-29 末行半截修复）——
+          // 首批 30 行（LIST_LOAD_LIMIT 同档），播放列表不分页、整单在手也不会比这大；
+          // 末行半截根因已靠 Sheet 组件统一的底部补偿 padding 解决，此处不再硬算 getItemLayout
+          // （SongRow 是 flex 自适应高度，将来改尺寸也不会把精确 offset 弄坏）
+          initialNumToRender: 30,
         }}
       />
       {/* 面板之上再叠行内「⋯」——必须排在上面那块之后（同 z-index，后声明者在上；返回键也先收它） */}
